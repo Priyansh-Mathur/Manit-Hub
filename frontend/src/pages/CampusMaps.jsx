@@ -1,5 +1,5 @@
 import { useState } from "react";
-import CampusMap from "../components/maps/CampusMap";
+import ManitMap from "../components/ManitMap";
 import Card from "../components/ui/Card";
 
 export default function CampusMaps() {
@@ -43,11 +43,7 @@ export default function CampusMaps() {
       {/* Map Tab */}
       {activeTab === "map" && (
         <div className="space-y-6">
-          <CampusMap
-            centerLat={22.816989}
-            centerLng={72.473361}
-            buildings={buildings}
-          />
+          <ManitMap />
         </div>
       )}
 
