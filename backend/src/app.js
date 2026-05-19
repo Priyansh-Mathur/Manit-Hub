@@ -14,8 +14,10 @@ const notificationsRoutes = require("./routes/notifications.routes");
 const dashboardRoutes = require("./routes/dashboard.routes");
 
 const errorHandler = require("./middleware/error");
+const connectDB = require("./config/db");
 
 const app = express();
+const dbConnection = connectDB();
 
 // Middleware
 app.use(
@@ -32,6 +34,15 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+
+app.use(async (req, res, next) => {
+  try {
+    await dbConnection;
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
 
 // Routes
 app.use("/api/auth", authRoutes);
