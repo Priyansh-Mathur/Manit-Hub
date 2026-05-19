@@ -14,9 +14,17 @@ const io = new Server(server, {
 
 chatSocket(io);
 
-connectDB().then(() => {
-  studyGroupReminderJob();
-  server.listen(process.env.PORT || 5001, () => {
-    console.log(`Server running at http://localhost:${process.env.PORT || 5001}`);
-  });
-});
+async function startServer() {
+  try {
+    await connectDB();
+    studyGroupReminderJob();
+    server.listen(process.env.PORT || 5001, () => {
+      console.log(`Server running at http://localhost:${process.env.PORT || 5001}`);
+    });
+  } catch (error) {
+    console.log(error);
+    process.exit(1);
+  }
+}
+
+startServer();
