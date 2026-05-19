@@ -1,0 +1,494 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>Untitled map</name>
+    <description/>
+    <Style id="icon-1899-0288D1-normal">
+      <IconStyle>
+        <color>ffd18802</color>
+        <scale>1</scale>
+        <Icon>
+          <href>https://www.gstatic.com/mapspro/images/stock/503-wht-blank_maps.png</href>
+        </Icon>
+        <hotSpot x="32" xunits="pixels" y="64" yunits="insetPixels"/>
+      </IconStyle>
+      <LabelStyle>
+        <scale>0</scale>
+      </LabelStyle>
+    </Style>
+    <Style id="icon-1899-0288D1-highlight">
+      <IconStyle>
+        <color>ffd18802</color>
+        <scale>1</scale>
+        <Icon>
+          <href>https://www.gstatic.com/mapspro/images/stock/503-wht-blank_maps.png</href>
+        </Icon>
+        <hotSpot x="32" xunits="pixels" y="64" yunits="insetPixels"/>
+      </IconStyle>
+      <LabelStyle>
+        <scale>1</scale>
+      </LabelStyle>
+    </Style>
+    <StyleMap id="icon-1899-0288D1">
+      <Pair>
+        <key>normal</key>
+        <styleUrl>#icon-1899-0288D1-normal</styleUrl>
+      </Pair>
+      <Pair>
+        <key>highlight</key>
+        <styleUrl>#icon-1899-0288D1-highlight</styleUrl>
+      </Pair>
+    </StyleMap>
+    <Style id="icon-1899-0288D1-nodesc-normal">
+      <IconStyle>
+        <color>ffd18802</color>
+        <scale>1</scale>
+        <Icon>
+          <href>https://www.gstatic.com/mapspro/images/stock/503-wht-blank_maps.png</href>
+        </Icon>
+        <hotSpot x="32" xunits="pixels" y="64" yunits="insetPixels"/>
+      </IconStyle>
+      <LabelStyle>
+        <scale>0</scale>
+      </LabelStyle>
+      <BalloonStyle>
+        <text><![CDATA[<h3>$[name]</h3>]]></text>
+      </BalloonStyle>
+    </Style>
+    <Style id="icon-1899-0288D1-nodesc-highlight">
+      <IconStyle>
+        <color>ffd18802</color>
+        <scale>1</scale>
+        <Icon>
+          <href>https://www.gstatic.com/mapspro/images/stock/503-wht-blank_maps.png</href>
+        </Icon>
+        <hotSpot x="32" xunits="pixels" y="64" yunits="insetPixels"/>
+      </IconStyle>
+      <LabelStyle>
+        <scale>1</scale>
+      </LabelStyle>
+      <BalloonStyle>
+        <text><![CDATA[<h3>$[name]</h3>]]></text>
+      </BalloonStyle>
+    </Style>
+    <StyleMap id="icon-1899-0288D1-nodesc">
+      <Pair>
+        <key>normal</key>
+        <styleUrl>#icon-1899-0288D1-nodesc-normal</styleUrl>
+      </Pair>
+      <Pair>
+        <key>highlight</key>
+        <styleUrl>#icon-1899-0288D1-nodesc-highlight</styleUrl>
+      </Pair>
+    </StyleMap>
+    <Folder>
+      <name>Untitled layer</name>
+      <Placemark>
+        <name>Tennis Court, MANIT</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            77.4072379,23.2128042,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Sports Complex, NIT Bhopal</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            77.406279,23.21151,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Basketball Court</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            77.4083047,23.211453,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Manit Water Tank</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            77.4032789,23.2141248,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Maulana Azad National Institute of Technology: Department Of Civil Engineering</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            77.4072512,23.2143308,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Maulana Azad National Institute of Technology</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            77.4084264,23.2161271,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Faculty Guest House</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            77.4074687,23.218022,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Neelam food Centre</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            77.4031609,23.2149017,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Rolta Incubation Center</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            77.4043458,23.2158978,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Parking lot</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            77.4051967,23.2157981,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Computer Center Open Air Theatre (CCOAT)</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            77.4053797,23.2172925,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Dean Academic Office</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            77.403627,23.2175056,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>VIP Guest House MANIT</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            77.4044695,23.2191405,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Registrar House</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            77.4037752,23.219582,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Manit shiva Temple</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            77.3982917,23.215466,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Shiva Temple</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            77.3970688,23.2141251,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>H-12 Nivedita Bhawan</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            77.3994752,23.2164722,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>PMC Chauraha</name>
+        <description>prem milan chauraha</description>
+        <styleUrl>#icon-1899-0288D1</styleUrl>
+        <Point>
+          <coordinates>
+            77.4004558,23.2157551,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>H7</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            77.3999742,23.2159866,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Machan</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            77.4047096,23.2111621,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>MANIT Basketball Court</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            77.4067839,23.2122597,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Energy Centre Parking Lot</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            77.4061372,23.2139498,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Civil Engineering Department (New Block)</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            77.4074223,23.2141523,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Mechanical Engineering Depatrment</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            77.4084118,23.2141933,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Electrical Engineering Department</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            77.4083537,23.2136016,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Nescafe Canteen</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            77.4063401,23.2153191,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Electronics and Communication Engineering Department</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            77.4072915,23.2163779,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>MANIT Bhopal</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            77.406,23.2169029,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Department of Architecture and Planning</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            77.4066569,23.2170249,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>MANIT Post Office</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            77.4059702,23.2171172,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>MANIT Library</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            77.4076809,23.2169158,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>SBI Cricket Ground</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            77.4083355,23.2163264,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>LRC MANIT</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            77.4093298,23.216644,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>NEW TEACHING BLOCK (N.T.B)</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            77.408512,23.2173799,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Hostel no. 2</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            77.409506,23.2115152,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Susangat- The taste of MANIT</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            77.4114449,23.2123213,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Manit Hostel NO.6</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            77.4162573,23.2139426,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Hostel 5</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            77.4144137,23.2141091,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name><![CDATA[Hostel 10 C & 10 D Manit]]></name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            77.410183,23.2095764,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name><![CDATA[Hostel 10A & 10B manit]]></name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            77.4124806,23.209292,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Hostel 11 MANIT</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            77.4100227,23.2076182,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Hostel no 9 Manit Bhopal</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            77.4088087,23.2071687,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>TTN Ground</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            77.4059229,23.2081707,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>HOSTEL 4</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            77.4114796,23.2102947,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Hostel 8</name>
+        <styleUrl>#icon-1899-0288D1-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            77.41271,23.2095745,0
+          </coordinates>
+        </Point>
+      </Placemark>
+    </Folder>
+  </Document>
+</kml>
