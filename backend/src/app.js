@@ -17,7 +17,6 @@ const errorHandler = require("./middleware/error");
 const connectDB = require("./config/db");
 
 const app = express();
-const dbConnection = connectDB();
 
 // Middleware
 app.use(
@@ -37,7 +36,7 @@ app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 app.use(async (req, res, next) => {
   try {
-    await dbConnection;
+    await connectDB();
     next();
   } catch (error) {
     next(error);
