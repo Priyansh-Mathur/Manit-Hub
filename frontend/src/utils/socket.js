@@ -2,7 +2,7 @@ import { io } from 'socket.io-client';
 
 const SOCKET_URL =
   import.meta.env.VITE_SOCKET_URL ||
-  'https://campus-hub-bng6.onrender.com';
+  window.location.origin;
 
 class SocketService {
   constructor() {
