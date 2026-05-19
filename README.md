@@ -3,13 +3,10 @@
 Campus Hub is a full-stack campus community platform for students to buy and sell items, form study groups, message in real-time, receive notifications, and navigate campus resources.
 
 ## Links
-- [Live Demo](https://campus-hub-livid.vercel.app)
-- [Backend Server](https://campus-hub-bng6.onrender.com)
+- [Live Demo](https://manithub-samayjainbm.netlify.app/)
+- [Backend Server](https://manit-hub-backend.vercel.app/)
 - [Backend Repo](https://github.com/Samay-Jain/campus-hub/tree/main/backend)
 - [Frontend Repo](https://github.com/Samay-Jain/campus-hub/tree/main/frontend)
-- [API Documentation](https://documenter.getpostman.com/view/39189648/2sBXqJJfMY)
-
-## Demo Video
 
 <iframe
 	width="100%"

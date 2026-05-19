@@ -7,7 +7,7 @@ export default function ManitMap() {
   const [polygons, setPolygons] = useState([]);
 
   useEffect(() => {
-    fetch("/Untitled map.kml")
+    fetch("/Untitled layer.kml")
       .then((res) => res.text())
       .then((kmlText) => {
         const parser = new DOMParser();
