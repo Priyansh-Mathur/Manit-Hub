@@ -6,9 +6,53 @@ exports.getMe = async (req, res) => {
     id: req.user._id,
     email: req.user.email,
     displayName: req.user.displayName,
+    phone: req.user.phone,
+    bio: req.user.bio,
+    location: req.user.location,
     avatarUrl: req.user.avatarUrl,
     university: req.user.university,
   });
+};
+
+exports.updateProfile = async (req, res) => {
+  try {
+    const { displayName, email, phone, bio, location } = req.body;
+
+    if (displayName !== undefined) req.user.displayName = displayName;
+    if (phone !== undefined) req.user.phone = phone;
+    if (bio !== undefined) req.user.bio = bio;
+    if (location !== undefined) req.user.location = location;
+
+    if (email !== undefined && email !== req.user.email) {
+      const existingUser = await require("../models/User").findOne({
+        email,
+        _id: { $ne: req.user._id },
+      });
+
+      if (existingUser) {
+        return error(res, "Email already in use", 400);
+      }
+
+      req.user.email = email;
+    }
+
+    await req.user.save();
+
+    return success(res, {
+      user: {
+        id: req.user._id,
+        email: req.user.email,
+        displayName: req.user.displayName,
+        phone: req.user.phone,
+        bio: req.user.bio,
+        location: req.user.location,
+        avatarUrl: req.user.avatarUrl,
+        university: req.user.university,
+      },
+    }, "Profile updated successfully");
+  } catch (err) {
+    return error(res, err.message, 500);
+  }
 };
 
 exports.uploadAvatar = async (req, res) => {
@@ -17,7 +61,7 @@ exports.uploadAvatar = async (req, res) => {
       return error(res, "No image uploaded", 400);
     }
 
-    req.user.avatarUrl = req.file.path; // Cloudinary URL
+    req.user.avatarUrl = `${req.protocol}://${req.get("host")}/uploads/avatars/${req.file.filename}`;
     await req.user.save();
 
     return success(
@@ -199,6 +243,9 @@ exports.getUserProfile = async (req, res, next) => {
       user: {
         id: user._id,
         displayName: user.displayName,
+        phone: user.phone,
+        bio: user.bio,
+        location: user.location,
         avatarUrl: user.avatarUrl,
         university: user.university,
       },

@@ -10,6 +10,12 @@ const uploadPaymentQr = require("../middleware/uploadPaymentQr");
 router.get("/me", auth, usersController.getMe);
 
 router.put(
+  "/me",
+  auth,
+  usersController.updateProfile
+);
+
+router.put(
   "/avatar",
   auth,
   uploadAvatar.single("avatar"),

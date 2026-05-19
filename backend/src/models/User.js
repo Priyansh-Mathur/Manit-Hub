@@ -24,6 +24,24 @@ const userSchema = new mongoose.Schema(
       trim: true,
     },
 
+    phone: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    bio: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    location: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
     avatarUrl: {
       type: String,
       default: "",

@@ -1,23 +1,18 @@
+const fs = require("fs");
+const path = require("path");
 const multer = require("multer");
-const { CloudinaryStorage } = require("multer-storage-cloudinary");
-const cloudinary = require("../config/cloudinary");
 
-const storage = new CloudinaryStorage({
-  cloudinary,
-  params: async (req, file) => ({
-    folder: "campus-hub/avatars",
-    resource_type: "image",
-    public_id: `user_${Date.now()}`,
-    allowed_formats: ["jpg", "jpeg", "png", "webp"],
-    transformation: [
-      {
-        width: 256,
-        height: 256,
-        crop: "fill",
-        gravity: "face",
-      },
-    ],
-  }),
+const avatarsDir = path.join(__dirname, "../../uploads/avatars");
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    fs.mkdirSync(avatarsDir, { recursive: true });
+    cb(null, avatarsDir);
+  },
+  filename: (req, file, cb) => {
+    const extension = path.extname(file.originalname).toLowerCase();
+    cb(null, `avatar-${req.user._id}-${Date.now()}${extension}`);
+  },
 });
 
 const fileFilter = (req, file, cb) => {

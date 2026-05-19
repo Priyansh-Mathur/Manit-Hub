@@ -8,7 +8,7 @@ import { usersApi } from '../../api/users';
 import ListingCard from '../marketplace/ListingCard';
 import ConfirmModal from '../ui/ConfirmModal';
 import { useToast } from '../ui/useToast';
-import { updatePaymentInfo, uploadPaymentQr } from '../../api/settings';
+import { updatePaymentInfo, uploadPaymentQr, updateNotificationPreferences, updatePrivacySettings } from '../../api/settings';
 
 export default function ProfileSettings({ settings, onSettingsUpdate }) {
   const { user, login, logout } = useAuthContext();
@@ -17,6 +17,7 @@ export default function ProfileSettings({ settings, onSettingsUpdate }) {
   const fileInputRef = useRef(null);
   const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl || user?.avatar || null);
   const [avatarLoading, setAvatarLoading] = useState(false);
+  const [avatarFile, setAvatarFile] = useState(null);
   const [formData, setFormData] = useState({
     displayName: user?.displayName || '',
     email: user?.email || '',
@@ -33,6 +34,17 @@ export default function ProfileSettings({ settings, onSettingsUpdate }) {
     upiId: settings?.paymentInfo?.upiId || "",
     upiQrUrl: settings?.paymentInfo?.upiQrUrl || "",
   });
+  const [notificationPreferences, setNotificationPreferences] = useState({
+    messages: settings?.notificationPreferences?.messages ?? true,
+    studyGroups: settings?.notificationPreferences?.studyGroups ?? true,
+    marketplace: settings?.notificationPreferences?.marketplace ?? true,
+  });
+
+  const [privacySettings, setPrivacySettings] = useState({
+    profileVisibility: settings?.privacySettings?.profileVisibility || 'everyone',
+    showOnlineStatus: settings?.privacySettings?.showOnlineStatus ?? true,
+    allowDirectMessages: settings?.privacySettings?.allowDirectMessages ?? true,
+  });
   const [savingPayment, setSavingPayment] = useState(false);
   const [qrFile, setQrFile] = useState(null);
   useEffect(() => {
@@ -42,6 +54,16 @@ export default function ProfileSettings({ settings, onSettingsUpdate }) {
       upiId: settings?.paymentInfo?.upiId || "",
       upiQrUrl: settings?.paymentInfo?.upiQrUrl || "",
     });
+    setNotificationPreferences({
+      messages: settings?.notificationPreferences?.messages ?? true,
+      studyGroups: settings?.notificationPreferences?.studyGroups ?? true,
+      marketplace: settings?.notificationPreferences?.marketplace ?? true,
+    });
+    setPrivacySettings({
+      profileVisibility: settings?.privacySettings?.profileVisibility || 'everyone',
+      showOnlineStatus: settings?.privacySettings?.showOnlineStatus ?? true,
+      allowDirectMessages: settings?.privacySettings?.allowDirectMessages ?? true,
+    });
     if (user?.avatarUrl || user?.avatar) {
       setAvatarUrl(user.avatarUrl || user.avatar);
     }
@@ -50,13 +72,43 @@ export default function ProfileSettings({ settings, onSettingsUpdate }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      const updatedUser = { ...user, ...formData };
-      login({ user: updatedUser, token: localStorage.getItem('token') });
+
+    try {
+      const response = await usersApi.updateProfile(formData);
+      const savedUser = response?.data?.data?.user || response?.data?.user;
+
+      if (savedUser) {
+        login({ user: savedUser, token: localStorage.getItem('token') });
+        // persist notification and privacy settings
+        try {
+          await updateNotificationPreferences(notificationPreferences);
+        } catch (err) {
+          console.error('Failed to update notification preferences', err);
+        }
+
+        try {
+          await updatePrivacySettings(privacySettings);
+        } catch (err) {
+          console.error('Failed to update privacy settings', err);
+        }
+        setFormData((prev) => ({
+          ...prev,
+          displayName: savedUser.displayName || prev.displayName,
+          email: savedUser.email || prev.email,
+          phone: savedUser.phone || prev.phone,
+          location: savedUser.location || prev.location,
+          bio: savedUser.bio || prev.bio,
+        }));
+        show("Profile updated", "success");
+      } else {
+        show("Profile saved, but the response was invalid", "error");
+      }
+    } catch (error) {
+      console.error("Failed to update profile:", error);
+      show("Failed to save profile", "error");
+    } finally {
       setSaving(false);
-    }, 1000);
+    }
   };
 
   const handleDeleteAccount = async () => {
@@ -272,6 +324,56 @@ export default function ProfileSettings({ settings, onSettingsUpdate }) {
                   placeholder="City, State"
                   className="w-full border rounded-lg pl-10 pr-3 py-2 focus:outline-none focus:border-black"
                 />
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <h3 className="text-lg font-semibold mb-2">Notification Preferences</h3>
+            <div className="flex gap-4 items-center">
+              <label className="inline-flex items-center gap-2">
+                <input type="checkbox" checked={notificationPreferences.messages} onChange={(e) => setNotificationPreferences({...notificationPreferences, messages: e.target.checked})} />
+                <span className="ml-1">Messages</span>
+              </label>
+              <label className="inline-flex items-center gap-2">
+                <input type="checkbox" checked={notificationPreferences.studyGroups} onChange={(e) => setNotificationPreferences({...notificationPreferences, studyGroups: e.target.checked})} />
+                <span className="ml-1">Study Groups</span>
+              </label>
+              <label className="inline-flex items-center gap-2">
+                <input type="checkbox" checked={notificationPreferences.marketplace} onChange={(e) => setNotificationPreferences({...notificationPreferences, marketplace: e.target.checked})} />
+                <span className="ml-1">Marketplace</span>
+              </label>
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <h3 className="text-lg font-semibold mb-2">Privacy Settings</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Profile Visibility</label>
+                <select value={privacySettings.profileVisibility} onChange={(e) => setPrivacySettings({...privacySettings, profileVisibility: e.target.value})} className="w-full border rounded-lg px-3 py-2">
+                  <option value="everyone">Everyone</option>
+                  <option value="students">Students</option>
+                  <option value="private">Private</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Show Online Status</label>
+                <div className="mt-1">
+                  <label className="inline-flex items-center gap-2">
+                    <input type="checkbox" checked={privacySettings.showOnlineStatus} onChange={(e) => setPrivacySettings({...privacySettings, showOnlineStatus: e.target.checked})} />
+                    <span className="ml-1">Show</span>
+                  </label>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Allow Direct Messages</label>
+                <div className="mt-1">
+                  <label className="inline-flex items-center gap-2">
+                    <input type="checkbox" checked={privacySettings.allowDirectMessages} onChange={(e) => setPrivacySettings({...privacySettings, allowDirectMessages: e.target.checked})} />
+                    <span className="ml-1">Allow</span>
+                  </label>
+                </div>
               </div>
             </div>
           </div>

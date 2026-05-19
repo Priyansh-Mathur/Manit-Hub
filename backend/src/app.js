@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
+const path = require("path");
 
 const authRoutes = require("./routes/auth.routes");
 const universitiesRoutes = require("./routes/universities.routes");
@@ -17,7 +18,11 @@ const errorHandler = require("./middleware/error");
 const app = express();
 
 // Middleware
-app.use(helmet());
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  })
+);
 app.use(
   cors({
     origin: process.env.CLIENT_URL || "https://campus-hub-livid.vercel.app",
@@ -26,6 +31,7 @@ app.use(
 );
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 // Routes
 app.use("/api/auth", authRoutes);
