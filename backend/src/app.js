@@ -25,7 +25,7 @@ app.use(
 );
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "https://campus-hub-livid.vercel.app",
+    origin: process.env.CLIENT_URL || "https://manithub-samayjainbm.netlify.app",
     credentials: true,
   })
 );
