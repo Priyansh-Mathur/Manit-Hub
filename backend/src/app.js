@@ -49,6 +49,11 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "OK" });
 });
 
+// Root route for deployments (removes `Cannot GET /` on hosting platforms)
+app.get('/', (req, res) => {
+  res.send('MANIT HUB API is running');
+});
+
 // Global error handler (LAST)
 app.use(errorHandler);
 
