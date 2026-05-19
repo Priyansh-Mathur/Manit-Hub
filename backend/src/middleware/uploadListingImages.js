@@ -5,7 +5,7 @@ const cloudinary = require("../config/cloudinary");
 const storage = new CloudinaryStorage({
   cloudinary,
   params: async (req, file) => ({
-    folder: "campus-hub/listings",
+    folder: "manit-hub/listings",
     resource_type: "image",
     public_id: `listing_${req.user?._id}_${Date.now()}`,
     allowed_formats: ["jpg", "jpeg", "png", "webp"],

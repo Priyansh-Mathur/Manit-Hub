@@ -10,7 +10,7 @@ export default function NotFound() {
             <GraduationCap className="h-6 w-6" />
           </div>
           <div>
-            <div className="text-xs uppercase tracking-[0.35em] text-gray-500">Campus Hub</div>
+            <div className="text-xs uppercase tracking-[0.35em] text-gray-500">Manit Hub</div>
             <div className="font-semibold text-gray-900">Return to campus</div>
           </div>
         </Link>
@@ -29,7 +29,7 @@ export default function NotFound() {
             Page not found
           </h1>
           <p className="mx-auto mb-10 max-w-2xl text-base leading-7 text-gray-600 sm:text-lg">
-            The page you tried to open does not exist or was moved. Use one of the shortcuts below to get back to the parts of Campus Hub you need.
+            The page you tried to open does not exist or was moved. Use one of the shortcuts below to get back to the parts of Manit Hub you need.
           </p>
 
           <div className="flex flex-col justify-center gap-4 sm:flex-row">

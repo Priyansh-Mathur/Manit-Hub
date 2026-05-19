@@ -1,6 +1,6 @@
-# Campus Hub – Backend
+# Manit Hub – Backend
 
-Backend service for **Campus Hub**, a student-focused platform with:
+Backend service for **Manit Hub**, a student-focused platform with:
 
 - Marketplace (listings, wishlist, status)
 - Study Groups (join/leave, sessions, reminders)
@@ -103,7 +103,7 @@ Create a `.env` file in `backend/`:
 
 ```env
 PORT=5001
-MONGO_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/campus-hub?retryWrites=true&w=majority
+MONGO_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/manit-hub?retryWrites=true&w=majority
 JWT_SECRET=your_super_secret_key
 CLIENT_URL=http://localhost:5173
 CLOUDINARY_CLOUD_NAME=your_cloud_name

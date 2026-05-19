@@ -49,7 +49,7 @@ export default function Landing() {
           <div className="h-9 w-9 rounded-xl bg-black flex items-center justify-center">
             <GraduationCap className="w-5 h-5 text-white" />
           </div>
-          <span className="font-bold text-xl">Campus Hub</span>
+          <span className="font-bold text-xl">Manit Hub</span>
         </div>
         <Link to="/auth" className="text-sm font-medium hover:underline">
           Sign In
@@ -202,7 +202,7 @@ export default function Landing() {
             to="/auth"
             className="inline-flex items-center gap-2 bg-white text-black px-9 py-4 rounded-xl font-semibold text-lg hover:opacity-90 transition"
           >
-            Start Using Campus Hub
+            Start Using Manit Hub
             <ArrowRight className="w-5 h-5" />
           </Link>
         </div>
@@ -214,10 +214,10 @@ export default function Landing() {
           <div className="h-6 w-6 rounded bg-black flex items-center justify-center">
             <GraduationCap className="w-4 h-4 text-white" />
           </div>
-          <span className="font-semibold">Campus Hub</span>
+          <span className="font-semibold">Manit Hub</span>
         </div>
         <p className="text-sm">
-          © 2026 Campus Hub — built by students, for students.
+          © 2026 Manit Hub — built by students, for students.
         </p>
       </footer>
     </div>

@@ -1,18 +1,18 @@
-# Campus Hub
+# Manit Hub
 
-Campus Hub is a full-stack campus community platform for students to buy and sell items, form study groups, message in real-time, receive notifications, and navigate campus resources.
+Manit Hub is a full-stack campus community platform for students to buy and sell items, form study groups, message in real-time, receive notifications, and navigate campus resources.
 
 ## Links
 - [Live Demo](https://manit-hub-samayjainbm.netlify.app/)
 - [Backend Server](https://manit-hub-backend.vercel.app/)
-- [Backend Repo](https://github.com/Samay-Jain/campus-hub/tree/main/backend)
-- [Frontend Repo](https://github.com/Samay-Jain/campus-hub/tree/main/frontend)
+- [Backend Repo](https://github.com/Samay-Jain/Manit-Hub/tree/main/backend)
+- [Frontend Repo](https://github.com/Samay-Jain/Manit-Hub/tree/main/frontend)
 
 <iframe
 	width="100%"
 	height="420"
 	src="https://www.youtube.com/embed/T6d5j0IFiI8?si=b1zfPIVJHtAZMGVp"
-	title="Campus Hub demo video"
+	title="Manit Hub demo video"
 	frameborder="0"
 	allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
 	referrerpolicy="strict-origin-when-cross-origin"
@@ -31,7 +31,7 @@ Campus Hub is a full-stack campus community platform for students to buy and sel
 ## Monorepo Layout
 
 ```
-campus-hub/
+Manit Hub/
 |- backend/   # Node.js + Express + MongoDB API
 |- frontend/  # React + Vite web app
 `- README.md  # This file
@@ -79,7 +79,7 @@ campus-hub/
 
 ```bash
 git clone <your-repo-url>
-cd campus-hub
+cd "Manit Hub"
 
 cd backend
 npm install
@@ -94,7 +94,7 @@ Create `backend/.env` with values similar to:
 
 ```env
 PORT=8000
-MONGO_URI=mongodb://localhost:27017/campus-hub
+MONGO_URI=mongodb://localhost:27017/manit-hub
 JWT_SECRET=your_super_secret_key
 CLIENT_URL=http://localhost:5173
 CLOUDINARY_CLOUD_NAME=your_cloud_name
@@ -104,7 +104,7 @@ CLOUDINARY_API_SECRET=your_api_secret
 
 Notes:
 - If `PORT` is not set, backend falls back to `5001`.
-- Frontend defaults to deployed API/socket at `https://campus-hub-bng6.onrender.com`.
+- Frontend defaults to deployed API/socket at `https://manit-hub-bng6.onrender.com`.
 - You can override frontend endpoints with:
 	- `VITE_API_BASE_URL` (for REST API, including `/api`)
 	- `VITE_SOCKET_URL` (for Socket.IO server root URL)

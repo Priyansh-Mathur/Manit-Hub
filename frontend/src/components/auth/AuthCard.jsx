@@ -13,7 +13,7 @@ export default function AuthCard({ mode, setMode, children }) {
           <GraduationCap className="w-7 h-7 text-white" />
         </div>
 
-        <h1 className="mt-4 text-2xl font-semibold">Campus Hub</h1>
+        <h1 className="mt-4 text-2xl font-semibold">Manit Hub</h1>
         <p className="mt-1 text-gray-500">
           {mode === "login" && "Welcome back!"}
           {mode === "signup" && "Join the campus community"}

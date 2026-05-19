@@ -47,7 +47,7 @@ export default function SideNav() {
         <div className="h-9 w-9 rounded-lg bg-black flex items-center justify-center text-white">
           <GraduationCap className="w-7 h-7 text-white" />
         </div>
-        <span className="font-semibold text-lg">Campus Hub</span>
+        <span className="font-semibold text-lg">Manit Hub</span>
      
       </div>
 

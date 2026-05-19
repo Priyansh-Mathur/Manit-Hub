@@ -1,6 +1,6 @@
-# Campus Hub – Frontend
+# Manit Hub – Frontend
 
-React + Vite frontend for Campus Hub.
+React + Vite frontend for Manit Hub.
 
 ## Tech Stack
 
