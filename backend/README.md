@@ -103,7 +103,7 @@ Create a `.env` file in `backend/`:
 
 ```env
 PORT=5001
-MONGO_URI=mongodb://localhost:27017/campus-hub
+MONGO_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/campus-hub?retryWrites=true&w=majority
 JWT_SECRET=your_super_secret_key
 CLIENT_URL=http://localhost:5173
 CLOUDINARY_CLOUD_NAME=your_cloud_name
@@ -112,6 +112,8 @@ CLOUDINARY_API_SECRET=your_api_secret
 # Optional
 CAMPUS_LOCATIONS_COUNT=10
 ```
+
+For Vercel production, set the same values in the project environment variables, especially `MONGO_URI`, `JWT_SECRET`, and `CLIENT_URL=https://manithub-samayjainbm.netlify.app`.
 
 ### 3. Run the Server
 
