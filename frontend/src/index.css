@@ -1,3 +1,117 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    --bg: 245 247 250;
+    --surface: 255 255 255;
+    --surface-2: 255 255 255;
+    --fg: 15 23 41;
+    --muted: 91 100 115;
+    --border: 229 232 239;
+    --ring: 30 79 146;
+    --brutal: #152b4c;
+  }
+
+  .dark {
+    --bg: 7 11 21;
+    --surface: 15 22 38;
+    --surface-2: 21 32 51;
+    --fg: 233 238 247;
+    --muted: 147 160 182;
+    --border: 30 41 64;
+    --ring: 77 134 200;
+    --brutal: #05070d;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-bg font-sans text-fg antialiased;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background-color: rgb(30 79 146 / 0.18);
+  }
+
+  /* Scrollbars */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border: 2px solid transparent;
+    border-radius: 9999px;
+    background-clip: content-box;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /* Standardised field styling reused across the app */
+  .field {
+    @apply w-full rounded-xl border bg-surface px-3.5 py-2.5 text-sm text-fg shadow-sm outline-none transition
+      placeholder:text-muted/60
+      focus:border-primary-500 focus:ring-4 focus:ring-primary-500/15
+      disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .ring-focus {
+    @apply focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-500/25;
+  }
+
+  /* Shimmering skeleton */
+  .skeleton {
+    @apply relative overflow-hidden rounded-md bg-muted/15;
+  }
+  .skeleton::after {
+    content: "";
+    @apply absolute inset-0;
+    transform: translateX(-100%);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgb(255 255 255 / 0.28),
+      transparent
+    );
+    animation: shimmer 1.6s infinite;
+  }
+  .dark .skeleton::after {
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgb(255 255 255 / 0.06),
+      transparent
+    );
+  }
+
+  /* Subtle dotted/grid backdrop for hero sections */
+  .bg-grid {
+    background-image: radial-gradient(
+      circle at 1px 1px,
+      rgb(30 79 146 / 0.12) 1px,
+      transparent 0
+    );
+    background-size: 22px 22px;
+  }
+}

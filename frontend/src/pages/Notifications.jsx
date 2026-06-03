@@ -1,12 +1,29 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Bell, MessageCircle, Users, ShoppingBag, Check, X } from 'lucide-react';
-import Card from '../components/ui/Card';
-import { fetchNotifications, markNotificationAsRead, markAllNotificationsAsRead, deleteNotification } from '../api/notifications';
+import { useState, useEffect, useCallback } from "react";
+import { Bell, MessageCircle, Users, ShoppingBag, Check, X, CheckCheck } from "lucide-react";
+import {
+  fetchNotifications,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+  deleteNotification,
+} from "../api/notifications";
+import PageHeader from "../components/ui/PageHeader";
+import Button from "../components/ui/Button";
+import Segmented from "../components/ui/Segmented";
+import EmptyState from "../components/ui/EmptyState";
+import Skeleton from "../components/ui/Skeleton";
+import { cn } from "../lib/cn";
+
+const typeMeta = {
+  message: { icon: MessageCircle, tone: "bg-info-500/12 text-info-600" },
+  "study-group": { icon: Users, tone: "bg-success-500/12 text-success-600" },
+  marketplace: { icon: ShoppingBag, tone: "bg-gold-500/14 text-gold-600" },
+  default: { icon: Bell, tone: "bg-primary-600/10 text-primary-600" },
+};
 
 export default function Notifications() {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all');
+  const [filter, setFilter] = useState("all");
   const [unreadCount, setUnreadCount] = useState(0);
   const [page, setPage] = useState(1);
   const [meta, setMeta] = useState(null);
@@ -15,28 +32,25 @@ export default function Notifications() {
     try {
       setLoading(true);
       const params = {};
-      if (filter === 'messages') params.type = 'message';
-      if (filter === 'groups') params.type = 'study-group';
-      if (filter === 'marketplace') params.type = 'marketplace';
-      if (filter === 'unread') params.read = 'false';
-      const response = await fetchNotifications({ ...params, page, limit: 5 });
-      
+      if (filter === "messages") params.type = "message";
+      if (filter === "groups") params.type = "study-group";
+      if (filter === "marketplace") params.type = "marketplace";
+      if (filter === "unread") params.read = "false";
+      const response = await fetchNotifications({ ...params, page, limit: 8 });
+
       if (response.success) {
         setNotifications(response.data.notifications);
         setUnreadCount(response.data.meta.unreadCount);
         setMeta(response.data.meta);
       }
     } catch (error) {
-      console.error('Failed to fetch notifications:', error);
+      console.error("Failed to fetch notifications:", error);
     } finally {
       setLoading(false);
     }
   }, [filter, page]);
 
-  useEffect(() => {
-    setPage(1);
-  }, [filter]);
-
+  useEffect(() => setPage(1), [filter]);
   useEffect(() => {
     loadNotifications();
   }, [loadNotifications]);
@@ -44,212 +58,170 @@ export default function Notifications() {
   const markAsRead = async (id) => {
     try {
       await markNotificationAsRead(id);
-      setNotifications(prev => 
-        prev.map(notif => 
-          notif._id === id ? { ...notif, read: true } : notif
-        )
+      setNotifications((prev) =>
+        prev.map((n) => (n._id === id ? { ...n, read: true } : n))
       );
-      setUnreadCount(prev => Math.max(0, prev - 1));
+      setUnreadCount((prev) => Math.max(0, prev - 1));
     } catch (error) {
-      console.error('Failed to mark notification as read:', error);
+      console.error("Failed to mark notification as read:", error);
     }
   };
 
   const markAllAsRead = async () => {
     try {
       await markAllNotificationsAsRead();
-      setNotifications(prev => 
-        prev.map(notif => ({ ...notif, read: true }))
-      );
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
       setUnreadCount(0);
     } catch (error) {
-      console.error('Failed to mark all notifications as read:', error);
+      console.error("Failed to mark all notifications as read:", error);
     }
   };
 
   const handleDeleteNotification = async (id) => {
     try {
       await deleteNotification(id);
-      setNotifications(prev => prev.filter(notif => notif._id !== id));
+      setNotifications((prev) => prev.filter((n) => n._id !== id));
     } catch (error) {
-      console.error('Failed to delete notification:', error);
-    }
-  };
-
-  const getIcon = (type) => {
-    switch (type) {
-      case 'message': return MessageCircle;
-      case 'study-group': return Users;
-      case 'marketplace': return ShoppingBag;
-      default: return Bell;
-    }
-  };
-
-  const getIconColor = (type) => {
-    switch (type) {
-      case 'message': return 'text-blue-600';
-      case 'study-group': return 'text-green-600';
-      case 'marketplace': return 'text-orange-600';
-      default: return 'text-gray-600';
-    }
-  };
-
-  const getIconBg = (type) => {
-    switch (type) {
-      case 'message': return 'bg-blue-100';
-      case 'study-group': return 'bg-green-100';
-      case 'marketplace': return 'bg-orange-100';
-      default: return 'bg-gray-100';
+      console.error("Failed to delete notification:", error);
     }
   };
 
   const formatTime = (dateString) => {
     const date = new Date(dateString);
     const now = new Date();
-    const diffInMinutes = Math.floor((now - date) / (1000 * 60));
-    
-    if (diffInMinutes < 1) return 'Just now';
-    if (diffInMinutes < 60) return `${diffInMinutes} minutes ago`;
-    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)} hours ago`;
-    return `${Math.floor(diffInMinutes / 1440)} days ago`;
+    const diff = Math.floor((now - date) / 60000);
+    if (diff < 1) return "Just now";
+    if (diff < 60) return `${diff} min ago`;
+    if (diff < 1440) return `${Math.floor(diff / 60)}h ago`;
+    return `${Math.floor(diff / 1440)}d ago`;
   };
 
-  const filteredNotifications = notifications.filter(notif => {
-    if (filter === 'unread') return !notif.read;
-    if (filter === 'messages') return notif.type === 'message';
-    if (filter === 'groups') return notif.type === 'study-group';
-    if (filter === 'marketplace') return notif.type === 'marketplace';
-    return true;
-  });
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="text-gray-500">Loading notifications...</div>
-      </div>
-    );
-  }
+  const filterOptions = [
+    { value: "all", label: "All" },
+    { value: "unread", label: "Unread" },
+    { value: "messages", label: "Messages" },
+    { value: "groups", label: "Groups" },
+    { value: "marketplace", label: "Marketplace" },
+  ];
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Bell size={32} />
-            Notifications
-          </h1>
-          {unreadCount > 0 && (
-            <p className="text-gray-600 mt-1">{unreadCount} unread notifications</p>
-          )}
-        </div>
-        
-        {unreadCount > 0 && (
-          <button
-            onClick={markAllAsRead}
-            className="text-sm bg-gray-100 px-3 py-1 rounded-lg hover:bg-gray-200"
-          >
-            Mark all as read
-          </button>
-        )}
+    <div className="space-y-6">
+      <PageHeader
+        title="Notifications"
+        icon={Bell}
+        subtitle={
+          unreadCount > 0
+            ? `${unreadCount} unread notification${unreadCount > 1 ? "s" : ""}`
+            : "You're all caught up."
+        }
+        actions={
+          unreadCount > 0 && (
+            <Button variant="secondary" size="sm" leftIcon={CheckCheck} onClick={markAllAsRead}>
+              Mark all read
+            </Button>
+          )
+        }
+      />
+
+      <div className="overflow-x-auto">
+        <Segmented options={filterOptions} value={filter} onChange={setFilter} />
       </div>
 
-      <div className="flex gap-2 mb-6 overflow-x-auto">
-        {[
-          { id: 'all', label: 'All' },
-          { id: 'unread', label: 'Unread' },
-          { id: 'messages', label: 'Messages' },
-          { id: 'groups', label: 'Study Groups' },
-          { id: 'marketplace', label: 'Marketplace' }
-        ].map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setFilter(tab.id)}
-            className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition ${
-              filter === tab.id 
-                ? 'bg-black text-white' 
-                : 'bg-gray-100 hover:bg-gray-200'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="space-y-3">
-        {filteredNotifications.length === 0 ? (
-          <Card>
-            <div className="text-center py-8 text-gray-500">
-              No notifications found
+      {loading ? (
+        <div className="space-y-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-4 rounded-2xl border bg-card p-4 shadow-card">
+              <Skeleton className="h-11 w-11 rounded-xl" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-4 w-1/3" />
+                <Skeleton className="h-3 w-2/3" />
+              </div>
             </div>
-          </Card>
-        ) : (
-          filteredNotifications.map((notification) => {
-            const IconComponent = getIcon(notification.type);
+          ))}
+        </div>
+      ) : notifications.length === 0 ? (
+        <EmptyState
+          icon={Bell}
+          title="No notifications"
+          description="When something happens on campus, you'll see it here."
+        />
+      ) : (
+        <div className="space-y-3">
+          {notifications.map((notification) => {
+            const m = typeMeta[notification.type] || typeMeta.default;
+            const Icon = m.icon;
             return (
-              <Card key={notification._id} className={`transition-all ${
-                !notification.read ? 'border-l-4 border-l-black bg-gray-50' : ''
-              }`}>
-                <div className="flex items-start gap-4">
-                  <div className={`p-2 rounded-lg ${getIconBg(notification.type)}`}>
-                    <IconComponent size={20} className={getIconColor(notification.type)} />
-                  </div>
-                  
-                  <div className="flex-1 min-w-0">
-                    <h3 className={`font-medium ${!notification.read ? 'text-black' : 'text-gray-900'}`}>
-                      {notification.title}
-                    </h3>
-                    <p className="text-sm text-gray-600 mt-1">
-                      {notification.description}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-2">
-                      {formatTime(notification.createdAt)}
-                    </p>
-                  </div>
-
+              <div
+                key={notification._id}
+                className={cn(
+                  "group flex items-start gap-4 rounded-2xl border bg-card p-4 shadow-card transition",
+                  !notification.read && "ring-1 ring-primary-500/25"
+                )}
+              >
+                <span className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-xl", m.tone)}>
+                  <Icon size={20} />
+                </span>
+                <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     {!notification.read && (
-                      <button
-                        onClick={() => markAsRead(notification._id)}
-                        className="p-1 text-gray-400 hover:text-green-600"
-                        title="Mark as read"
-                      >
-                        <Check size={16} />
-                      </button>
+                      <span className="h-2 w-2 shrink-0 rounded-full bg-accent-600" />
                     )}
-                    <button
-                      onClick={() => handleDeleteNotification(notification._id)}
-                      className="p-1 text-gray-400 hover:text-red-600"
-                      title="Delete"
-                    >
-                      <X size={16} />
-                    </button>
+                    <h3 className="truncate font-semibold text-fg">
+                      {notification.title}
+                    </h3>
                   </div>
+                  <p className="mt-1 text-sm text-muted">{notification.description}</p>
+                  <p className="mt-2 text-xs text-muted/80">
+                    {formatTime(notification.createdAt)}
+                  </p>
                 </div>
-              </Card>
+                <div className="flex items-center gap-1">
+                  {!notification.read && (
+                    <button
+                      type="button"
+                      onClick={() => markAsRead(notification._id)}
+                      title="Mark as read"
+                      className="ring-focus rounded-lg p-2 text-muted transition hover:bg-success-500/10 hover:text-success-600"
+                    >
+                      <Check size={16} />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteNotification(notification._id)}
+                    title="Delete"
+                    className="ring-focus rounded-lg p-2 text-muted transition hover:bg-danger-500/10 hover:text-danger-600"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              </div>
             );
-          })
-        )}
-      </div>
+          })}
+        </div>
+      )}
 
       {meta && meta.totalPages > 1 && (
-        <div className="mt-6 flex items-center justify-between">
-          <button
+        <div className="flex items-center justify-between">
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => setPage((prev) => Math.max(1, prev - 1))}
             disabled={page === 1}
-            className="rounded-lg border px-4 py-2 text-sm disabled:opacity-50"
           >
             Previous
-          </button>
-          <span className="text-sm text-gray-500">
+          </Button>
+          <span className="text-sm text-muted">
             Page {meta.page} of {meta.totalPages}
           </span>
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => setPage((prev) => Math.min(meta.totalPages, prev + 1))}
             disabled={page >= meta.totalPages}
-            className="rounded-lg border px-4 py-2 text-sm disabled:opacity-50"
           >
             Next
-          </button>
+          </Button>
         </div>
       )}
     </div>

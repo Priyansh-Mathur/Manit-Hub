@@ -1,13 +1,29 @@
-import { Heart, MessageCircle, CheckCircle } from "lucide-react";
-import { messagesApi } from "../../api/messages";
-import { updateListingStatus, updateListing, deleteListing, uploadListingImages } from "../../api/listings";
-import { useAuthContext } from "../../context/useAuthContext";
-import { useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { Heart, MessageCircle, CheckCircle, Pencil, Trash2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { messagesApi } from "../../api/messages";
+import {
+  updateListingStatus,
+  updateListing,
+  deleteListing,
+  uploadListingImages,
+} from "../../api/listings";
 import { usersApi } from "../../api/users";
+import { useAuthContext } from "../../context/useAuthContext";
+import { useToast } from "../ui/useToast";
+import { PLACEHOLDER_LISTING } from "../../lib/images";
+import { cn } from "../../lib/cn";
+import Badge from "../ui/Badge";
+import Avatar from "../ui/Avatar";
 import ListItemModal from "./ListItemModal";
 import ConfirmModal from "../ui/ConfirmModal";
-import { useToast } from "../ui/useToast";
+
+const conditionTone = {
+  new: "success",
+  "like-new": "primary",
+  good: "gold",
+  fair: "warning",
+};
 
 export default function ListingCard({ item }) {
   const { user, login } = useAuthContext();
@@ -23,25 +39,21 @@ export default function ListingCard({ item }) {
 
   const handleStartConversation = async () => {
     if (!user) {
-      navigate('/auth');
+      navigate("/auth");
       return;
     }
-
-    if (item.seller._id === user._id) {
-      return; // Can't message yourself
-    }
+    if (item.seller._id === user._id) return;
 
     try {
-      const conversationData = {
+      await messagesApi.createConversation({
         listingId: item._id,
         listingTitle: item.title,
         participantId: item.seller._id,
-      };
-
-      await messagesApi.createConversation(conversationData);
-      navigate('/messages');
+      });
+      navigate("/messages");
     } catch (error) {
-      console.error('Error creating conversation:', error);
+      console.error("Error creating conversation:", error);
+      show("Could not start conversation", "error");
     }
   };
 
@@ -49,8 +61,10 @@ export default function ListingCard({ item }) {
     try {
       const updated = await updateListingStatus(item._id, "sold");
       if (updated?.status) setStatus(updated.status);
+      show("Marked as sold", "success");
     } catch (error) {
       console.error("Error updating listing status:", error);
+      show("Could not update status", "error");
     }
   };
 
@@ -63,9 +77,8 @@ export default function ListingCard({ item }) {
       const wasSaved = isSaved;
       const response = await usersApi.toggleSavedListing(item._id);
       const saved = response.data?.data || [];
-      const normalizedSaved = saved.map(String);
       login({
-        user: { ...user, savedListings: normalizedSaved },
+        user: { ...user, savedListings: saved.map(String) },
         token: localStorage.getItem("token"),
       });
       show(wasSaved ? "Removed from wishlist" : "Saved to wishlist", "success");
@@ -108,82 +121,111 @@ export default function ListingCard({ item }) {
     }).format(numberValue);
   };
 
+  const sold = status === "sold";
+
   return (
-    <div className="rounded-xl border bg-white overflow-hidden shadow-[6px_6px_0_0_#000]">
-      <div className="relative">
+    <div className="group flex flex-col overflow-hidden rounded-2xl border bg-card shadow-card transition hover:-translate-y-1 hover:shadow-lift">
+      <div className="relative aspect-[4/3] overflow-hidden bg-muted/10">
         <img
-          src={item.images?.[0] || "https://via.placeholder.com/600x400?text=Listing"}
+          src={item.images?.[0] || PLACEHOLDER_LISTING}
           alt={item.title}
-          className="h-56 w-full object-cover"
+          loading="lazy"
+          onError={(e) => {
+            e.currentTarget.src = PLACEHOLDER_LISTING;
+          }}
+          className={cn(
+            "h-full w-full object-cover transition duration-500 group-hover:scale-105",
+            sold && "opacity-70"
+          )}
         />
 
         <button
+          type="button"
           onClick={handleToggleSaved}
-          className="absolute top-3 right-3 rounded-full bg-white p-2"
+          aria-label={isSaved ? "Remove from wishlist" : "Save to wishlist"}
+          className="ring-focus absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-surface/90 text-fg shadow-sm backdrop-blur transition hover:scale-105"
         >
-          <Heart size={16} className={isSaved ? "fill-black text-black" : ""} />
+          <Heart
+            size={16}
+            className={isSaved ? "fill-accent-600 text-accent-600" : "text-muted"}
+          />
         </button>
 
-        <span className="absolute bottom-3 left-3 rounded-full bg-black px-3 py-1 text-xs text-white">
-          {item.condition}
-        </span>
-
-        <span className="absolute bottom-3 right-3 rounded-full bg-white px-3 py-1 text-xs text-gray-700 border">
-          {status}
-        </span>
+        <div className="absolute bottom-3 left-3 flex items-center gap-2">
+          {item.condition && (
+            <Badge tone={conditionTone[item.condition] || "neutral"}>
+              {item.condition}
+            </Badge>
+          )}
+          {sold && <Badge tone="danger">Sold</Badge>}
+        </div>
       </div>
 
-      <div className="p-4">
-        <div className="flex items-center justify-between">
-          <h3 className="font-medium">{item.title}</h3>
-          <p className="font-semibold">{formatPrice(item.price)}</p>
+      <div className="flex flex-1 flex-col p-4">
+        <div className="flex items-start justify-between gap-3">
+          <h3 className="font-semibold leading-snug text-fg line-clamp-2">
+            {item.title}
+          </h3>
+          <p className="shrink-0 font-display text-lg font-extrabold tabular-nums text-primary-600">
+            {formatPrice(item.price)}
+          </p>
         </div>
 
-        <p className="text-sm text-gray-500 mt-1">
-          {item.category}
-        </p>
-        <div className="mt-4 flex items-center justify-between">
+        <p className="mt-1 text-sm text-muted">{item.category}</p>
+
+        <div className="mt-4 flex items-center justify-between gap-2 border-t pt-3">
           <button
             type="button"
             onClick={() => item.seller?._id && navigate(`/sellers/${item.seller._id}`)}
-            className="text-sm text-left hover:underline"
+            className="ring-focus flex min-w-0 items-center gap-2 rounded-lg text-left"
           >
-            {item.seller?.displayName || "Unknown seller"}
+            <Avatar
+              src={item.seller?.avatarUrl || item.seller?.avatar}
+              name={item.seller?.displayName || "Seller"}
+              size="xs"
+            />
+            <span className="truncate text-sm font-medium text-fg hover:text-primary-600">
+              {item.seller?.displayName || "Unknown seller"}
+            </span>
           </button>
 
-          {!isSeller && user && status === "available" && (
-            <button 
+          {!isSeller && user && !sold && (
+            <button
+              type="button"
               onClick={handleStartConversation}
-              className="rounded-lg border p-2 hover:bg-gray-50 transition-colors"
+              aria-label="Message seller"
+              className="ring-focus inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border bg-surface text-muted transition hover:border-primary-500/40 hover:text-primary-600"
             >
               <MessageCircle size={16} />
             </button>
           )}
-
-          {isSeller && status !== "sold" && (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowEdit(true)}
-                className="inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-xs hover:bg-gray-50"
-              >
-                Edit
-              </button>
-              <button
-                onClick={() => setShowDeleteModal(true)}
-                className="inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-xs text-red-600 hover:bg-red-50"
-              >
-                Delete
-              </button>
-              <button
-                onClick={handleMarkSold}
-                className="inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-xs hover:bg-gray-50"
-              >
-                <CheckCircle size={14} />
-                Mark sold
-              </button>
-            </div>
-          )}
         </div>
+
+        {isSeller && !sold && (
+          <div className="mt-3 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowEdit(true)}
+              className="ring-focus inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border bg-surface px-2 py-1.5 text-xs font-medium text-muted transition hover:text-fg"
+            >
+              <Pencil size={13} /> Edit
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowDeleteModal(true)}
+              className="ring-focus inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-danger-500/30 px-2 py-1.5 text-xs font-medium text-danger-600 transition hover:bg-danger-500/10"
+            >
+              <Trash2 size={13} /> Delete
+            </button>
+            <button
+              type="button"
+              onClick={handleMarkSold}
+              className="ring-focus inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary-600/10 px-2 py-1.5 text-xs font-medium text-primary-700 transition hover:bg-primary-600/20 dark:text-primary-200"
+            >
+              <CheckCircle size={13} /> Sold
+            </button>
+          </div>
+        )}
       </div>
 
       <ListItemModal
@@ -191,14 +233,15 @@ export default function ListingCard({ item }) {
         onClose={() => setShowEdit(false)}
         onSubmit={handleEditListing}
         initialData={item}
-        submitLabel="Save Changes"
+        submitLabel="Save changes"
       />
 
       <ConfirmModal
         open={showDeleteModal}
         title="Delete listing?"
-        description="This will remove the listing from the marketplace."
+        description="This will remove the listing from the marketplace permanently."
         confirmText="Delete"
+        tone="danger"
         onCancel={() => setShowDeleteModal(false)}
         onConfirm={() => {
           setShowDeleteModal(false);

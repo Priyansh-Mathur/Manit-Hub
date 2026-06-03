@@ -1,11 +1,15 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Plus } from 'lucide-react';
-import StudyGroupCard from '../components/studyGroups/StudyGroupCard';
-import StudyGroupFilters from '../components/studyGroups/StudyGroupFilters';
-import CreateGroupModal from '../components/studyGroups/CreateGroupModal';
-import { studyGroupsApi } from '../api/studyGroups';
-import { useAuthContext } from '../context/useAuthContext';
+import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { Plus, Users, AlertCircle } from "lucide-react";
+import StudyGroupCard from "../components/studyGroups/StudyGroupCard";
+import StudyGroupFilters from "../components/studyGroups/StudyGroupFilters";
+import CreateGroupModal from "../components/studyGroups/CreateGroupModal";
+import PageHeader from "../components/ui/PageHeader";
+import Button from "../components/ui/Button";
+import EmptyState from "../components/ui/EmptyState";
+import Skeleton from "../components/ui/Skeleton";
+import { studyGroupsApi } from "../api/studyGroups";
+import { useAuthContext } from "../context/useAuthContext";
 
 export default function StudyGroups() {
   const navigate = useNavigate();
@@ -13,14 +17,10 @@ export default function StudyGroups() {
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingGroup, setEditingGroup] = useState(null);
-  const [actionError, setActionError] = useState('');
+  const [actionError, setActionError] = useState("");
   const [page, setPage] = useState(1);
   const [meta, setMeta] = useState(null);
-  const [filters, setFilters] = useState({
-    search: '',
-    subject: '',
-    myGroups: false
-  });
+  const [filters, setFilters] = useState({ search: "", subject: "", myGroups: false });
   const { user } = useAuthContext();
 
   useEffect(() => {
@@ -32,14 +32,18 @@ export default function StudyGroups() {
       const params = {};
       if (filters.search) params.search = filters.search;
       if (filters.subject) params.subject = filters.subject;
-      if (filters.myGroups) params.myGroups = 'true';
-      
-      const response = await studyGroupsApi.getStudyGroups({ ...params, page, limit: 12 });
+      if (filters.myGroups) params.myGroups = "true";
+
+      const response = await studyGroupsApi.getStudyGroups({
+        ...params,
+        page,
+        limit: 12,
+      });
       const payload = response.data?.data || {};
       setGroups(payload.groups || []);
       setMeta(payload.meta || null);
     } catch (error) {
-      console.error('Error loading study groups:', error);
+      console.error("Error loading study groups:", error);
     } finally {
       setLoading(false);
     }
@@ -57,10 +61,10 @@ export default function StudyGroups() {
         await studyGroupsApi.uploadCover(createdGroup._id, coverFile);
       }
       setShowCreateModal(false);
-      setActionError('');
+      setActionError("");
       loadGroups();
     } catch (error) {
-      console.error('Error creating group:', error);
+      console.error("Error creating group:", error);
       throw error;
     }
   };
@@ -73,10 +77,10 @@ export default function StudyGroups() {
         await studyGroupsApi.uploadCover(editingGroup._id, coverFile);
       }
       setEditingGroup(null);
-      setActionError('');
+      setActionError("");
       loadGroups();
     } catch (error) {
-      console.error('Error updating group:', error);
+      console.error("Error updating group:", error);
       throw error;
     }
   };
@@ -84,69 +88,98 @@ export default function StudyGroups() {
   const handleDeleteGroup = async (groupId) => {
     try {
       await studyGroupsApi.deleteStudyGroup(groupId);
-      setActionError('');
+      setActionError("");
       loadGroups();
     } catch (error) {
-      console.error('Error deleting group:', error);
-      setActionError(error.response?.data?.message || 'Failed to delete group');
+      console.error("Error deleting group:", error);
+      setActionError(error.response?.data?.message || "Failed to delete group");
     }
   };
 
   const handleJoinGroup = async (groupId) => {
     try {
       await studyGroupsApi.joinStudyGroup(groupId);
-      setActionError('');
-      // Navigate to the study group details page
+      setActionError("");
       navigate(`/study-groups/${groupId}`);
     } catch (error) {
-      console.error('Error joining group:', error);
-      setActionError(error.response?.data?.message || 'Failed to join group');
+      console.error("Error joining group:", error);
+      setActionError(error.response?.data?.message || "Failed to join group");
     }
   };
 
   const handleLeaveGroup = async (groupId) => {
     try {
       await studyGroupsApi.leaveStudyGroup(groupId);
-      setActionError('');
+      setActionError("");
       loadGroups();
     } catch (error) {
-      console.error('Error leaving group:', error);
-      setActionError(error.response?.data?.message || 'Failed to leave group');
+      console.error("Error leaving group:", error);
+      setActionError(error.response?.data?.message || "Failed to leave group");
     }
   };
 
-  const isUserInGroup = (group) => {
-    return user && group.members.some(member => member._id === user._id || member === user._id);
-  };
+  const isUserInGroup = (group) =>
+    user &&
+    group.members.some(
+      (member) => member._id === user._id || member === user._id
+    );
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Study Groups</h1>
-        {user && (
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-lg hover:opacity-90"
-          >
-            <Plus size={20} />
-            Create Group
-          </button>
-        )}
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="Learn together"
+        title="Study Groups"
+        subtitle="Find or create branch-wise study circles across MANIT."
+        icon={Users}
+        actions={
+          user && (
+            <Button leftIcon={Plus} onClick={() => setShowCreateModal(true)}>
+              Create group
+            </Button>
+          )
+        }
+      />
 
       <StudyGroupFilters filters={filters} onFiltersChange={setFilters} />
+
       {actionError && (
-        <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
-          {actionError}
+        <div className="flex items-start gap-2 rounded-xl border border-danger-500/30 bg-danger-500/10 px-4 py-3 text-sm text-danger-600">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{actionError}</span>
         </div>
       )}
 
       {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="text-gray-500">Loading study groups...</div>
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div
+              key={i}
+              className="overflow-hidden rounded-2xl border bg-card shadow-card"
+            >
+              <Skeleton className="h-32 w-full rounded-none" />
+              <div className="space-y-3 p-4">
+                <Skeleton className="h-5 w-2/3" />
+                <Skeleton className="h-3 w-full" />
+                <Skeleton className="h-8 w-full" />
+              </div>
+            </div>
+          ))}
         </div>
+      ) : groups.length === 0 ? (
+        <EmptyState
+          icon={Users}
+          title="No study groups found"
+          description="Be the first to start a study circle for your branch or subject."
+          action={
+            user && (
+              <Button leftIcon={Plus} onClick={() => setShowCreateModal(true)}>
+                Create the first group
+              </Button>
+            )
+          }
+        />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
           {groups.map((group) => (
             <StudyGroupCard
               key={group._id}
@@ -162,39 +195,27 @@ export default function StudyGroups() {
         </div>
       )}
 
-      {!loading && groups.length === 0 && (
-        <div className="text-center py-12">
-          <div className="text-gray-500 mb-4">No study groups found</div>
-          {user && (
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="bg-black text-white px-6 py-2 rounded-lg hover:opacity-90"
-            >
-              Create the first group
-            </button>
-          )}
-        </div>
-      )}
-
       {meta && meta.totalPages > 1 && (
-        <div className="mt-6 flex items-center justify-between">
-          <button
+        <div className="flex items-center justify-between">
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => setPage((prev) => Math.max(1, prev - 1))}
             disabled={page === 1}
-            className="rounded-lg border px-4 py-2 text-sm disabled:opacity-50"
           >
             Previous
-          </button>
-          <span className="text-sm text-gray-500">
+          </Button>
+          <span className="text-sm text-muted">
             Page {meta.page} of {meta.totalPages}
           </span>
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => setPage((prev) => Math.min(meta.totalPages, prev + 1))}
             disabled={page >= meta.totalPages}
-            className="rounded-lg border px-4 py-2 text-sm disabled:opacity-50"
           >
             Next
-          </button>
+          </Button>
         </div>
       )}
 
@@ -205,12 +226,12 @@ export default function StudyGroups() {
       />
 
       <CreateGroupModal
-        key={editingGroup?._id || 'edit-modal'}
+        key={editingGroup?._id || "edit-modal"}
         isOpen={Boolean(editingGroup)}
         onClose={() => setEditingGroup(null)}
         onSubmit={handleEditGroup}
         initialData={editingGroup}
-        submitLabel="Save Changes"
+        submitLabel="Save changes"
       />
     </div>
   );

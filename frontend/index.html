@@ -2,9 +2,38 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="./src/assets/react.png" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Ccircle cx='24' cy='24' r='22' fill='%23152b4c'/%3E%3Ccircle cx='24' cy='24' r='22' fill='none' stroke='%23bd8a1e' stroke-width='2'/%3E%3Cpolygon points='12,18.5 23,16.5 23,31.5 12,33' fill='%23fff'/%3E%3Cpolygon points='36,18.5 25,16.5 25,31.5 36,33' fill='%23fff'/%3E%3Crect x='23' y='16.2' width='2' height='15.6' fill='%23152b4c'/%3E%3Cpath d='M24 7.5l1.1 2.5 2.5 1.1-2.5 1.1L24 14.7l-1.1-2.5-2.5-1.1 2.5-1.1z' fill='%23e0ba4f'/%3E%3C/svg%3E"
+    />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Manit Hub</title>
+    <meta
+      name="description"
+      content="Manit Hub — the student super-app for Maulana Azad National Institute of Technology (NIT Bhopal). Marketplace, study groups, chat and campus maps."
+    />
+    <meta name="theme-color" content="#152b4c" />
+    <title>Manit Hub · NIT Bhopal</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sora:wght@600;700;800&family=JetBrains+Mono:wght@500;600&display=swap"
+      rel="stylesheet"
+    />
+
+    <script>
+      // Apply theme before paint to avoid a flash of the wrong colour scheme.
+      try {
+        var t = localStorage.getItem("theme");
+        if (t !== "light" && t !== "dark") {
+          t = window.matchMedia("(prefers-color-scheme: dark)").matches
+            ? "dark"
+            : "light";
+        }
+        if (t === "dark") document.documentElement.classList.add("dark");
+        document.documentElement.style.colorScheme = t;
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -1,50 +1,51 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { Send } from 'lucide-react';
-import MessageBubble from './MessageBubble';
-import { messagesApi } from '../../api/messages';
-import socketService from '../../utils/socket';
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Send, MessageSquare, ArrowLeft } from "lucide-react";
+import MessageBubble from "./MessageBubble";
+import { messagesApi } from "../../api/messages";
+import socketService from "../../utils/socket";
+import Avatar from "../ui/Avatar";
+import Spinner from "../ui/Spinner";
 
-export default function ChatWindow({ conversation, currentUser, onRead }) {
+export default function ChatWindow({ conversation, currentUser, onRead, onBack }) {
   const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState('');
+  const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const messagesEndRef = useRef(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  const scrollToBottom = () =>
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
 
-  const loadMessages = useCallback(async (nextPage) => {
-    if (!conversation?._id) return;
-    try {
-      setLoading(true);
-      const response = await messagesApi.getMessages(conversation._id, {
-        page: nextPage,
-        limit: 30,
-      });
-      const payload = response.data?.data || {};
-      const incoming = payload.messages || [];
+  const loadMessages = useCallback(
+    async (nextPage) => {
+      if (!conversation?._id) return;
+      try {
+        setLoading(true);
+        const response = await messagesApi.getMessages(conversation._id, {
+          page: nextPage,
+          limit: 30,
+        });
+        const payload = response.data?.data || {};
+        const incoming = payload.messages || [];
 
-      setMessages((prev) =>
-        nextPage === 1 ? incoming : [...incoming, ...prev]
-      );
-      setPage(nextPage);
-      setHasMore(
-        payload.meta &&
-          payload.meta.page < payload.meta.totalPages
-      );
+        setMessages((prev) =>
+          nextPage === 1 ? incoming : [...incoming, ...prev]
+        );
+        setPage(nextPage);
+        setHasMore(payload.meta && payload.meta.page < payload.meta.totalPages);
 
-      socketService.markRead(conversation._id);
-      messagesApi.markConversationRead(conversation._id).catch(() => {});
-      if (onRead) onRead();
-    } catch (error) {
-      console.error('Error loading messages:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [conversation?._id, onRead]);
+        socketService.markRead(conversation._id);
+        messagesApi.markConversationRead(conversation._id).catch(() => {});
+        if (onRead) onRead();
+      } catch (error) {
+        console.error("Error loading messages:", error);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [conversation?._id, onRead]
+  );
 
   useEffect(() => {
     if (conversation && currentUser?._id) {
@@ -53,9 +54,9 @@ export default function ChatWindow({ conversation, currentUser, onRead }) {
       setHasMore(false);
       loadMessages(1);
       socketService.joinConversation(conversation._id);
-      
+
       socketService.onReceiveMessage((message) => {
-        setMessages(prev => [...prev, message]);
+        setMessages((prev) => [...prev, message]);
         if (message.sender !== currentUser._id) {
           socketService.markRead(conversation._id);
           messagesApi.markConversationRead(conversation._id).catch(() => {});
@@ -89,61 +90,73 @@ export default function ChatWindow({ conversation, currentUser, onRead }) {
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!newMessage.trim()) return;
-
-    const messageData = {
+    socketService.sendMessage({
       conversationId: conversation._id,
       senderId: currentUser._id,
       content: newMessage.trim(),
-    };
-
-    socketService.sendMessage(messageData);
-    setNewMessage('');
+    });
+    setNewMessage("");
   };
 
   if (!conversation) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-gray-50 p-10">
+      <div className="flex h-full items-center justify-center p-10">
         <div className="text-center">
-          <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Send size={24} className="text-gray-400" />
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary-600/10 text-primary-600">
+            <MessageSquare size={26} />
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No conversation selected</h3>
-          <p className="text-gray-500">Choose a conversation to start messaging</p>
+          <h3 className="font-display text-lg font-bold text-fg">
+            No conversation selected
+          </h3>
+          <p className="mt-1 text-sm text-muted">
+            Choose a conversation to start messaging.
+          </p>
         </div>
       </div>
     );
   }
 
-  const otherParticipant = conversation.participants.find(p => p._id !== currentUser._id);
+  const other = conversation.participants.find((p) => p._id !== currentUser._id);
 
   return (
-    <div className="flex-1 flex flex-col">
-      {/* Header */}
-      <div className="p-4 border-b bg-white">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-            {otherParticipant?.displayName?.[0]?.toUpperCase() || '?'}
-          </div>
-          <div>
-            <h3 className="font-medium">{otherParticipant?.displayName || 'Unknown User'}</h3>
-            <p className="text-sm text-gray-500">{conversation.listingTitle}</p>
-          </div>
+    <div className="flex h-full flex-col">
+      <div className="flex items-center gap-3 border-b px-4 py-3">
+        <button
+          type="button"
+          onClick={onBack}
+          aria-label="Back to conversations"
+          className="ring-focus -ml-1 inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted transition hover:bg-muted/10 hover:text-fg md:hidden"
+        >
+          <ArrowLeft size={18} />
+        </button>
+        <Avatar
+          src={other?.avatarUrl || other?.avatar}
+          name={other?.displayName || "?"}
+          size="sm"
+        />
+        <div className="min-w-0">
+          <h3 className="truncate font-semibold text-fg">
+            {other?.displayName || "Unknown user"}
+          </h3>
+          <p className="truncate text-xs text-muted">
+            {conversation.listingTitle}
+          </p>
         </div>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
-        {loading ? (
-          <div className="flex justify-center items-center h-full">
-            <div className="text-gray-500">Loading messages...</div>
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-bg p-4">
+        {loading && messages.length === 0 ? (
+          <div className="flex h-full items-center justify-center">
+            <Spinner size={24} />
           </div>
         ) : (
           <>
             {hasMore && (
-              <div className="flex justify-center mb-4">
+              <div className="flex justify-center">
                 <button
+                  type="button"
                   onClick={() => loadMessages(page + 1)}
-                  className="text-xs text-gray-500 hover:underline"
+                  className="ring-focus rounded-full border bg-surface px-3 py-1 text-xs font-medium text-muted transition hover:text-fg"
                 >
                   Load earlier messages
                 </button>
@@ -161,22 +174,22 @@ export default function ChatWindow({ conversation, currentUser, onRead }) {
         )}
       </div>
 
-      {/* Message Input */}
-      <div className="p-4 border-t bg-white">
-        <form onSubmit={handleSendMessage} className="flex gap-2">
+      <div className="border-t bg-surface p-3">
+        <form onSubmit={handleSendMessage} className="flex items-center gap-2">
           <input
             type="text"
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Type a message..."
-            className="flex-1 border border-gray-300 rounded-full px-4 py-2 focus:outline-none focus:border-black"
+            placeholder="Type a message…"
+            className="field rounded-full"
           />
           <button
             type="submit"
             disabled={!newMessage.trim()}
-            className="bg-black text-white rounded-full p-2 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label="Send message"
+            className="ring-focus inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-600 text-white transition hover:bg-primary-700 disabled:opacity-50"
           >
-            <Send size={20} />
+            <Send size={18} />
           </button>
         </form>
       </div>

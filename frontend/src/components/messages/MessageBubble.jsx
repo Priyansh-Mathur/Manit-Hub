@@ -1,26 +1,38 @@
+import { Check, CheckCheck } from "lucide-react";
+import { cn } from "../../lib/cn";
+
 export default function MessageBubble({ message, isOwn }) {
-  const formatTime = (date) => {
-    return new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
+  const formatTime = (date) =>
+    new Date(date).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
 
   return (
-    <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'} mb-4`}>
+    <div className={cn("flex", isOwn ? "justify-end" : "justify-start")}>
       <div
-        className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${
+        className={cn(
+          "max-w-xs rounded-2xl px-3.5 py-2 lg:max-w-md",
           isOwn
-            ? 'bg-black text-white rounded-br-sm'
-            : 'bg-gray-100 text-gray-900 rounded-bl-sm'
-        }`}
+            ? "rounded-br-md bg-primary-600 text-white"
+            : "rounded-bl-md border bg-surface text-fg"
+        )}
       >
-        <p className="text-sm">{message.content}</p>
-        <p className={`text-xs mt-1 ${isOwn ? 'text-gray-300' : 'text-gray-500'}`}>
-          {formatTime(message.createdAt)}
-          {isOwn && (
-            <span className="ml-2">
-              {message.readAt ? 'Read' : 'Sent'}
-            </span>
+        <p className="text-sm leading-relaxed">{message.content}</p>
+        <div
+          className={cn(
+            "mt-1 flex items-center justify-end gap-1 text-[11px]",
+            isOwn ? "text-primary-100" : "text-muted"
           )}
-        </p>
+        >
+          {formatTime(message.createdAt)}
+          {isOwn &&
+            (message.readAt ? (
+              <CheckCheck className="h-3.5 w-3.5" />
+            ) : (
+              <Check className="h-3.5 w-3.5" />
+            ))}
+        </div>
       </div>
     </div>
   );

@@ -1,72 +1,71 @@
-import { Link } from 'react-router-dom';
-import { GraduationCap, Home, ArrowLeft, Search, Compass } from 'lucide-react';
+import { Link } from "react-router-dom";
+import { Home, ArrowLeft, Compass } from "lucide-react";
+import Logo from "../components/brand/Logo";
+
+const shortcuts = [
+  { to: "/marketplace", label: "Marketplace" },
+  { to: "/study-groups", label: "Study Groups" },
+  { to: "/messages", label: "Messages" },
+  { to: "/campus-maps", label: "Campus Maps" },
+];
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.95),rgba(243,244,246,1))] flex flex-col">
+    <div className="flex min-h-screen flex-col bg-bg text-fg">
       <header className="px-6 py-5 sm:px-10">
-        <Link to="/" className="flex w-fit items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-black text-white shadow-lg shadow-black/10">
-            <GraduationCap className="h-6 w-6" />
-          </div>
-          <div>
-            <div className="text-xs uppercase tracking-[0.35em] text-gray-500">Manit Hub</div>
-            <div className="font-semibold text-gray-900">Return to campus</div>
-          </div>
+        <Link to="/" className="w-fit">
+          <Logo />
         </Link>
       </header>
 
-      <main className="flex flex-1 items-center justify-center px-6 pb-14">
-        <div className="w-full max-w-3xl text-center">
-          <div className="mx-auto mb-8 flex h-24 w-24 items-center justify-center rounded-full border border-gray-200 bg-white shadow-[0_20px_60px_rgba(0,0,0,0.08)]">
-            <Compass className="h-11 w-11 text-gray-900" />
+      <main className="flex flex-1 items-center justify-center px-6 pb-16">
+        <div className="w-full max-w-2xl text-center">
+          <div className="mx-auto mb-8 flex h-20 w-20 items-center justify-center rounded-3xl bg-primary-600/10 text-primary-600">
+            <Compass className="h-9 w-9" />
           </div>
 
-          <div className="mb-4 text-8xl font-black tracking-tight text-gray-900 sm:text-9xl">
+          <div className="font-display text-7xl font-black tracking-tight text-primary-600 sm:text-8xl">
             404
           </div>
-          <h1 className="mb-4 text-3xl font-bold text-gray-900 sm:text-5xl">
+          <h1 className="mt-4 font-display text-3xl font-extrabold tracking-tight sm:text-4xl">
             Page not found
           </h1>
-          <p className="mx-auto mb-10 max-w-2xl text-base leading-7 text-gray-600 sm:text-lg">
-            The page you tried to open does not exist or was moved. Use one of the shortcuts below to get back to the parts of Manit Hub you need.
+          <p className="mx-auto mt-4 max-w-lg text-muted">
+            The page you tried to open doesn’t exist or was moved. Use a shortcut
+            below to get back to the parts of Manit Hub you need.
           </p>
 
-          <div className="flex flex-col justify-center gap-4 sm:flex-row">
+          <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
             <Link
               to="/dashboard"
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-black px-6 py-3 font-semibold text-white transition hover:-translate-y-0.5 hover:bg-gray-800"
+              className="ring-focus inline-flex items-center justify-center gap-2 rounded-xl bg-primary-600 px-6 py-3 font-semibold text-white shadow-sm transition hover:bg-primary-700"
             >
               <Home className="h-5 w-5" />
               Go to dashboard
             </Link>
             <Link
               to="/"
-              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-gray-300 bg-white px-6 py-3 font-semibold text-gray-900 transition hover:-translate-y-0.5 hover:border-gray-400"
+              className="ring-focus inline-flex items-center justify-center gap-2 rounded-xl border px-6 py-3 font-semibold text-fg transition hover:bg-muted/10"
             >
               <ArrowLeft className="h-5 w-5" />
               Back to home
             </Link>
           </div>
 
-          <div className="mt-12 rounded-3xl border border-gray-200 bg-white/90 p-6 text-left shadow-sm backdrop-blur">
-            <div className="mb-4 flex items-center gap-2 text-sm font-medium text-gray-700">
-              <Search className="h-4 w-4 text-gray-500" />
+          <div className="mt-12 rounded-3xl border bg-surface p-6 text-left shadow-card">
+            <p className="mb-4 text-sm font-medium text-muted">
               Try one of these destinations
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <Link to="/marketplace" className="rounded-full bg-gray-100 px-4 py-2 text-sm text-gray-700 transition hover:bg-gray-200">
-                Marketplace
-              </Link>
-              <Link to="/study-groups" className="rounded-full bg-gray-100 px-4 py-2 text-sm text-gray-700 transition hover:bg-gray-200">
-                Study Groups
-              </Link>
-              <Link to="/messages" className="rounded-full bg-gray-100 px-4 py-2 text-sm text-gray-700 transition hover:bg-gray-200">
-                Messages
-              </Link>
-              <Link to="/campus-maps" className="rounded-full bg-gray-100 px-4 py-2 text-sm text-gray-700 transition hover:bg-gray-200">
-                Campus Maps
-              </Link>
+            </p>
+            <div className="flex flex-wrap gap-2.5">
+              {shortcuts.map((s) => (
+                <Link
+                  key={s.to}
+                  to={s.to}
+                  className="ring-focus rounded-full bg-muted/12 px-4 py-2 text-sm font-medium text-fg transition hover:bg-primary-600/10 hover:text-primary-600"
+                >
+                  {s.label}
+                </Link>
+              ))}
             </div>
           </div>
         </div>

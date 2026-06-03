@@ -1,23 +1,46 @@
+import { useId } from "react";
+import { cn } from "../../lib/cn";
+
 export default function Input({
   label,
   icon: Icon,
   rightIcon: RightIcon,
   onRightIconClick,
+  error,
+  hint,
+  className,
+  id,
   ...props
 }) {
+  const autoId = useId();
+  const inputId = id || autoId;
+
   return (
     <div className="text-left">
-      <label className="block mb-2 text-sm font-medium">
-        {label}
-      </label>
+      {label && (
+        <label
+          htmlFor={inputId}
+          className="mb-1.5 block text-sm font-medium text-fg"
+        >
+          {label}
+        </label>
+      )}
 
       <div className="relative">
         {Icon && (
-          <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+          <Icon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
         )}
 
         <input
-          className="w-full border border-black py-3 pl-10 pr-10 text-sm focus:border-black focus:outline-none"
+          id={inputId}
+          className={cn(
+            "field",
+            Icon && "pl-11",
+            RightIcon && "pr-11",
+            error &&
+              "border-danger-500 focus:border-danger-500 focus:ring-danger-500/15",
+            className
+          )}
           {...props}
         />
 
@@ -25,12 +48,19 @@ export default function Input({
           <button
             type="button"
             onClick={onRightIconClick}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
+            tabIndex={-1}
+            className="ring-focus absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted transition hover:text-fg"
           >
-            <RightIcon className="w-5 h-5" />
+            <RightIcon className="h-4 w-4" />
           </button>
         )}
       </div>
+
+      {error ? (
+        <p className="mt-1.5 text-xs font-medium text-danger-600">{error}</p>
+      ) : hint ? (
+        <p className="mt-1.5 text-xs text-muted">{hint}</p>
+      ) : null}
     </div>
   );
 }

@@ -1,54 +1,54 @@
-import { GraduationCap } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Crest } from "../brand/Logo";
 
 export default function AuthCard({ mode, setMode, children }) {
-  const navigate = useNavigate();
   const isAuthMode = mode === "login" || mode === "signup";
 
-  return (
-    <div className="w-full max-w-[90vw] sm:max-w-[500px] text-center">
-      {/* Header */}
-      <div className="flex flex-col items-center mb-8">
-        <div className="w-14 h-14 rounded-xl bg-black flex items-center justify-center">
-          <GraduationCap className="w-7 h-7 text-white" />
-        </div>
+  const subtitle = {
+    login: "Welcome back — sign in to continue.",
+    signup: "Join the MANIT campus community.",
+    forgot: "We’ll help you reset your password.",
+    reset: "Set a new password for your account.",
+  }[mode];
 
-        <h1 className="mt-4 text-2xl font-semibold">Manit Hub</h1>
-        <p className="mt-1 text-gray-500">
-          {mode === "login" && "Welcome back!"}
-          {mode === "signup" && "Join the campus community"}
-          {mode === "forgot" && "Reset your password"}
-          {mode === "reset" && "Set a new password"}
-        </p>
+  return (
+    <div className="w-full">
+      <div className="mb-7 flex flex-col items-center text-center lg:hidden">
+        <Crest className="h-12 w-12" />
       </div>
 
-      {/* Card */}
-      <div className="rounded-2xl border border-black bg-white p-8 shadow-[10px_10px_0px_0px_black]">
+      <div className="mb-6">
+        <h1 className="font-display text-2xl font-extrabold tracking-tight text-fg">
+          {mode === "login" && "Sign in to Manit Hub"}
+          {mode === "signup" && "Create your account"}
+          {mode === "forgot" && "Reset your password"}
+          {mode === "reset" && "Set a new password"}
+        </h1>
+        <p className="mt-1.5 text-sm text-muted">{subtitle}</p>
+      </div>
+
+      <div className="rounded-2xl border bg-surface p-6 shadow-card sm:p-7">
         {children}
 
-        {/* Footer */}
         {isAuthMode && (
-          <div className="mt-6 text-sm text-center">
+          <div className="mt-6 border-t pt-5 text-center text-sm">
             {mode === "login" ? (
               <>
-                <span className="text-gray-500">
-                  Don’t have an account?{" "}
-                </span>
+                <span className="text-muted">Don’t have an account? </span>
                 <button
+                  type="button"
                   onClick={() => setMode("signup")}
-                  className="font-medium text-black hover:underline"
+                  className="font-semibold text-primary-600 transition hover:text-primary-700"
                 >
                   Sign up
                 </button>
               </>
             ) : (
               <>
-                <span className="text-gray-500">
-                  Already have an account?{" "}
-                </span>
+                <span className="text-muted">Already have an account? </span>
                 <button
+                  type="button"
                   onClick={() => setMode("login")}
-                  className="font-medium text-black hover:underline"
+                  className="font-semibold text-primary-600 transition hover:text-primary-700"
                 >
                   Sign in
                 </button>
@@ -56,11 +56,6 @@ export default function AuthCard({ mode, setMode, children }) {
             )}
           </div>
         )}
-      </div>
-
-      {/* Back */}
-      <div onClick={() => navigate("/")} className="mt-8 text-sm text-gray-500 cursor-pointer">
-        ← Back to home
       </div>
     </div>
   );

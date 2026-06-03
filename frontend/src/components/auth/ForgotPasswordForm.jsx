@@ -1,6 +1,6 @@
 import { useState } from "react";
 import api from "../../api/axios";
-import { Mail } from "lucide-react";
+import { Mail, AlertCircle, CheckCircle2, ArrowLeft } from "lucide-react";
 import Input from "../ui/Input";
 import Button from "../ui/Button";
 
@@ -33,24 +33,36 @@ export default function ForgotPasswordForm({ onBack, onSent }) {
       <Input
         label="Email"
         icon={Mail}
-        placeholder="you@university.edu"
+        type="email"
+        placeholder="2311401XXX@stu.manit.ac.in"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         required
       />
 
-      {info && <p className="text-sm text-gray-600">{info}</p>}
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {info && (
+        <div className="flex items-start gap-2 rounded-xl border border-success-500/30 bg-success-500/10 px-3.5 py-2.5 text-sm text-success-700 dark:text-success-500">
+          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{info}</span>
+        </div>
+      )}
+      {error && (
+        <div className="flex items-start gap-2 rounded-xl border border-danger-500/30 bg-danger-500/10 px-3.5 py-2.5 text-sm text-danger-600">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
 
-      <Button disabled={loading}>
-        {loading ? "Sending..." : "Send reset link"}
+      <Button type="submit" fullWidth size="lg" loading={loading}>
+        {loading ? "Sending…" : "Send reset link"}
       </Button>
 
       <button
         type="button"
         onClick={onBack}
-        className="w-full text-sm text-gray-500 hover:underline"
+        className="ring-focus inline-flex w-full items-center justify-center gap-1.5 rounded-lg py-1 text-sm font-medium text-muted transition hover:text-primary-600"
       >
+        <ArrowLeft className="h-4 w-4" />
         Back to sign in
       </button>
     </form>

@@ -1,69 +1,92 @@
-import { MessageCircle } from 'lucide-react';
+import { MessageCircle } from "lucide-react";
+import { cn } from "../../lib/cn";
+import Avatar from "../ui/Avatar";
+import EmptyState from "../ui/EmptyState";
 
-export default function ConversationList({ conversations, selectedConversation, onSelectConversation, currentUser }) {
-  const formatTime = (date) => {
-    return new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
+export default function ConversationList({
+  conversations,
+  selectedConversation,
+  onSelectConversation,
+  currentUser,
+}) {
+  const formatTime = (date) =>
+    new Date(date).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
 
-  const getOtherParticipant = (participants) => {
-    return participants.find(p => p._id !== currentUser._id);
-  };
+  const getOtherParticipant = (participants) =>
+    participants.find((p) => p._id !== currentUser._id);
 
   return (
-    <div className="w-80 border-r bg-white">
-      <div className="p-4 border-b">
-        <h2 className="text-xl font-semibold flex items-center gap-2">
-          <MessageCircle size={24} />
-          Messages
-        </h2>
+    <div className="flex h-full flex-col">
+      <div className="flex items-center gap-2 border-b px-4 py-4">
+        <MessageCircle className="h-5 w-5 text-primary-600" />
+        <h2 className="font-display text-lg font-bold text-fg">Messages</h2>
+        <span className="ml-auto rounded-full bg-muted/15 px-2 py-0.5 text-xs font-semibold text-muted">
+          {conversations.length}
+        </span>
       </div>
-      
-      <div className="overflow-y-auto h-full">
+
+      <div className="min-h-0 flex-1 overflow-y-auto">
         {conversations.length === 0 ? (
-          <div className="p-4 text-center text-gray-500">
-            No conversations yet
-          </div>
+          <EmptyState
+            icon={MessageCircle}
+            title="No conversations yet"
+            description="Message a seller from the marketplace to start chatting."
+            className="m-3 border-0 bg-transparent py-10"
+          />
         ) : (
           conversations.map((conversation) => {
-            const otherParticipant = getOtherParticipant(conversation.participants);
+            const other = getOtherParticipant(conversation.participants);
             const isSelected = selectedConversation?._id === conversation._id;
-            
+            const unread = conversation.unreadCount > 0;
+
             return (
-              <div
+              <button
                 key={conversation._id}
+                type="button"
                 onClick={() => onSelectConversation(conversation)}
-                className={`p-4 border-b cursor-pointer hover:bg-gray-50 ${
-                  isSelected ? 'bg-gray-100 border-l-4 border-l-black' : ''
-                }`}
+                className={cn(
+                  "ring-focus flex w-full items-center gap-3 border-b px-4 py-3 text-left transition",
+                  isSelected ? "bg-primary-600/10" : "hover:bg-muted/8"
+                )}
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
-                    {otherParticipant?.displayName?.[0]?.toUpperCase() || '?'}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-start">
-                    <h3 className="font-medium truncate">
-                      {otherParticipant?.displayName || 'Unknown User'}
+                <Avatar
+                  src={other?.avatarUrl || other?.avatar}
+                  name={other?.displayName || "?"}
+                  size="md"
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3
+                      className={cn(
+                        "truncate text-sm",
+                        unread ? "font-bold text-fg" : "font-semibold text-fg"
+                      )}
+                    >
+                      {other?.displayName || "Unknown user"}
                     </h3>
                     {conversation.lastMessageAt && (
-                      <span className="text-xs text-gray-500">
+                      <span className="shrink-0 text-xs text-muted">
                         {formatTime(conversation.lastMessageAt)}
                       </span>
                     )}
                   </div>
-                  <p className="text-sm text-gray-600 truncate">
-                    {conversation.listingTitle}
-                  </p>
-                  {conversation.unreadCount > 0 && (
-                    <span className="mt-1 inline-flex items-center rounded-full bg-black px-2 py-0.5 text-xs text-white">
-                      {conversation.unreadCount} unread
-                    </span>
-                  )}
+                  <div className="mt-0.5 flex items-center justify-between gap-2">
+                    <p className="truncate text-sm text-muted">
+                      {conversation.listingTitle}
+                    </p>
+                    {unread && (
+                      <span className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-accent-600 px-1.5 text-[11px] font-bold text-white">
+                        {conversation.unreadCount}
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </div>
-          );
-        })
+              </button>
+            );
+          })
         )}
       </div>
     </div>
