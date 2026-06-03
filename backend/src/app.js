@@ -26,7 +26,7 @@ app.use(
 );
 app.use(
   cors({
-    origin: "https://manit-hub-samayjainbm.netlify.app",
+    origin: process.env.CLIENT_URL || "https://manithub-samayjainbm.netlify.app",
     credentials: true,
   })
 );
