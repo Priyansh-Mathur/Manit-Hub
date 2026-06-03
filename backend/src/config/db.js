@@ -9,9 +9,10 @@ const connectDB = async () => {
         throw new Error('MONGO_URI is not defined');
     }
 
-    console.log('Mongo URI:', mongoUri);
-
-    if (mongoUri.includes('localhost') || mongoUri.includes('127.0.0.1')) {
+    if (
+        process.env.NODE_ENV === 'production' &&
+        (mongoUri.includes('localhost') || mongoUri.includes('127.0.0.1'))
+    ) {
         throw new Error('Refusing to use a localhost Mongo URI in production');
     }
 

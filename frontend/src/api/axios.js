@@ -1,9 +1,14 @@
 import axios from "axios";
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL
-    ? `${import.meta.env.VITE_API_URL}/api`
-    : "https://manit-hub-backend.vercel.app/api";
+// Priority:
+//  1. VITE_API_URL (explicit backend, e.g. http://localhost:5001) -> "<url>/api"
+//  2. dev -> "/api" (served through the Vite dev proxy, avoids CORS locally)
+//  3. production build with no env -> the hosted backend
+const API_BASE_URL = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL}/api`
+  : import.meta.env.DEV
+  ? "/api"
+  : "https://manit-hub-backend.vercel.app/api";
 
 const api = axios.create({
   baseURL: API_BASE_URL,

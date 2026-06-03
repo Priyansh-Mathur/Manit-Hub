@@ -1,24 +1,20 @@
 const multer = require("multer");
-const { CloudinaryStorage } = require("multer-storage-cloudinary");
-const cloudinary = require("../config/cloudinary");
+const createCloudinaryStorage = require("./cloudinaryStorage");
 
-const storage = new CloudinaryStorage({
-  cloudinary,
-  params: async (req, file) => ({
-    folder: "manit-hub/payment-qr",
-    resource_type: "image",
-    public_id: `payment_qr_${req.user?._id}_${Date.now()}`,
-    allowed_formats: ["jpg", "jpeg", "png", "webp"],
-    transformation: [
-      {
-        width: 600,
-        height: 600,
-        crop: "limit",
-        quality: "auto",
-      },
-    ],
-  }),
-});
+const storage = createCloudinaryStorage(async (req, file) => ({
+  folder: "manit-hub/payment-qr",
+  resource_type: "image",
+  public_id: `payment_qr_${req.user?._id}_${Date.now()}`,
+  allowed_formats: ["jpg", "jpeg", "png", "webp"],
+  transformation: [
+    {
+      width: 600,
+      height: 600,
+      crop: "limit",
+      quality: "auto",
+    },
+  ],
+}));
 
 const fileFilter = (req, file, cb) => {
   if (!file.mimetype.startsWith("image/")) {

@@ -24,9 +24,43 @@ app.use(
     crossOriginResourcePolicy: { policy: "cross-origin" },
   })
 );
+// CORS — allow the configured client origin(s), local dev, and
+// Netlify/Vercel deploy + preview subdomains.
+const explicitOrigins = (
+  process.env.CLIENT_URL || "https://manithub-samayjainbm.netlify.app"
+)
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+const devOrigins = [
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  "http://localhost:4173",
+  "http://localhost:3000",
+];
+
+const allowedOrigins = new Set([...explicitOrigins, ...devOrigins]);
+
+function isAllowedOrigin(origin) {
+  if (!origin) return true; // same-origin / server-to-server / curl
+  if (allowedOrigins.has(origin)) return true;
+  try {
+    const { hostname } = new URL(origin);
+    if (hostname.endsWith(".netlify.app") || hostname.endsWith(".vercel.app")) {
+      return true;
+    }
+  } catch {
+    return false;
+  }
+  return false;
+}
+
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "https://manithub-samayjainbm.netlify.app",
+    origin(origin, callback) {
+      callback(null, isAllowedOrigin(origin));
+    },
     credentials: true,
   })
 );
