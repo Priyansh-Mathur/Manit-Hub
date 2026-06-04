@@ -18,11 +18,11 @@ const locations = [
   // Academic
   { name: "MANIT Central Library", category: "Academic", query: "MANIT Central Library, Bhopal" },
   { name: "New Teaching Block (NTB)", category: "Academic", query: "New Teaching Block, MANIT Bhopal" },
-  { name: "Computer Science & Engg Dept", category: "Academic", query: "Computer Science Department, MANIT Bhopal" },
-  { name: "Electronics & Communication Dept", category: "Academic", query: "Electronics and Communication Department, MANIT Bhopal" },
+  { name: "Computer Science & Engg Dept", category: "Academic", query: "23.216924,77.409330" },
+  { name: "Electronics & Communication Dept", category: "Academic", query: "Electronics and Communication Engineering Department, Maulana Azad National Institute of Technology, 6C84+HW3, Energy Center Rd, Maulana Azad National Institute of Technology, Bhopal, Madhya Pradesh 462003, India" },
   { name: "Electrical Engineering Dept", category: "Academic", query: "Electrical Engineering Department, MANIT Bhopal" },
-  { name: "Mechanical Engineering Dept", category: "Academic", query: "Mechanical Engineering Department, MANIT Bhopal" },
-  { name: "Civil Engineering Dept", category: "Academic", query: "Civil Engineering Department, MANIT Bhopal" },
+  { name: "Mechanical Engineering Dept", category: "Academic", query: "Mechanical Engineering Department, Maulana Azad National Institute Of Technology (MANIT), 6C75+M9F, Maulana Azad National Institute of Technology, Bhopal, Madhya Pradesh 462003, India" },
+  { name: "Civil Engineering Dept", category: "Academic", query: "Civil Engineering Department (New Block), Maulana Azad National Institute of Technology, Bhopal, Madhya Pradesh 462003, India" },
   { name: "Architecture & Planning Dept", category: "Academic", query: "Department of Architecture and Planning, MANIT Bhopal" },
 
   // Hostels — all 12 (official Bhawan names)
@@ -41,10 +41,9 @@ const locations = [
 
   // Cafés & canteens
   { name: "Susangat Food Court", category: "Food", query: "Susangat, MANIT Bhopal" },
-  { name: "Nescafe Canteen", category: "Food", query: "Nescafe, MANIT Bhopal" },
+  { name: "Nescafe Canteen", category: "Food", query: "Canteen, 6C84+4GG, Maulana Azad National Institute of Technology, Bhopal, Madhya Pradesh 462003, India" },
   { name: "Neelam Food Centre", category: "Food", query: "Neelam Food Centre, MANIT Bhopal" },
-  { name: "Amul Parlour", category: "Food", query: "Amul Parlour, MANIT Bhopal" },
-  { name: "Night Canteen", category: "Food", query: "Night Canteen, MANIT Bhopal" },
+  { name: "Top N Town", category: "Food", query: "23.217234,77.404014" },
 
   // Sports grounds & playgrounds
   { name: "Sports Complex (Gymkhana)", category: "Sports", query: "Sports Complex, NIT Bhopal" },
@@ -52,21 +51,20 @@ const locations = [
   { name: "Football Ground", category: "Sports", query: "MANIT Football Ground, Bhopal" },
   { name: "Athletics Track & Field", category: "Sports", query: "MANIT Athletics Ground, Bhopal" },
   { name: "Basketball Court", category: "Sports", query: "MANIT Basketball Court, Bhopal" },
-  { name: "Volleyball Court", category: "Sports", query: "MANIT Volleyball Court, Bhopal" },
+  { name: "Volleyball Court", category: "Sports", query: "23.212323,77.406469" },
   { name: "Lawn Tennis Court", category: "Sports", query: "Tennis Court, MANIT Bhopal" },
-  { name: "Indoor Stadium", category: "Sports", query: "MANIT Indoor Stadium, Bhopal" },
-  { name: "Gymnasium", category: "Sports", query: "MANIT Gym, Bhopal" },
 
   // Landmarks
-  { name: "Main Gate (Gate No. 1)", category: "Landmark", query: "MANIT Bhopal Main Gate" },
-  { name: "Open Air Theatre (OAT)", category: "Landmark", query: "Open Air Theatre, MANIT Bhopal" },
+  { name: "Manit Gate", category: "Landmark", query: "Manit square, 6CC4+P62, Harshavardhan Nagar, Panchsheel Nagar, Bhopal, Madhya Pradesh 462003, India" },
   { name: "MANIT Shiva Temple", category: "Landmark", query: "Shiv Mandir, MANIT Bhopal" },
   { name: "Faculty Guest House", category: "Landmark", query: "Faculty Guest House, MANIT Bhopal" },
   { name: "VIP Guest House", category: "Landmark", query: "VIP Guest House, MANIT Bhopal" },
 
   // Transport
-  { name: "PMC Chauraha", category: "Transport", query: "PMC Chauraha, MANIT Bhopal" },
-  { name: "Main Parking Lot", category: "Transport", query: "Parking, MANIT Bhopal" },
+  { name: "Main Parking Lot", category: "Transport", query: "BIKE PARKING STAND, 6C95+32R Computer science division, Maulana Azad National Institute of Technology, Bhopal, Madhya Pradesh 462003, India" },
+
+  // Secret spots
+  { name: "PMC Chauraha", category: "Secret Spots", query: "23.214623,77.402078" },
 ];
 
 const categoryMeta = {
@@ -76,9 +74,10 @@ const categoryMeta = {
   Sports: { icon: Dumbbell, accent: "from-emerald-500/15 to-lime-500/15 text-emerald-600" },
   Landmark: { icon: Landmark, accent: "from-rose-500/15 to-red-500/15 text-rose-600" },
   Transport: { icon: ParkingSquare, accent: "from-zinc-500/15 to-neutral-500/15 text-zinc-500" },
+  "Secret Spots": { icon: MapPinned, accent: "from-indigo-500/15 to-blue-500/15 text-indigo-600" },
 };
 
-const categories = ["All", "Academic", "Hostel", "Food", "Sports", "Landmark", "Transport"];
+const categories = ["All", "Academic", "Hostel", "Food", "Sports", "Landmark", "Transport", "Secret Spots"];
 
 export default function CampusMaps() {
   const [searchTerm, setSearchTerm] = useState("");
