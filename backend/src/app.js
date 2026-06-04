@@ -30,7 +30,9 @@ const explicitOrigins = (
   process.env.CLIENT_URL || "https://manithub-samayjainbm.netlify.app"
 )
   .split(",")
-  .map((o) => o.trim())
+  // trim + strip trailing slashes — browser Origin headers never have one,
+  // so a CLIENT_URL like "https://site.netlify.app/" would otherwise never match.
+  .map((o) => o.trim().replace(/\/+$/, ""))
   .filter(Boolean);
 
 const devOrigins = [

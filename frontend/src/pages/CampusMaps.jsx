@@ -15,25 +15,58 @@ const MAP_SRC =
   "https://www.google.com/maps/d/embed?mid=1D1OCIlq49qF4mNJKGKJ5YeAk_Deulpw";
 
 const locations = [
-  { name: "MANIT Central Library", category: "Academic" },
-  { name: "New Teaching Block (NTB)", category: "Academic" },
-  { name: "Mechanical Engineering Department", category: "Academic" },
-  { name: "Electrical Engineering Department", category: "Academic" },
-  { name: "Electronics & Communication Department", category: "Academic" },
-  { name: "Hostel No. 2", category: "Hostel" },
-  { name: "Hostel No. 11", category: "Hostel" },
-  { name: "Hostel No. 8", category: "Hostel" },
-  { name: "Nescafe Canteen", category: "Food" },
-  { name: "Susangat — The taste of MANIT", category: "Food" },
-  { name: "Neelam Food Centre", category: "Food" },
-  { name: "Sports Complex, NIT Bhopal", category: "Sports" },
-  { name: "MANIT Basketball Court", category: "Sports" },
-  { name: "Tennis Court, MANIT", category: "Sports" },
-  { name: "Faculty Guest House", category: "Landmark" },
-  { name: "VIP Guest House MANIT", category: "Landmark" },
-  { name: "MANIT Shiva Temple", category: "Landmark" },
-  { name: "PMC Chauraha", category: "Transport" },
-  { name: "Main Parking Lot", category: "Transport" },
+  // Academic
+  { name: "MANIT Central Library", category: "Academic", query: "MANIT Central Library, Bhopal" },
+  { name: "New Teaching Block (NTB)", category: "Academic", query: "New Teaching Block, MANIT Bhopal" },
+  { name: "Computer Science & Engg Dept", category: "Academic", query: "Computer Science Department, MANIT Bhopal" },
+  { name: "Electronics & Communication Dept", category: "Academic", query: "Electronics and Communication Department, MANIT Bhopal" },
+  { name: "Electrical Engineering Dept", category: "Academic", query: "Electrical Engineering Department, MANIT Bhopal" },
+  { name: "Mechanical Engineering Dept", category: "Academic", query: "Mechanical Engineering Department, MANIT Bhopal" },
+  { name: "Civil Engineering Dept", category: "Academic", query: "Civil Engineering Department, MANIT Bhopal" },
+  { name: "Architecture & Planning Dept", category: "Academic", query: "Department of Architecture and Planning, MANIT Bhopal" },
+
+  // Hostels — all 12 (official Bhawan names)
+  { name: "Hostel 1 · Homi Bhabha Bhawan", category: "Hostel", query: "Hostel No 1, MANIT Bhopal" },
+  { name: "Hostel 2 · Vikram Sarabhai Bhawan", category: "Hostel", query: "Hostel No 2, MANIT Bhopal" },
+  { name: "Hostel 3", category: "Hostel", query: "Hostel No 3, MANIT Bhopal" },
+  { name: "Hostel 4", category: "Hostel", query: "Hostel No 4, MANIT Bhopal" },
+  { name: "Hostel 5 · Visvesvaraya Bhawan", category: "Hostel", query: "Hostel No 5, MANIT Bhopal" },
+  { name: "Hostel 6 · J. C. Bose Bhawan", category: "Hostel", query: "Hostel No 6, MANIT Bhopal" },
+  { name: "Hostel 7 · Kalpana Chawla Bhawan (Girls)", category: "Hostel", query: "Hostel No 7 Girls Hostel, MANIT Bhopal" },
+  { name: "Hostel 8 · Ramanujan Bhawan", category: "Hostel", query: "Hostel No 8, MANIT Bhopal" },
+  { name: "Hostel 9 · Raja Ramanna Bhawan", category: "Hostel", query: "Hostel No 9, MANIT Bhopal" },
+  { name: "Hostel 10", category: "Hostel", query: "Hostel No 10, MANIT Bhopal" },
+  { name: "Hostel 11", category: "Hostel", query: "Hostel No 11, MANIT Bhopal" },
+  { name: "Hostel 12 · Bhagini Nivedita Bhawan (Girls)", category: "Hostel", query: "Hostel No 12, MANIT Bhopal" },
+
+  // Cafés & canteens
+  { name: "Susangat Food Court", category: "Food", query: "Susangat, MANIT Bhopal" },
+  { name: "Nescafe Canteen", category: "Food", query: "Nescafe, MANIT Bhopal" },
+  { name: "Neelam Food Centre", category: "Food", query: "Neelam Food Centre, MANIT Bhopal" },
+  { name: "Amul Parlour", category: "Food", query: "Amul Parlour, MANIT Bhopal" },
+  { name: "Night Canteen", category: "Food", query: "Night Canteen, MANIT Bhopal" },
+
+  // Sports grounds & playgrounds
+  { name: "Sports Complex (Gymkhana)", category: "Sports", query: "Sports Complex, NIT Bhopal" },
+  { name: "Cricket Ground", category: "Sports", query: "MANIT Cricket Ground, Bhopal" },
+  { name: "Football Ground", category: "Sports", query: "MANIT Football Ground, Bhopal" },
+  { name: "Athletics Track & Field", category: "Sports", query: "MANIT Athletics Ground, Bhopal" },
+  { name: "Basketball Court", category: "Sports", query: "MANIT Basketball Court, Bhopal" },
+  { name: "Volleyball Court", category: "Sports", query: "MANIT Volleyball Court, Bhopal" },
+  { name: "Lawn Tennis Court", category: "Sports", query: "Tennis Court, MANIT Bhopal" },
+  { name: "Indoor Stadium", category: "Sports", query: "MANIT Indoor Stadium, Bhopal" },
+  { name: "Gymnasium", category: "Sports", query: "MANIT Gym, Bhopal" },
+
+  // Landmarks
+  { name: "Main Gate (Gate No. 1)", category: "Landmark", query: "MANIT Bhopal Main Gate" },
+  { name: "Open Air Theatre (OAT)", category: "Landmark", query: "Open Air Theatre, MANIT Bhopal" },
+  { name: "MANIT Shiva Temple", category: "Landmark", query: "Shiv Mandir, MANIT Bhopal" },
+  { name: "Faculty Guest House", category: "Landmark", query: "Faculty Guest House, MANIT Bhopal" },
+  { name: "VIP Guest House", category: "Landmark", query: "VIP Guest House, MANIT Bhopal" },
+
+  // Transport
+  { name: "PMC Chauraha", category: "Transport", query: "PMC Chauraha, MANIT Bhopal" },
+  { name: "Main Parking Lot", category: "Transport", query: "Parking, MANIT Bhopal" },
 ];
 
 const categoryMeta = {
@@ -68,7 +101,7 @@ export default function CampusMaps() {
 
   const iframeSrc = selectedLocation
     ? `https://www.google.com/maps?q=${encodeURIComponent(
-        `${selectedLocation.name}, MANIT Bhopal`
+        selectedLocation.query || `${selectedLocation.name}, MANIT Bhopal`
       )}&output=embed`
     : MAP_SRC;
 
@@ -91,8 +124,8 @@ export default function CampusMaps() {
               Find your way around campus
             </h1>
             <p className="mt-3 text-sm leading-6 text-primary-100/90">
-              Search real MANIT locations, filter by category, and open the
-              selected place in the embedded campus map.
+              Every hostel, canteen, department and sports ground across MANIT —
+              search, filter by category, and open it in the live campus map.
             </p>
           </div>
           <div className="inline-flex items-center gap-3 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 backdrop-blur">
