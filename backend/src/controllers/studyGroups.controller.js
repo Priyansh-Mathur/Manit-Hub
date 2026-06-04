@@ -323,6 +323,18 @@ exports.joinStudyGroup = async (req, res, next) => {
     group.members.push(req.user._id);
     await group.save();
 
+    // Notify the group creator that someone joined.
+    if (group.creator && group.creator.toString() !== req.user._id.toString()) {
+      await createNotification(
+        group.creator,
+        "study-group",
+        `${req.user.displayName} joined your group`,
+        `${req.user.displayName} joined “${group.name}”.`,
+        group._id,
+        "StudyGroup"
+      );
+    }
+
     return success(res, null, "Joined study group");
   } catch (err) {
     next(err);

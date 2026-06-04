@@ -2,6 +2,7 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const Conversation = require("../models/Conversation");
 const Message = require("../models/Message");
+const Notification = require("../models/Notification");
 
 const chatSocket = (io) => {
   io.use(async (socket, next) => {
@@ -69,6 +70,33 @@ const chatSocket = (io) => {
       await conversation.save();
 
       io.to(conversationId).emit("receive_message", message);
+
+      // Notify the other participant(s) — coalesce into one unread per conversation.
+      try {
+        const recipients = conversation.participants
+          .map((p) => p.toString())
+          .filter((pid) => pid !== socket.user._id.toString());
+        const snippet = content.length > 80 ? `${content.slice(0, 77)}…` : content;
+        await Promise.all(
+          recipients.map((rid) =>
+            Notification.findOneAndUpdate(
+              { user: rid, type: "message", relatedId: conversationId, read: false },
+              {
+                user: rid,
+                type: "message",
+                title: `New message from ${socket.user.displayName}`,
+                description: snippet,
+                relatedId: conversationId,
+                relatedModel: "Conversation",
+                read: false,
+              },
+              { upsert: true, setDefaultsOnInsert: true }
+            )
+          )
+        );
+      } catch (e) {
+        console.error("notification (message) failed:", e.message);
+      }
     });
 
     socket.on("mark_read", async ({ conversationId }) => {

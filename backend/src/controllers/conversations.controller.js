@@ -3,6 +3,7 @@ const Listing = require("../models/Listing");
 const User = require("../models/User");
 const Message = require("../models/Message");
 const { success, error } = require("../utils/response");
+const { createNotification } = require("./notifications.controller");
 
 /**
  * GET /api/conversations
@@ -90,6 +91,16 @@ exports.createConversation = async (req, res, next) => {
         participants,
         university: req.user.university,
       });
+
+      // Notify the listing owner that someone started a chat.
+      await createNotification(
+        otherUser._id,
+        "marketplace",
+        `New chat about “${listing.title}”`,
+        `${req.user.displayName} is interested in your listing.`,
+        listing._id,
+        "Listing"
+      );
     }
 
     return success(res, conversation, "Conversation ready", 201);

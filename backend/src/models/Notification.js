@@ -39,7 +39,7 @@ const notificationSchema = new mongoose.Schema(
     
     relatedModel: {
       type: String,
-      enum: ["Listing", "StudyGroup", "Message", "User"],
+      enum: ["Listing", "StudyGroup", "Message", "User", "Conversation"],
     },
   },
   { timestamps: true }
