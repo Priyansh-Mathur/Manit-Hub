@@ -27,17 +27,17 @@ const locations = [
 
   // Hostels — all 12 (official Bhawan names)
   { name: "Hostel 1 · Homi Bhabha Bhawan", category: "Hostel", query: "Brothers Cafe, No.3, Hostel Rd, Maulana Azad National Institute of Technology, Bhopal, Madhya Pradesh 462003, India" },
-  { name: "Hostel 2 · Vikram Sarabhai Bhawan", category: "Hostel", query: "Hostel No 2, MANIT Bhopal" },
+  { name: "Hostel 2 · Vikram Sarabhai Bhawan", category: "Hostel", query: "Hostel no. 2, 3, Hostel Rd, Maulana Azad National Institute of Technology, Bhopal, Madhya Pradesh 462003, India" },
   { name: "Hostel 3", category: "Hostel", query: "Hostel No 3, MANIT Bhopal" },
   { name: "Hostel 4", category: "Hostel", query: "Hostel No 4, MANIT Bhopal" },
   { name: "Hostel 5 · Visvesvaraya Bhawan", category: "Hostel", query: "Hostel No 5, MANIT Bhopal" },
   { name: "Hostel 6 · J. C. Bose Bhawan", category: "Hostel", query: "Manit Hostel NO.6, 6C78+HGC, Maulana Azad National Institute of Technology, Bhopal, Madhya Pradesh 462003, India" },
-  { name: "Hostel 7 · Kalpana Chawla Bhawan (Girls)", category: "Hostel", query: "Hostel No 7 Girls Hostel, MANIT Bhopal" },
+  { name: "Hostel 7 · Kalpana Chawla Bhawan (Girls)", category: "Hostel", query: "23.215045,77.401546" },
   { name: "Hostel 8 · Ramanujan Bhawan", category: "Hostel", query: "Hostel No 8, MANIT Bhopal" },
   { name: "Hostel 9 · Raja Ramanna Bhawan", category: "Hostel", query: "Hostel No 9, MANIT Bhopal" },
   { name: "HOSTEL 10 A AND B", category: "Hostel", query: "Hostel No 10, MANIT Bhopal" },
   { name: "Hostel 11", category: "Hostel", query: "Hostel 11 MANIT, 11, Hostel Rd, Maulana Azad National Institute of Technology, Bhopal, Madhya Pradesh 462003, India" },
-  { name: "Hostel 12 · Bhagini Nivedita Bhawan (Girls)", category: "Hostel", query: "Hostel No 12, MANIT Bhopal" },
+  { name: "Hostel 12 · Bhagini Nivedita Bhawan (Girls)", category: "Hostel", query: "H-12 Nivedita Bhawan, 698X+HQQ, Maulana Azad National Institute of Technology, Bhopal, Madhya Pradesh 462003, India" },
 
   // Cafés & canteens
   { name: "Susangat Food Court", category: "Food", query: "Susangat, MANIT Bhopal" },
