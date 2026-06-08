@@ -1,5 +1,7 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { Routes, Route } from "react-router-dom";
+import { Capacitor } from "@capacitor/core";
+import { App as CapacitorApp } from "@capacitor/app";
 import AppLayout from "./layouts/AppLayout";
 import { ToastProvider } from "./components/ui/ToastProvider";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
@@ -26,6 +28,19 @@ function RouteFallback() {
 }
 
 export default function App() {
+  // Android hardware back button: go back in history, or exit at the root.
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return undefined;
+    let handle;
+    CapacitorApp.addListener("backButton", ({ canGoBack }) => {
+      if (canGoBack) window.history.back();
+      else CapacitorApp.exitApp();
+    }).then((listener) => {
+      handle = listener;
+    });
+    return () => handle?.remove();
+  }, []);
+
   return (
     <ToastProvider>
       <Suspense fallback={<RouteFallback />}>

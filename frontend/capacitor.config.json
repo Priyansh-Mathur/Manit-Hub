@@ -1,0 +1,25 @@
+{
+  "appId": "in.ac.manit.hub",
+  "appName": "Manit Hub",
+  "webDir": "dist",
+  "backgroundColor": "#152b4c",
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    },
+    "SplashScreen": {
+      "launchShowDuration": 1200,
+      "launchAutoHide": true,
+      "backgroundColor": "#152b4c",
+      "showSpinner": false,
+      "androidScaleType": "CENTER_CROP"
+    },
+    "StatusBar": {
+      "style": "LIGHT",
+      "backgroundColor": "#152b4c"
+    }
+  }
+}

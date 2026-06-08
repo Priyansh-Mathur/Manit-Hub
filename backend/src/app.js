@@ -40,6 +40,8 @@ const devOrigins = [
   "http://127.0.0.1:5173",
   "http://localhost:4173",
   "http://localhost:3000",
+  "https://localhost", // Capacitor Android (androidScheme: https)
+  "capacitor://localhost", // Capacitor iOS / fallback
 ];
 
 const allowedOrigins = new Set([...explicitOrigins, ...devOrigins]);

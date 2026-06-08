@@ -1,4 +1,6 @@
 import { createContext, useCallback, useEffect, useMemo, useState } from "react";
+import { Capacitor } from "@capacitor/core";
+import { StatusBar, Style } from "@capacitor/status-bar";
 
 const ThemeContext = createContext(null);
 
@@ -22,6 +24,14 @@ export function ThemeProvider({ children }) {
       localStorage.setItem("theme", theme);
     } catch {
       /* ignore storage failures */
+    }
+    // Match the native Android status bar to the active theme.
+    if (Capacitor.isNativePlatform()) {
+      const dark = theme === "dark";
+      StatusBar.setStyle({ style: dark ? Style.Light : Style.Dark }).catch(() => {});
+      StatusBar.setBackgroundColor({
+        color: dark ? "#070b15" : "#f5f7fa",
+      }).catch(() => {});
     }
   }, [theme]);
 

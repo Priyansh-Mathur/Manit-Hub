@@ -1,3 +1,8 @@
+Make a separate portal for the teachers
+jisko padha rahe hain jaise ki maan lo, class AC department ke saare departments hain. Jaise tu Samay ko ECE department mein padhata hai to attendence maak karva paye khud ki attendance mark kar paaye jo uske upar HOD ko jaayegi, HOD ka portal alag banega.
+
 Medical Certificate
+what i have to do 
 Attendance Display and updation
 
+make the app for the same
