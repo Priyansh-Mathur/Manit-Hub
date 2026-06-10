@@ -4,7 +4,7 @@
 
 # Manit Hub
 
-### The student super‑app for MANIT Bhopal — marketplace, study groups, real‑time chat & campus maps, in one place.
+### The student super‑app for MANIT Bhopal — marketplace, study groups, study vault, real‑time chat & campus maps, in one place.
 
 Manit Hub brings campus life at **Maulana Azad National Institute of Technology (NIT Bhopal)** into a single, premium experience.
 Built by students, for students — a verified, university‑scoped community on the **web** and as a native **Android** app.
@@ -57,6 +57,8 @@ Built by students, for students — a verified, university‑scoped community on
 | ![Landing](docs/screenshots/landing.png) | ![Dashboard](docs/screenshots/dashboard.png) | ![Marketplace](docs/screenshots/marketplace.png) |
 | **Study Groups** | **Real-time Chat** | **Campus Maps** |
 | ![Study Groups](docs/screenshots/study-groups.png) | ![Chat](docs/screenshots/messages.png) | ![Maps](docs/screenshots/campus-maps.png) |
+| **Login** | **Study Vault** | |
+| ![Login](docs/screenshots/login.png) | ![Study Vault](docs/screenshots/study-vault.png) | |
 
 </div>
 
@@ -114,6 +116,7 @@ Built by students, for students — a verified, university‑scoped community on
 | 🔐 | **University‑scoped auth** | Sign up with your `@stu.manit.ac.in` email; JWT sessions with password reset. | A **verified, students‑only** community — every account is a real campus identity. |
 | 🛒 | **Student Marketplace** | List, search, filter & sort items across 6 categories with condition badges, Cloudinary photos, wishlist and "mark sold". | Buy & sell textbooks, cycles and hostel gear **safely within campus** — settle over UPI. |
 | 👥 | **Study Groups** | Create or join branch‑wise groups with tags, member caps, scheduled sessions and WhatsApp/Telegram/Discord/Meet links. | Find your people and **organise revision** without scattering across 5 apps. |
+| 📚 | **Study Vault** | Upload, search & download notes, PYQs, syllabi and schedules — filtered by branch, subject, semester and type, with download counts. | The campus knowledge base: **exam prep material in one place**, shared by the students who aced it. |
 | 💬 | **Real‑time Chat** | Socket.IO conversations tied to listings, with read receipts and unread counts. | Reach a seller or group‑mate **instantly**, with context attached. |
 | 🔔 | **Event‑driven Notifications** | Auto‑generated on new message, group join, or interest in your listing — grouped & filterable. | Never miss a reply or a buyer — **the bell reflects real activity**. |
 | 🗺️ | **Campus Maps** | 41 real MANIT locations — all 12 hostels, canteens, sports grounds and departments — opened in an embedded live map. | Navigate a sprawling campus by **name, category, or exact pin**. |
@@ -191,9 +194,9 @@ manit-hub/
 ├── backend/                   # Express REST + Socket.IO API
 │   ├── src/
 │   │   ├── config/            # db (Mongo), cloudinary
-│   │   ├── controllers/       # auth, listings, studyGroups, messages, notifications…
+│   │   ├── controllers/       # auth, listings, studyGroups, documents, messages, notifications…
 │   │   ├── middleware/        # auth (JWT), universityScope, uploads, error handler
-│   │   ├── models/            # User, University, Listing, StudyGroup, Conversation, Message, Notification
+│   │   ├── models/            # User, University, Listing, StudyGroup, Document, Conversation, Message, Notification
 │   │   ├── routes/            # /api/* route definitions
 │   │   ├── socket/            # chat.socket.js (real-time events)
 │   │   ├── jobs/              # studyGroupReminder cron job
@@ -236,8 +239,10 @@ erDiagram
   UNIVERSITY ||--o{ USER : has
   UNIVERSITY ||--o{ LISTING : scopes
   UNIVERSITY ||--o{ STUDYGROUP : scopes
+  UNIVERSITY ||--o{ DOCUMENT : scopes
   USER ||--o{ LISTING : sells
   USER ||--o{ STUDYGROUP : creates
+  USER ||--o{ DOCUMENT : uploads
   STUDYGROUP }o--o{ USER : members
   LISTING ||--o{ CONVERSATION : about
   USER ||--o{ CONVERSATION : participates
@@ -355,6 +360,7 @@ All endpoints are prefixed with `/api`. Protected routes require `Authorization:
 | `POST` | `/auth/forgot-password` · `/auth/reset-password` | Password recovery |
 | `GET` `POST` `PUT` `DELETE` | `/listings` `…/:id` | Marketplace CRUD, status & images |
 | `GET` `POST` | `/study-groups` `…/:id/join` `…/:id/leave` | Study groups CRUD & membership |
+| `GET` `POST` `DELETE` | `/documents` `…/:id/download` | Study Vault: upload, list/filter, track downloads, delete own |
 | `GET` `POST` | `/conversations` | Start / list conversations |
 | `GET` `PUT` | `/messages/:conversationId` | Fetch & mark messages read *(send is via Socket.IO)* |
 | `GET` `PUT` `DELETE` | `/notifications` | List, mark read, delete |

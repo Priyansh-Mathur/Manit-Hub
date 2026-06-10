@@ -8,6 +8,7 @@ import {
   Home,
   ShoppingBag,
   Users,
+  Library,
   Map,
   MessageCircle,
   Bell,
@@ -58,6 +59,7 @@ function CommandPalette({ open, onClose }) {
           { label: "Dashboard", icon: Home, run: () => navigate("/dashboard") },
           { label: "Marketplace", icon: ShoppingBag, run: () => navigate("/marketplace") },
           { label: "Study Groups", icon: Users, run: () => navigate("/study-groups") },
+          { label: "Study Vault", icon: Library, run: () => navigate("/study-vault") },
           { label: "Campus Maps", icon: Map, run: () => navigate("/campus-maps") },
           { label: "Messages", icon: MessageCircle, run: () => navigate("/messages") },
           { label: "Notifications", icon: Bell, run: () => navigate("/notifications") },
@@ -69,6 +71,7 @@ function CommandPalette({ open, onClose }) {
         items: [
           { label: "List an item for sale", icon: Plus, run: () => navigate("/marketplace") },
           { label: "Create a study group", icon: Users, run: () => navigate("/study-groups") },
+          { label: "Upload notes / a document", icon: Library, run: () => navigate("/study-vault") },
           { label: "Log out", icon: LogOut, run: () => logout() },
         ],
       },
