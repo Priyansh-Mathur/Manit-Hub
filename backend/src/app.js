@@ -13,6 +13,8 @@ const usersRoutes = require("./routes/users.routes");
 const notificationsRoutes = require("./routes/notifications.routes");
 const dashboardRoutes = require("./routes/dashboard.routes");
 const documentsRoutes = require("./routes/documents.routes");
+const academicRecordsRoutes = require("./routes/academicRecords.routes");
+const attendanceRoutes = require("./routes/attendance.routes");
 
 const errorHandler = require("./middleware/error");
 const connectDB = require("./config/db");
@@ -93,6 +95,8 @@ app.use("/api/study-groups", studyGroupsRoutes);
 app.use("/api/notifications", notificationsRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/documents", documentsRoutes);
+app.use("/api/academic-records", academicRecordsRoutes);
+app.use("/api/attendance", attendanceRoutes);
 
 // Health check
 app.get("/api/health", (req, res) => {

@@ -11,6 +11,7 @@ const Marketplace = lazy(() => import("./pages/Marketplace"));
 const Messages = lazy(() => import("./pages/Messages"));
 const StudyGroups = lazy(() => import("./pages/StudyGroups"));
 const StudyVault = lazy(() => import("./pages/StudyVault"));
+const CgpaCalculator = lazy(() => import("./pages/CgpaCalculator"));
 const StudyGroupDetails = lazy(() => import("./pages/StudyGroupDetails"));
 const CampusMaps = lazy(() => import("./pages/CampusMaps"));
 const Notifications = lazy(() => import("./pages/Notifications"));
@@ -57,6 +58,7 @@ export default function App() {
               <Route path="/study-groups" element={<StudyGroups />} />
               <Route path="/study-groups/:id" element={<StudyGroupDetails />} />
               <Route path="/study-vault" element={<StudyVault />} />
+              <Route path="/cgpa" element={<CgpaCalculator />} />
               <Route path="/campus-maps" element={<CampusMaps />} />
               <Route path="/messages" element={<Messages />} />
               <Route path="/notifications" element={<Notifications />} />

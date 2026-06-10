@@ -1,19 +1,39 @@
-import { Home, ShoppingBag, Users, Library, Map, MessageCircle, Bell } from "lucide-react";
+import {
+  Home,
+  ShoppingBag,
+  Users,
+  Library,
+  Map,
+  MessageCircle,
+  Bell,
+  GraduationCap,
+} from "lucide-react";
+
+// Named items so insertions can't silently break bottomNavItems.
+const dashboard = { name: "Dashboard", short: "Home", to: "/dashboard", icon: Home };
+const marketplace = { name: "Marketplace", short: "Market", to: "/marketplace", icon: ShoppingBag };
+const studyGroups = { name: "Study Groups", short: "Groups", to: "/study-groups", icon: Users };
+const studyVault = { name: "Study Vault", short: "Docs", to: "/study-vault", icon: Library };
+const cgpa = { name: "CGPA Tracker", short: "CGPA", to: "/cgpa", icon: GraduationCap };
+const campusMaps = { name: "Campus Maps", short: "Map", to: "/campus-maps", icon: Map };
+const messages = { name: "Messages", short: "Chats", to: "/messages", icon: MessageCircle };
+const notifications = { name: "Notifications", short: "Alerts", to: "/notifications", icon: Bell };
 
 export const navItems = [
-  { name: "Dashboard", short: "Home", to: "/dashboard", icon: Home },
-  { name: "Marketplace", short: "Market", to: "/marketplace", icon: ShoppingBag },
-  { name: "Study Groups", short: "Groups", to: "/study-groups", icon: Users },
-  { name: "Study Vault", short: "Docs", to: "/study-vault", icon: Library },
-  { name: "Campus Maps", short: "Map", to: "/campus-maps", icon: Map },
-  { name: "Messages", short: "Chats", to: "/messages", icon: MessageCircle },
-  { name: "Notifications", short: "Alerts", to: "/notifications", icon: Bell },
+  dashboard,
+  marketplace,
+  studyGroups,
+  studyVault,
+  cgpa,
+  campusMaps,
+  messages,
+  notifications,
 ];
 
 export const bottomNavItems = [
-  navItems[0],
-  navItems[1],
-  navItems[2],
-  navItems[5],
-  navItems[6],
+  dashboard,
+  marketplace,
+  studyGroups,
+  messages,
+  notifications,
 ];

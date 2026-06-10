@@ -15,6 +15,7 @@ import {
   Settings,
   Plus,
   LogOut,
+  GraduationCap,
 } from "lucide-react";
 import { cn } from "../../lib/cn";
 import { useAuthContext } from "../../context/useAuthContext";
@@ -60,6 +61,7 @@ function CommandPalette({ open, onClose }) {
           { label: "Marketplace", icon: ShoppingBag, run: () => navigate("/marketplace") },
           { label: "Study Groups", icon: Users, run: () => navigate("/study-groups") },
           { label: "Study Vault", icon: Library, run: () => navigate("/study-vault") },
+          { label: "CGPA Tracker", icon: GraduationCap, run: () => navigate("/cgpa") },
           { label: "Campus Maps", icon: Map, run: () => navigate("/campus-maps") },
           { label: "Messages", icon: MessageCircle, run: () => navigate("/messages") },
           { label: "Notifications", icon: Bell, run: () => navigate("/notifications") },
@@ -72,6 +74,7 @@ function CommandPalette({ open, onClose }) {
           { label: "List an item for sale", icon: Plus, run: () => navigate("/marketplace") },
           { label: "Create a study group", icon: Users, run: () => navigate("/study-groups") },
           { label: "Upload notes / a document", icon: Library, run: () => navigate("/study-vault") },
+          { label: "Track my CGPA", icon: GraduationCap, run: () => navigate("/cgpa") },
           { label: "Log out", icon: LogOut, run: () => logout() },
         ],
       },
