@@ -2,10 +2,18 @@ const mongoose = require("mongoose");
 
 const conversationSchema = new mongoose.Schema(
   {
+    // Polymorphic context id — a Listing for marketplace chats, or the
+    // LostFoundItem / Ride the conversation was started from (see contextType).
     listingId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Listing",
       required: true,
+    },
+
+    contextType: {
+      type: String,
+      enum: ["listing", "lostfound", "ride"],
+      default: "listing",
     },
 
     listingTitle: {

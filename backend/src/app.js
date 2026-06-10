@@ -15,6 +15,8 @@ const dashboardRoutes = require("./routes/dashboard.routes");
 const documentsRoutes = require("./routes/documents.routes");
 const academicRecordsRoutes = require("./routes/academicRecords.routes");
 const attendanceRoutes = require("./routes/attendance.routes");
+const lostFoundRoutes = require("./routes/lostFound.routes");
+const confessionsRoutes = require("./routes/confessions.routes");
 
 const errorHandler = require("./middleware/error");
 const connectDB = require("./config/db");
@@ -97,6 +99,8 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/documents", documentsRoutes);
 app.use("/api/academic-records", academicRecordsRoutes);
 app.use("/api/attendance", attendanceRoutes);
+app.use("/api/lost-found", lostFoundRoutes);
+app.use("/api/confessions", confessionsRoutes);
 
 // Health check
 app.get("/api/health", (req, res) => {

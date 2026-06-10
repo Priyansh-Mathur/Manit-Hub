@@ -39,21 +39,42 @@ exports.getUserConversations = async (req, res, next) => {
 /**
  * POST /api/conversations
  */
+// Context loaders per conversation type. Each returns the source document;
+// all of them carry { title, university, isActive } so the checks below are shared.
+const contextLoaders = {
+  listing: { model: () => Listing, titlePrefix: "", notifType: "marketplace" },
+  lostfound: {
+    model: () => require("../models/LostFoundItem"),
+    titlePrefix: "Lost & Found: ",
+    notifType: "system",
+  },
+  ride: {
+    model: () => require("../models/Ride"),
+    titlePrefix: "Ride: ",
+    notifType: "system",
+  },
+};
+
 exports.createConversation = async (req, res, next) => {
   try {
-    const { listingId, participantId } = req.body;
+    const { listingId, participantId, contextType = "listing" } = req.body;
 
     if (!listingId || !participantId) {
       return error(res, "Missing required fields", 400);
+    }
+
+    const loader = contextLoaders[contextType];
+    if (!loader) {
+      return error(res, "Invalid conversation context", 400);
     }
 
     if (participantId === req.user._id.toString()) {
       return error(res, "Cannot start conversation with yourself", 400);
     }
 
-    // 🔍 Load listing
-    const listing = await Listing.findById(listingId);
-    if (!listing || !listing.isActive) {
+    // 🔍 Load the context document (listing / lost & found item / ride)
+    const listing = await loader.model().findById(listingId);
+    if (!listing || listing.isActive === false) {
       return error(res, "Listing not found", 404);
     }
 
@@ -87,19 +108,22 @@ exports.createConversation = async (req, res, next) => {
     if (!conversation) {
       conversation = await Conversation.create({
         listingId,
-        listingTitle: listing.title, // 🔒 derived, not trusted
+        contextType,
+        listingTitle: `${loader.titlePrefix}${listing.title}`, // 🔒 derived, not trusted
         participants,
         university: req.user.university,
       });
 
-      // Notify the listing owner that someone started a chat.
+      // Notify the other participant that someone started a chat.
       await createNotification(
         otherUser._id,
-        "marketplace",
+        loader.notifType,
         `New chat about “${listing.title}”`,
-        `${req.user.displayName} is interested in your listing.`,
-        listing._id,
-        "Listing"
+        contextType === "listing"
+          ? `${req.user.displayName} is interested in your listing.`
+          : `${req.user.displayName} wants to talk about “${listing.title}”.`,
+        contextType === "listing" ? listing._id : null,
+        contextType === "listing" ? "Listing" : null
       );
     }
 

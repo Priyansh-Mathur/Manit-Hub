@@ -8,6 +8,7 @@ import {
   Bell,
   GraduationCap,
   CalendarCheck,
+  SearchCheck,
 } from "lucide-react";
 
 // Named items so insertions can't silently break bottomNavItems.
@@ -17,6 +18,7 @@ const studyGroups = { name: "Study Groups", short: "Groups", to: "/study-groups"
 const studyVault = { name: "Study Vault", short: "Docs", to: "/study-vault", icon: Library };
 const cgpa = { name: "CGPA Tracker", short: "CGPA", to: "/cgpa", icon: GraduationCap };
 const attendance = { name: "Attendance", short: "Attend", to: "/attendance", icon: CalendarCheck };
+const lostFound = { name: "Lost & Found", short: "Lost", to: "/lost-found", icon: SearchCheck };
 const campusMaps = { name: "Campus Maps", short: "Map", to: "/campus-maps", icon: Map };
 const messages = { name: "Messages", short: "Chats", to: "/messages", icon: MessageCircle };
 const notifications = { name: "Notifications", short: "Alerts", to: "/notifications", icon: Bell };
@@ -28,6 +30,7 @@ export const navItems = [
   studyVault,
   cgpa,
   attendance,
+  lostFound,
   campusMaps,
   messages,
   notifications,
