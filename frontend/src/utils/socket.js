@@ -2,7 +2,7 @@ import { io } from 'socket.io-client';
 
 const SOCKET_URL =
   import.meta.env.VITE_SOCKET_URL ||
-  "https://manit-hub-backend.vercel.app";
+  "https://manithub-backend.vercel.app";
 
 class SocketService {
   constructor() {

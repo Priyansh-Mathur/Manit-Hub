@@ -113,7 +113,7 @@ CLOUDINARY_API_SECRET=your_api_secret
 CAMPUS_LOCATIONS_COUNT=10
 ```
 
-For Vercel production, set the same values in the project environment variables, especially `MONGO_URI`, `JWT_SECRET`, and `CLIENT_URL=https://manit-hub-samayjainbm.netlify.app`.
+For Vercel production, set the same values in the project environment variables, especially `MONGO_URI`, `JWT_SECRET`, and `CLIENT_URL=https://manithub-samayjainbm.netlify.app`.
 
 ### 3. Run the Server
 

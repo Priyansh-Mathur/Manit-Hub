@@ -30,7 +30,7 @@ Built by students, for students — a verified, university‑scoped community on
 
 <br/>
 
-[**🌐 Live Demo**](https://manit-hub-samayjainbm.netlify.app/) · [**▶️ Demo Link**](https://example.com/demo) · [**📱 Android App**](#-mobile-app-android) · [**🐛 Report Bug**](https://github.com/Samay-Jain/Manit-Hub/issues) · [**✨ Request Feature**](https://github.com/Samay-Jain/Manit-Hub/issues)
+[**🌐 Live Demo**](https://manithub-samayjainbm.netlify.app/) · [**▶️ Demo Link**](https://example.com/demo) · [**📱 Android App**](#-mobile-app-android) · [**🐛 Report Bug**](https://github.com/Samay-Jain/Manit-Hub/issues) · [**✨ Request Feature**](https://github.com/Samay-Jain/Manit-Hub/issues)
 
 </div>
 
@@ -60,8 +60,8 @@ Built by students, for students — a verified, university‑scoped community on
 
 </div>
 
-**🔗 Live web app:** https://manit-hub-samayjainbm.netlify.app/
-**🔌 API base URL:** `https://manit-hub-backend.vercel.app/api`
+**🔗 Live web app:** https://manithub-samayjainbm.netlify.app/
+**🔌 API base URL:** `https://manithub-backend.vercel.app/api`
 
 <details>
 <summary><b>Example API response</b> — <code>POST /api/auth/login</code></summary>
@@ -73,8 +73,8 @@ Built by students, for students — a verified, university‑scoped community on
   "data": {
     "user": {
       "id": "6a0cb1909d5806fe5529ebaf",
-      "displayName": "Aarav Mehta",
-      "email": "231140100@stu.manit.ac.in",
+      "displayName": "Samay Jain",
+      "email": "2311401212@stu.manit.ac.in",
       "university": { "_id": "6a0cb190…", "name": "MANIT" }
     },
     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9…"
