@@ -29,3 +29,13 @@ export const deleteDocument = async (documentId) => {
   const res = await api.delete(`/documents/${documentId}`);
   return res.data?.data ?? null;
 };
+
+export const toggleDocumentUpvote = async (documentId) => {
+  const res = await api.post(`/documents/${documentId}/upvote`);
+  return res.data?.data ?? null;
+};
+
+export const addDocumentComment = async (documentId, content) => {
+  const res = await api.post(`/documents/${documentId}/comments`, { content });
+  return res.data?.data ?? null;
+};

@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Environment files — secrets never belong in git.
+# (.env.example and frontend/.env.production are intentionally NOT ignored.)
+.env
+.env.local
+
+# Build output
+dist/
+dist-ssr/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Editor / OS
+.DS_Store
+.idea/
+*.suo
+*.sw?

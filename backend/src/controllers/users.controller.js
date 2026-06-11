@@ -231,13 +231,25 @@ exports.getUserProfile = async (req, res, next) => {
       return error(res, "User not found", 404);
     }
 
-    const listings = await Listing.find({
-      seller: user._id,
-      university: req.user.university,
-      isActive: true,
-    })
-      .sort({ createdAt: -1 })
-      .populate("seller", "displayName avatarUrl");
+    const Document = require("../models/Document");
+    const Question = require("../models/Question");
+    const Answer = require("../models/Answer");
+    const Event = require("../models/Event");
+    const Ride = require("../models/Ride");
+
+    const scope = { university: req.user.university };
+
+    const [listings, documents, questions, answers, events, rides] =
+      await Promise.all([
+        Listing.find({ seller: user._id, ...scope, isActive: true })
+          .sort({ createdAt: -1 })
+          .populate("seller", "displayName avatarUrl"),
+        Document.countDocuments({ uploader: user._id, ...scope, isActive: true }),
+        Question.countDocuments({ author: user._id, ...scope, isActive: true }),
+        Answer.countDocuments({ author: user._id, ...scope, isActive: true }),
+        Event.countDocuments({ organizer: user._id, ...scope, isActive: true }),
+        Ride.countDocuments({ poster: user._id, ...scope, isActive: true }),
+      ]);
 
     return success(res, {
       user: {
@@ -248,11 +260,19 @@ exports.getUserProfile = async (req, res, next) => {
         location: user.location,
         avatarUrl: user.avatarUrl,
         university: user.university,
+        memberSince: user.createdAt,
+        points: user.points || 0,
+        badges: user.badges || [],
       },
       paymentInfo: user.paymentInfo,
       listings,
       stats: {
         totalListings: listings.length,
+        documents,
+        questions,
+        answers,
+        events,
+        rides,
       },
     });
   } catch (err) {

@@ -1,7 +1,13 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "../../lib/cn";
 
-export default function NavItem({ to, icon: Icon, label, badge = 0, onClick }) {
+export default function NavItem({ to, icon: Icon, label, badge = 0, onClick, match }) {
+  const { pathname } = useLocation();
+  // Hub entries pass `match`: highlight when ANY grouped route is active.
+  const matchActive = match
+    ? match.some((p) => pathname === p || pathname.startsWith(`${p}/`))
+    : undefined;
+
   return (
     <NavLink
       to={to}
@@ -9,13 +15,15 @@ export default function NavItem({ to, icon: Icon, label, badge = 0, onClick }) {
       className={({ isActive }) =>
         cn(
           "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition",
-          isActive
+          (matchActive ?? isActive)
             ? "bg-primary-600/10 text-primary-700 dark:text-primary-100"
             : "text-muted hover:bg-muted/8 hover:text-fg"
         )
       }
     >
-      {({ isActive }) => (
+      {({ isActive: navActive }) => {
+        const isActive = matchActive ?? navActive;
+        return (
         <>
           <span
             className={cn(
@@ -40,7 +48,8 @@ export default function NavItem({ to, icon: Icon, label, badge = 0, onClick }) {
             </span>
           )}
         </>
-      )}
+        );
+      }}
     </NavLink>
   );
 }

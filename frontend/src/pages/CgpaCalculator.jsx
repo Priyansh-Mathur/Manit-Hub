@@ -19,6 +19,7 @@ import {
   deleteSemester,
 } from "../api/academicRecords";
 import { useToast } from "../components/ui/useToast";
+import HubTabs from "../components/nav/HubTabs";
 
 function StatCard({ icon: Icon, label, value, hint }) {
   return (
@@ -243,6 +244,7 @@ export default function CgpaCalculator() {
 
   return (
     <div className="space-y-6">
+      <HubTabs hub="academics" />
       <PageHeader
         eyebrow="Academics"
         title="CGPA Tracker"

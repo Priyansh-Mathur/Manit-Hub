@@ -3,6 +3,7 @@ const Confession = require("../models/Confession");
 const { REACTION_TYPES } = require("../models/Confession");
 const { success, error } = require("../utils/response");
 const { createNotification } = require("./notifications.controller");
+const { awardPoints } = require("../utils/gamification");
 
 const REPORT_AUTO_HIDE_THRESHOLD = 5;
 
@@ -121,6 +122,8 @@ exports.createConfession = async (req, res, next) => {
       author: req.user._id,
       university: req.user.university,
     });
+
+    await awardPoints(req.user._id, "confession_posted");
 
     return success(
       res,

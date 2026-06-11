@@ -15,6 +15,7 @@ import {
   deleteAttendanceSubject,
 } from "../api/attendance";
 import { useToast } from "../components/ui/useToast";
+import HubTabs from "../components/nav/HubTabs";
 
 function StatCard({ icon: Icon, label, value, tone = "primary" }) {
   return (
@@ -136,6 +137,7 @@ export default function Attendance() {
 
   return (
     <div className="space-y-6">
+      <HubTabs hub="academics" />
       <PageHeader
         eyebrow="Academics"
         title="Attendance"

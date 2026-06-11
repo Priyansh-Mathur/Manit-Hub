@@ -1,6 +1,7 @@
 const Listing = require("../models/Listing");
 const { success, error } = require("../utils/response");
 const { createNotification } = require("./notifications.controller");
+const { awardPoints } = require("../utils/gamification");
 
 /**
  * GET /api/listings
@@ -143,6 +144,8 @@ exports.createListing = async (req, res, next) => {
       listing._id,
       "Listing"
     );
+
+    await awardPoints(req.user._id, "listing_created");
 
     return success(res, listing, "Listing created", 201);
   } catch (err) {

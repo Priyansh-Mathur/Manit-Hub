@@ -14,6 +14,15 @@ const StudyVault = lazy(() => import("./pages/StudyVault"));
 const CgpaCalculator = lazy(() => import("./pages/CgpaCalculator"));
 const Attendance = lazy(() => import("./pages/Attendance"));
 const LostFound = lazy(() => import("./pages/LostFound"));
+const Confessions = lazy(() => import("./pages/Confessions"));
+const Rides = lazy(() => import("./pages/Rides"));
+const Timetable = lazy(() => import("./pages/Timetable"));
+const Events = lazy(() => import("./pages/Events"));
+const Forum = lazy(() => import("./pages/Forum"));
+const QuestionDetail = lazy(() => import("./pages/QuestionDetail"));
+const Offers = lazy(() => import("./pages/Offers"));
+const AdminModeration = lazy(() => import("./pages/AdminModeration"));
+const Leaderboard = lazy(() => import("./pages/Leaderboard"));
 const StudyGroupDetails = lazy(() => import("./pages/StudyGroupDetails"));
 const CampusMaps = lazy(() => import("./pages/CampusMaps"));
 const Notifications = lazy(() => import("./pages/Notifications"));
@@ -63,6 +72,15 @@ export default function App() {
               <Route path="/cgpa" element={<CgpaCalculator />} />
               <Route path="/attendance" element={<Attendance />} />
               <Route path="/lost-found" element={<LostFound />} />
+              <Route path="/confessions" element={<Confessions />} />
+              <Route path="/rides" element={<Rides />} />
+              <Route path="/timetable" element={<Timetable />} />
+              <Route path="/events" element={<Events />} />
+              <Route path="/forum" element={<Forum />} />
+              <Route path="/forum/:id" element={<QuestionDetail />} />
+              <Route path="/offers" element={<Offers />} />
+              <Route path="/admin/moderation" element={<AdminModeration />} />
+              <Route path="/leaderboard" element={<Leaderboard />} />
               <Route path="/campus-maps" element={<CampusMaps />} />
               <Route path="/messages" element={<Messages />} />
               <Route path="/notifications" element={<Notifications />} />

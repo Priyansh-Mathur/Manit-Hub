@@ -10,6 +10,7 @@ import PostItemModal from "../components/lostFound/PostItemModal";
 import { KIND_OPTIONS, LF_CATEGORIES } from "../components/lostFound/constants";
 import { fetchLostFoundItems, createLostFoundItem } from "../api/lostFound";
 import { useToast } from "../components/ui/useToast";
+import HubTabs from "../components/nav/HubTabs";
 
 function CardSkeleton() {
   return (
@@ -87,6 +88,7 @@ export default function LostFound() {
 
   return (
     <div className="space-y-6">
+      <HubTabs hub="campus" />
       <PageHeader
         eyebrow="Community"
         title="Lost & Found"

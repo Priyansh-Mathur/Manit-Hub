@@ -1,45 +1,111 @@
 import {
   Home,
   ShoppingBag,
-  Users,
   Library,
   Map,
   MessageCircle,
   Bell,
   GraduationCap,
-  CalendarCheck,
-  SearchCheck,
+  Sparkles,
+  ShieldCheck,
 } from "lucide-react";
+
+/**
+ * Tabbed hub groups — one sidebar entry per hub, sibling pages switch via
+ * the HubTabs strip rendered at the top of each grouped page.
+ */
+export const hubs = {
+  academics: {
+    label: "Academics",
+    tabs: [
+      { label: "CGPA", to: "/cgpa" },
+      { label: "Attendance", to: "/attendance" },
+      { label: "Timetable", to: "/timetable" },
+    ],
+  },
+  study: {
+    label: "Study",
+    tabs: [
+      { label: "Vault", to: "/study-vault" },
+      { label: "Q&A", to: "/forum" },
+      { label: "Groups", to: "/study-groups" },
+    ],
+  },
+  market: {
+    label: "Marketplace",
+    tabs: [
+      { label: "Listings", to: "/marketplace" },
+      { label: "Offers", to: "/offers" },
+    ],
+  },
+  campus: {
+    label: "Campus Life",
+    tabs: [
+      { label: "Confessions", to: "/confessions" },
+      { label: "Events", to: "/events" },
+      { label: "Lost & Found", to: "/lost-found" },
+      { label: "Rides", to: "/rides" },
+      { label: "Leaderboard", to: "/leaderboard" },
+    ],
+  },
+};
+
+const hubPaths = (key) => hubs[key].tabs.map((tab) => tab.to);
 
 // Named items so insertions can't silently break bottomNavItems.
 const dashboard = { name: "Dashboard", short: "Home", to: "/dashboard", icon: Home };
-const marketplace = { name: "Marketplace", short: "Market", to: "/marketplace", icon: ShoppingBag };
-const studyGroups = { name: "Study Groups", short: "Groups", to: "/study-groups", icon: Users };
-const studyVault = { name: "Study Vault", short: "Docs", to: "/study-vault", icon: Library };
-const cgpa = { name: "CGPA Tracker", short: "CGPA", to: "/cgpa", icon: GraduationCap };
-const attendance = { name: "Attendance", short: "Attend", to: "/attendance", icon: CalendarCheck };
-const lostFound = { name: "Lost & Found", short: "Lost", to: "/lost-found", icon: SearchCheck };
+const academics = {
+  name: "Academics",
+  short: "Acads",
+  to: "/cgpa",
+  icon: GraduationCap,
+  match: hubPaths("academics"),
+};
+const study = {
+  name: "Study",
+  short: "Study",
+  to: "/study-vault",
+  icon: Library,
+  match: hubPaths("study"),
+};
+const market = {
+  name: "Marketplace",
+  short: "Market",
+  to: "/marketplace",
+  icon: ShoppingBag,
+  match: hubPaths("market"),
+};
+const campus = {
+  name: "Campus Life",
+  short: "Campus",
+  to: "/confessions",
+  icon: Sparkles,
+  match: hubPaths("campus"),
+};
 const campusMaps = { name: "Campus Maps", short: "Map", to: "/campus-maps", icon: Map };
 const messages = { name: "Messages", short: "Chats", to: "/messages", icon: MessageCircle };
 const notifications = { name: "Notifications", short: "Alerts", to: "/notifications", icon: Bell };
 
 export const navItems = [
   dashboard,
-  marketplace,
-  studyGroups,
-  studyVault,
-  cgpa,
-  attendance,
-  lostFound,
+  academics,
+  study,
+  market,
+  campus,
   campusMaps,
   messages,
   notifications,
 ];
 
+// Rendered only for users with isAdmin (see SideNav / MobileDrawer).
+export const adminNavItems = [
+  { name: "Moderation", short: "Mod", to: "/admin/moderation", icon: ShieldCheck },
+];
+
 export const bottomNavItems = [
   dashboard,
-  marketplace,
-  studyGroups,
+  market,
+  study,
   messages,
   notifications,
 ];

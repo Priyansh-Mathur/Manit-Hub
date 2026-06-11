@@ -10,6 +10,7 @@ import EmptyState from "../components/ui/EmptyState";
 import Skeleton from "../components/ui/Skeleton";
 import { studyGroupsApi } from "../api/studyGroups";
 import { useAuthContext } from "../context/useAuthContext";
+import HubTabs from "../components/nav/HubTabs";
 
 export default function StudyGroups() {
   const navigate = useNavigate();
@@ -126,6 +127,7 @@ export default function StudyGroups() {
 
   return (
     <div className="space-y-6">
+      <HubTabs hub="study" />
       <PageHeader
         eyebrow="Learn together"
         title="Study Groups"

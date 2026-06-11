@@ -4,7 +4,7 @@ import Logo from "../brand/Logo";
 import Avatar from "../ui/Avatar";
 import ThemeToggle from "../ui/ThemeToggle";
 import NavItem from "./NavItem";
-import { navItems } from "./navConfig";
+import { navItems, adminNavItems } from "./navConfig";
 import { useCommand } from "../command/useCommand";
 import useUnreadCount from "../../hooks/useUnreadCount";
 import { useAuthContext } from "../../context/useAuthContext";
@@ -42,9 +42,26 @@ export default function SideNav() {
             to={item.to}
             icon={item.icon}
             label={item.name}
+            match={item.match}
             badge={item.name === "Notifications" ? unread : 0}
           />
         ))}
+
+        {user?.isAdmin && (
+          <>
+            <p className="px-3 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted/70">
+              Admin
+            </p>
+            {adminNavItems.map((item) => (
+              <NavItem
+                key={item.to}
+                to={item.to}
+                icon={item.icon}
+                label={item.name}
+              />
+            ))}
+          </>
+        )}
       </nav>
 
       <div className="space-y-2 border-t pt-3">

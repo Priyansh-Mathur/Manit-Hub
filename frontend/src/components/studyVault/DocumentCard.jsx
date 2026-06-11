@@ -7,15 +7,27 @@ import {
   FileSpreadsheet,
   FileArchive,
   Presentation,
+  ArrowBigUp,
+  MessageSquareText,
+  Eye,
+  Flag,
 } from "lucide-react";
-import { trackDownload, deleteDocument } from "../../api/documents";
+import { cn } from "../../lib/cn";
+import {
+  trackDownload,
+  deleteDocument,
+  toggleDocumentUpvote,
+} from "../../api/documents";
+import DocCommentsModal from "./DocCommentsModal";
+import DocPreviewModal from "./DocPreviewModal";
+import ReportModal from "../moderation/ReportModal";
 import { useAuthContext } from "../../context/useAuthContext";
 import { useToast } from "../ui/useToast";
 import Badge from "../ui/Badge";
 import Avatar from "../ui/Avatar";
 import Button from "../ui/Button";
 import ConfirmModal from "../ui/ConfirmModal";
-import { formatFileSize } from "./constants";
+import { formatFileSize, isPreviewable } from "./constants";
 
 const typeTone = {
   Notes: "primary",
@@ -39,7 +51,31 @@ export default function DocumentCard({ doc, onDeleted }) {
   const [downloadCount, setDownloadCount] = useState(doc.downloadCount || 0);
   const [downloading, setDownloading] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [upvoteCount, setUpvoteCount] = useState(doc.upvoteCount || 0);
+  const [myUpvote, setMyUpvote] = useState(!!doc.myUpvote);
+  const [comments, setComments] = useState(doc.comments || []);
+  const [showComments, setShowComments] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [showReport, setShowReport] = useState(false);
   const isOwner = user && doc.uploader?._id === user._id;
+
+  const handleUpvote = async () => {
+    // Optimistic toggle; reconcile with the server's answer.
+    setMyUpvote((v) => !v);
+    setUpvoteCount((c) => (myUpvote ? c - 1 : c + 1));
+    try {
+      const result = await toggleDocumentUpvote(doc._id);
+      if (result) {
+        setMyUpvote(result.myUpvote);
+        setUpvoteCount(result.upvoteCount);
+      }
+    } catch (error) {
+      console.error("Upvote failed:", error);
+      setMyUpvote((v) => !v);
+      setUpvoteCount(doc.upvoteCount || 0);
+      show("Could not upvote", "error");
+    }
+  };
 
   const FileIcon = formatIcon((doc.fileFormat || "").toLowerCase());
 
@@ -108,12 +144,48 @@ export default function DocumentCard({ doc, onDeleted }) {
             {doc.uploader?.displayName || "Unknown"}
           </span>
         </div>
-        <span className="flex shrink-0 items-center gap-1 text-xs text-muted">
-          <Download size={13} /> {downloadCount}
-        </span>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <button
+            type="button"
+            onClick={handleUpvote}
+            aria-label={myUpvote ? "Remove upvote" : "Upvote document"}
+            className={cn(
+              "ring-focus inline-flex items-center gap-0.5 rounded-full border px-2 py-0.5 text-xs font-semibold transition",
+              myUpvote
+                ? "border-primary-600 bg-primary-600/10 text-primary-600"
+                : "text-muted hover:text-fg"
+            )}
+          >
+            <ArrowBigUp size={14} className={myUpvote ? "fill-current" : ""} />
+            {upvoteCount}
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowComments(true)}
+            aria-label="View comments"
+            className="ring-focus inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-semibold text-muted transition hover:text-fg"
+          >
+            <MessageSquareText size={12} />
+            {comments.length}
+          </button>
+          <span className="flex items-center gap-1 text-xs text-muted">
+            <Download size={13} /> {downloadCount}
+          </span>
+        </div>
       </div>
 
       <div className="mt-3 flex items-center gap-2">
+        {isPreviewable(doc.fileFormat) && (
+          <button
+            type="button"
+            onClick={() => setShowPreview(true)}
+            aria-label="Preview document"
+            title="Preview in app"
+            className="ring-focus inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border bg-surface text-muted transition hover:border-primary-500/40 hover:text-primary-600"
+          >
+            <Eye size={15} />
+          </button>
+        )}
         <Button
           size="sm"
           fullWidth
@@ -123,7 +195,7 @@ export default function DocumentCard({ doc, onDeleted }) {
         >
           Download
         </Button>
-        {isOwner && (
+        {isOwner ? (
           <button
             type="button"
             onClick={() => setShowDeleteModal(true)}
@@ -132,8 +204,43 @@ export default function DocumentCard({ doc, onDeleted }) {
           >
             <Trash2 size={15} />
           </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setShowReport(true)}
+            aria-label="Report document"
+            title="Report document"
+            className="ring-focus inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border text-muted transition hover:text-warning-600"
+          >
+            <Flag size={14} />
+          </button>
         )}
       </div>
+
+      <ReportModal
+        open={showReport}
+        onClose={() => setShowReport(false)}
+        targetType="document"
+        targetId={doc._id}
+        title={doc.title}
+      />
+
+      <DocPreviewModal
+        doc={doc}
+        open={showPreview}
+        onClose={() => setShowPreview(false)}
+        downloading={downloading}
+        onDownload={handleDownload}
+      />
+
+      <DocCommentsModal
+        doc={{ ...doc, comments }}
+        open={showComments}
+        onClose={() => setShowComments(false)}
+        onCommentAdded={(id, created) =>
+          setComments((prev) => [...prev, created])
+        }
+      />
 
       <ConfirmModal
         open={showDeleteModal}

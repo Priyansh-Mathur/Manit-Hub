@@ -9,6 +9,7 @@ import DocumentCard from "../components/studyVault/DocumentCard";
 import UploadDocModal from "../components/studyVault/UploadDocModal";
 import { fetchDocuments, uploadDocument } from "../api/documents";
 import { useToast } from "../components/ui/useToast";
+import HubTabs from "../components/nav/HubTabs";
 
 function CardSkeleton() {
   return (
@@ -78,6 +79,7 @@ export default function StudyVault() {
 
   return (
     <div className="space-y-6">
+      <HubTabs hub="study" />
       <PageHeader
         eyebrow="Notes & PYQs"
         title="Study Vault"

@@ -54,6 +54,24 @@ const userSchema = new mongoose.Schema(
       index: true,
     },
 
+    // Moderation rights for the admin review queue.
+    isAdmin: {
+      type: Boolean,
+      default: false,
+    },
+
+    // Gamification — earned by contributing (uploads, answers, listings…).
+    points: {
+      type: Number,
+      default: 0,
+      index: true,
+    },
+
+    badges: {
+      type: [String],
+      default: [],
+    },
+
     /**
      * Saved / Interested listings (wishlist-style)
      */

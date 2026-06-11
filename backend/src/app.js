@@ -17,6 +17,14 @@ const academicRecordsRoutes = require("./routes/academicRecords.routes");
 const attendanceRoutes = require("./routes/attendance.routes");
 const lostFoundRoutes = require("./routes/lostFound.routes");
 const confessionsRoutes = require("./routes/confessions.routes");
+const ridesRoutes = require("./routes/rides.routes");
+const timetableRoutes = require("./routes/timetable.routes");
+const eventsRoutes = require("./routes/events.routes");
+const forumRoutes = require("./routes/forum.routes");
+const offersRoutes = require("./routes/offers.routes");
+const reportsRoutes = require("./routes/reports.routes");
+const leaderboardRoutes = require("./routes/leaderboard.routes");
+const pushRoutes = require("./routes/push.routes");
 
 const errorHandler = require("./middleware/error");
 const connectDB = require("./config/db");
@@ -101,6 +109,14 @@ app.use("/api/academic-records", academicRecordsRoutes);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/lost-found", lostFoundRoutes);
 app.use("/api/confessions", confessionsRoutes);
+app.use("/api/rides", ridesRoutes);
+app.use("/api/timetable", timetableRoutes);
+app.use("/api/events", eventsRoutes);
+app.use("/api/forum", forumRoutes);
+app.use("/api/offers", offersRoutes);
+app.use("/api/reports", reportsRoutes);
+app.use("/api/leaderboard", leaderboardRoutes);
+app.use("/api/push", pushRoutes);
 
 // Health check
 app.get("/api/health", (req, res) => {

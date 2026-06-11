@@ -14,7 +14,7 @@ const auth = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     const user = await User.findById(decoded.id).select(
-      "_id email displayName phone bio location avatarUrl university savedListings"
+      "_id email displayName phone bio location avatarUrl university savedListings isAdmin points badges"
     );
 
     if (!user) {

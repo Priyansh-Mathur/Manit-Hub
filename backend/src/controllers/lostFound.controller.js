@@ -1,5 +1,6 @@
 const LostFoundItem = require("../models/LostFoundItem");
 const { success, error } = require("../utils/response");
+const { awardPoints } = require("../utils/gamification");
 
 /**
  * GET /api/lost-found
@@ -94,6 +95,8 @@ exports.createItem = async (req, res, next) => {
     });
 
     await item.populate("reporter", "displayName avatarUrl");
+
+    await awardPoints(req.user._id, "lostfound_posted");
 
     return success(res, item, "Item posted", 201);
   } catch (err) {

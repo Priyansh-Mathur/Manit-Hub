@@ -18,6 +18,14 @@ import {
   GraduationCap,
   CalendarCheck,
   SearchCheck,
+  VenetianMask,
+  CarFront,
+  CalendarDays,
+  PartyPopper,
+  MessagesSquare,
+  HandCoins,
+  ShieldCheck,
+  Trophy,
 } from "lucide-react";
 import { cn } from "../../lib/cn";
 import { useAuthContext } from "../../context/useAuthContext";
@@ -50,7 +58,7 @@ export function CommandProvider({ children }) {
 
 function CommandPalette({ open, onClose }) {
   const navigate = useNavigate();
-  const { logout } = useAuthContext();
+  const { user, logout } = useAuthContext();
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
 
@@ -61,15 +69,25 @@ function CommandPalette({ open, onClose }) {
         items: [
           { label: "Dashboard", icon: Home, run: () => navigate("/dashboard") },
           { label: "Marketplace", icon: ShoppingBag, run: () => navigate("/marketplace") },
+          { label: "Offers", icon: HandCoins, run: () => navigate("/offers") },
           { label: "Study Groups", icon: Users, run: () => navigate("/study-groups") },
           { label: "Study Vault", icon: Library, run: () => navigate("/study-vault") },
           { label: "CGPA Tracker", icon: GraduationCap, run: () => navigate("/cgpa") },
           { label: "Attendance", icon: CalendarCheck, run: () => navigate("/attendance") },
+          { label: "Timetable", icon: CalendarDays, run: () => navigate("/timetable") },
           { label: "Lost & Found", icon: SearchCheck, run: () => navigate("/lost-found") },
+          { label: "Confessions", icon: VenetianMask, run: () => navigate("/confessions") },
+          { label: "Ride Share", icon: CarFront, run: () => navigate("/rides") },
+          { label: "Events & Clubs", icon: PartyPopper, run: () => navigate("/events") },
+          { label: "Course Q&A", icon: MessagesSquare, run: () => navigate("/forum") },
+          { label: "Leaderboard", icon: Trophy, run: () => navigate("/leaderboard") },
           { label: "Campus Maps", icon: Map, run: () => navigate("/campus-maps") },
           { label: "Messages", icon: MessageCircle, run: () => navigate("/messages") },
           { label: "Notifications", icon: Bell, run: () => navigate("/notifications") },
           { label: "Settings", icon: Settings, run: () => navigate("/settings") },
+          ...(user?.isAdmin
+            ? [{ label: "Moderation (admin)", icon: ShieldCheck, run: () => navigate("/admin/moderation") }]
+            : []),
         ],
       },
       {
@@ -81,11 +99,16 @@ function CommandPalette({ open, onClose }) {
           { label: "Track my CGPA", icon: GraduationCap, run: () => navigate("/cgpa") },
           { label: "Mark today's attendance", icon: CalendarCheck, run: () => navigate("/attendance") },
           { label: "Report a lost / found item", icon: SearchCheck, run: () => navigate("/lost-found") },
+          { label: "Post an anonymous confession", icon: VenetianMask, run: () => navigate("/confessions") },
+          { label: "Post a ride / split a cab", icon: CarFront, run: () => navigate("/rides") },
+          { label: "Add a class to my timetable", icon: CalendarDays, run: () => navigate("/timetable") },
+          { label: "Create a campus event", icon: PartyPopper, run: () => navigate("/events") },
+          { label: "Ask a course question", icon: MessagesSquare, run: () => navigate("/forum") },
           { label: "Log out", icon: LogOut, run: () => logout() },
         ],
       },
     ],
-    [navigate, logout]
+    [navigate, logout, user?.isAdmin]
   );
 
   const filtered = useMemo(() => {

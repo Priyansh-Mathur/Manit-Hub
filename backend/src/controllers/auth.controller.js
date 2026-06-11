@@ -90,6 +90,7 @@ exports.login = async (req, res, next) => {
         location: user.location,
         avatarUrl: user.avatarUrl,
         university: user.university,
+        isAdmin: user.isAdmin === true,
       },
       token,
     });

@@ -18,6 +18,11 @@ export const BRANCHES = [
 
 export const SEMESTERS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
 
+export const PREVIEWABLE_FORMATS = ["pdf", "png", "jpg", "jpeg", "webp"];
+
+export const isPreviewable = (format) =>
+  PREVIEWABLE_FORMATS.includes((format || "").toLowerCase());
+
 export const formatFileSize = (bytes) => {
   const size = Number(bytes);
   if (!size || Number.isNaN(size)) return "";

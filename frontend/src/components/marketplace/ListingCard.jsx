@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Heart, MessageCircle, CheckCircle, Pencil, Trash2 } from "lucide-react";
+import { Heart, MessageCircle, CheckCircle, Pencil, Trash2, IndianRupee, HandCoins, Flag } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { messagesApi } from "../../api/messages";
 import {
@@ -17,6 +17,9 @@ import Badge from "../ui/Badge";
 import Avatar from "../ui/Avatar";
 import ListItemModal from "./ListItemModal";
 import ConfirmModal from "../ui/ConfirmModal";
+import PayUpiModal from "./PayUpiModal";
+import MakeOfferModal from "./MakeOfferModal";
+import ReportModal from "../moderation/ReportModal";
 
 const conditionTone = {
   new: "success",
@@ -31,6 +34,9 @@ export default function ListingCard({ item }) {
   const [status, setStatus] = useState(item.status || "available");
   const [showEdit, setShowEdit] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showPayModal, setShowPayModal] = useState(false);
+  const [showOfferModal, setShowOfferModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   const { show } = useToast();
   const isSeller = user && item.seller?._id === user._id;
   const isSaved = (user?.savedListings || [])
@@ -171,7 +177,20 @@ export default function ListingCard({ item }) {
           </p>
         </div>
 
-        <p className="mt-1 text-sm text-muted">{item.category}</p>
+        <div className="mt-1 flex items-center justify-between">
+          <p className="text-sm text-muted">{item.category}</p>
+          {!isSeller && user && (
+            <button
+              type="button"
+              onClick={() => setShowReportModal(true)}
+              aria-label="Report listing"
+              title="Report listing"
+              className="ring-focus rounded-lg p-1 text-muted/60 transition hover:text-warning-600"
+            >
+              <Flag size={13} />
+            </button>
+          )}
+        </div>
 
         <div className="mt-4 flex items-center justify-between gap-2 border-t pt-3">
           <button
@@ -190,14 +209,34 @@ export default function ListingCard({ item }) {
           </button>
 
           {!isSeller && user && !sold && (
-            <button
-              type="button"
-              onClick={handleStartConversation}
-              aria-label="Message seller"
-              className="ring-focus inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border bg-surface text-muted transition hover:border-primary-500/40 hover:text-primary-600"
-            >
-              <MessageCircle size={16} />
-            </button>
+            <div className="flex shrink-0 items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setShowOfferModal(true)}
+                aria-label="Make an offer"
+                title="Make an offer"
+                className="ring-focus inline-flex h-9 w-9 items-center justify-center rounded-xl border bg-surface text-muted transition hover:border-gold-500/40 hover:text-gold-600"
+              >
+                <HandCoins size={16} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowPayModal(true)}
+                aria-label="Pay via UPI"
+                title="Pay via UPI"
+                className="ring-focus inline-flex h-9 w-9 items-center justify-center rounded-xl border bg-surface text-muted transition hover:border-success-500/40 hover:text-success-600"
+              >
+                <IndianRupee size={16} />
+              </button>
+              <button
+                type="button"
+                onClick={handleStartConversation}
+                aria-label="Message seller"
+                className="ring-focus inline-flex h-9 w-9 items-center justify-center rounded-xl border bg-surface text-muted transition hover:border-primary-500/40 hover:text-primary-600"
+              >
+                <MessageCircle size={16} />
+              </button>
+            </div>
           )}
         </div>
 
@@ -234,6 +273,26 @@ export default function ListingCard({ item }) {
         onSubmit={handleEditListing}
         initialData={item}
         submitLabel="Save changes"
+      />
+
+      <PayUpiModal
+        open={showPayModal}
+        onClose={() => setShowPayModal(false)}
+        listing={item}
+      />
+
+      <MakeOfferModal
+        open={showOfferModal}
+        onClose={() => setShowOfferModal(false)}
+        listing={item}
+      />
+
+      <ReportModal
+        open={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        targetType="listing"
+        targetId={item._id}
+        title={item.title}
       />
 
       <ConfirmModal

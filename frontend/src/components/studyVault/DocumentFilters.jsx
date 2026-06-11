@@ -10,6 +10,7 @@ const typeOptions = [
 
 const sortOptions = [
   { value: "newest", label: "Newest first" },
+  { value: "top", label: "Top rated" },
   { value: "oldest", label: "Oldest first" },
   { value: "downloads", label: "Most downloaded" },
   { value: "title_asc", label: "Title: A to Z" },

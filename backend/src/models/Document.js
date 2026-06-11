@@ -75,6 +75,46 @@ const documentSchema = new mongoose.Schema(
       default: 0,
     },
 
+    upvotes: {
+      type: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+      ],
+      default: [],
+    },
+
+    // Denormalized for the "Top rated" sort.
+    upvoteCount: {
+      type: Number,
+      default: 0,
+      index: true,
+    },
+
+    comments: {
+      type: [
+        {
+          author: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            required: true,
+          },
+          content: {
+            type: String,
+            required: true,
+            trim: true,
+            maxlength: 500,
+          },
+          createdAt: {
+            type: Date,
+            default: Date.now,
+          },
+        },
+      ],
+      default: [],
+    },
+
     isActive: {
       type: Boolean,
       default: true,

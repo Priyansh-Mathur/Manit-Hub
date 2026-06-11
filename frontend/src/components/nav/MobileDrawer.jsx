@@ -6,7 +6,7 @@ import Logo from "../brand/Logo";
 import Avatar from "../ui/Avatar";
 import ThemeToggle from "../ui/ThemeToggle";
 import NavItem from "./NavItem";
-import { navItems } from "./navConfig";
+import { navItems, adminNavItems } from "./navConfig";
 import useUnreadCount from "../../hooks/useUnreadCount";
 import { useAuthContext } from "../../context/useAuthContext";
 
@@ -53,10 +53,21 @@ export default function MobileDrawer({ open, onClose }) {
                   to={item.to}
                   icon={item.icon}
                   label={item.name}
+                  match={item.match}
                   badge={item.name === "Notifications" ? unread : 0}
                   onClick={onClose}
                 />
               ))}
+              {user?.isAdmin &&
+                adminNavItems.map((item) => (
+                  <NavItem
+                    key={item.to}
+                    to={item.to}
+                    icon={item.icon}
+                    label={item.name}
+                    onClick={onClose}
+                  />
+                ))}
             </nav>
 
             <div className="space-y-2 border-t pt-3">

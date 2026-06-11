@@ -1,5 +1,6 @@
 const Notification = require("../models/Notification");
 const { success, error } = require("../utils/response");
+const { sendPushToUser } = require("../utils/push");
 
 exports.getNotifications = async (req, res) => {
   try {
@@ -97,6 +98,10 @@ exports.createNotification = async (userId, type, title, description, relatedId 
       relatedId,
       relatedModel
     });
+
+    // Mirror every in-app notification as an FCM push (no-op if unconfigured).
+    sendPushToUser(userId, title, description);
+
     return notification;
   } catch (err) {
     console.error("Error creating notification:", err);

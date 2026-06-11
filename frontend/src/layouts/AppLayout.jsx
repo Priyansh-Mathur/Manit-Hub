@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Outlet } from "react-router-dom";
+import { initPush } from "../lib/push";
 import { CommandProvider } from "../components/command/CommandPalette";
 import SideNav from "../components/nav/SideNav";
 import TopBar from "../components/nav/TopBar";
@@ -8,6 +9,11 @@ import BottomNav from "../components/nav/BottomNav";
 
 export default function AppLayout() {
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  // Register this device for push once per session (no-op if unconfigured).
+  useEffect(() => {
+    initPush();
+  }, []);
 
   return (
     <CommandProvider>

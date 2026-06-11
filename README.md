@@ -4,7 +4,7 @@
 
 # Manit Hub
 
-### The student super‑app for MANIT Bhopal — marketplace, study groups, study vault, real‑time chat & campus maps, in one place.
+### The student super‑app for MANIT Bhopal — marketplace, study vault, CGPA & attendance trackers, confessions, events, ride‑share, Q&A, real‑time chat & campus maps, in one place.
 
 Manit Hub brings campus life at **Maulana Azad National Institute of Technology (NIT Bhopal)** into a single, premium experience.
 Built by students, for students — a verified, university‑scoped community on the **web** and as a native **Android** app.
@@ -57,8 +57,14 @@ Built by students, for students — a verified, university‑scoped community on
 | ![Landing](docs/screenshots/landing.png) | ![Dashboard](docs/screenshots/dashboard.png) | ![Marketplace](docs/screenshots/marketplace.png) |
 | **Study Groups** | **Real-time Chat** | **Campus Maps** |
 | ![Study Groups](docs/screenshots/study-groups.png) | ![Chat](docs/screenshots/messages.png) | ![Maps](docs/screenshots/campus-maps.png) |
-| **Login** | **Study Vault** | |
-| ![Login](docs/screenshots/login.png) | ![Study Vault](docs/screenshots/study-vault.png) | |
+| **Login** | **Study Vault** | **CGPA Tracker** |
+| ![Login](docs/screenshots/login.png) | ![Study Vault](docs/screenshots/study-vault.png) | ![CGPA Tracker](docs/screenshots/cgpa.png) |
+| **Attendance** | **Timetable** | **Confessions** |
+| ![Attendance](docs/screenshots/attendance.png) | ![Timetable](docs/screenshots/timetable.png) | ![Confessions](docs/screenshots/confessions.png) |
+| **Events & Clubs** | **Lost & Found** | **Ride Share** |
+| ![Events](docs/screenshots/events.png) | ![Lost & Found](docs/screenshots/lost-found.png) | ![Ride Share](docs/screenshots/rides.png) |
+| **Course Q&A** | **Leaderboard** | **Offers** |
+| ![Course Q&A](docs/screenshots/forum.png) | ![Leaderboard](docs/screenshots/leaderboard.png) | ![Offers](docs/screenshots/offers.png) |
 
 </div>
 
@@ -116,12 +122,26 @@ Built by students, for students — a verified, university‑scoped community on
 | 🔐 | **University‑scoped auth** | Sign up with your `@stu.manit.ac.in` email; JWT sessions with password reset. | A **verified, students‑only** community — every account is a real campus identity. |
 | 🛒 | **Student Marketplace** | List, search, filter & sort items across 6 categories with condition badges, Cloudinary photos, wishlist and "mark sold". | Buy & sell textbooks, cycles and hostel gear **safely within campus** — settle over UPI. |
 | 👥 | **Study Groups** | Create or join branch‑wise groups with tags, member caps, scheduled sessions and WhatsApp/Telegram/Discord/Meet links. | Find your people and **organise revision** without scattering across 5 apps. |
-| 📚 | **Study Vault** | Upload, search & download notes, PYQs, syllabi and schedules — filtered by branch, subject, semester and type, with download counts. | The campus knowledge base: **exam prep material in one place**, shared by the students who aced it. |
+| 📚 | **Study Vault** | Upload, search & download notes, PYQs, syllabi and schedules — filtered by branch, subject, semester and type, with download counts, **in‑app PDF/image preview, upvotes & comments**. | The campus knowledge base: **exam prep material in one place** — and the best notes float to the top. |
+| 🎓 | **CGPA Tracker** | Per‑semester subject/credit/grade entry with live SGPA & CGPA, an SGPA trend chart and a target‑CGPA "what‑if" calculator. | Know exactly **what SGPA you need next semester** — before the semester. |
+| ✅ | **Attendance Tracker** | Mark present/absent per subject, see your %, and get the answer to "**can I skip the next class?**" against your ≥75% target. | Skip strategically, never fall below the **detained line**. |
+| 🗓️ | **Personal Timetable** | Weekly class grid with rooms & professors, color‑coded by subject — plus **automatic reminders ~30 min before class** via cron. | Your schedule remembers itself. |
+| 🤫 | **Confessions** | Fully anonymous campus feed with reactions, anonymous threaded replies (`OP` / `Anon-XXXX` handles), reporting and auto‑hide moderation. | Say it **without saying it was you** — with guardrails. |
+| 🧭 | **Lost & Found** | Post lost/found items with photos, category & location; mark them returned; message the poster in chat. | Reunite lost ID cards, earbuds and keys **without 50 WhatsApp groups**. |
+| 🎉 | **Events & Clubs** | Clubs publish events with venue & category; students RSVP and get a **reminder before it starts**. | The whole campus calendar, **one tap from RSVP**. |
+| ❓ | **Course Q&A Forum** | StackOverflow‑style questions tagged by branch/subject/semester, with upvotes and **accepted answers**. | Doubts get answered **by people who took the same exam**. |
+| 🚕 | **Ride Share** | Post a trip (from/to/time/seats), others book a seat and coordinate in chat; poster can cancel with notifications. | **Split cabs** to the station and airport painlessly. |
+| 💸 | **UPI Checkout** | `upi://` deep link + auto‑generated QR from the seller's saved UPI ID, prefilled with the listing price. | Pay in two taps — **no payment handles in chat**. |
+| 🤝 | **Offers & Negotiation** | Buyers make offers; sellers **accept / counter / decline** with notifications at every step; accepted offers reserve the listing. | Haggle like the campus market demands — **in the app, on the record**. |
+| 🚩 | **Reports & Moderation** | Report any listing/doc/confession/question; admins get a review queue to **remove content or dismiss** (auto‑resolves duplicates). | User‑generated content **stays safe at scale**. |
+| 🏆 | **Gamification** | Karma points for uploads, answers, listings & more; milestone badges and a campus **leaderboard**. | Contributing to campus **feels like winning**. |
+| 👤 | **Rich Profiles** | Reputation (points, level, badges, verified mark) + contribution history across docs, Q&A, events and rides. | Your campus identity is **more than a username**. |
+| 📲 | **Push Notifications (FCM)** | Every in‑app notification mirrors to **web & Android push** via Firebase Cloud Messaging (config‑gated). | Replies, offers and reminders reach you **even with the app closed**. |
 | 💬 | **Real‑time Chat** | Socket.IO conversations tied to listings, with read receipts and unread counts. | Reach a seller or group‑mate **instantly**, with context attached. |
 | 🔔 | **Event‑driven Notifications** | Auto‑generated on new message, group join, or interest in your listing — grouped & filterable. | Never miss a reply or a buyer — **the bell reflects real activity**. |
 | 🗺️ | **Campus Maps** | 41 real MANIT locations — all 12 hostels, canteens, sports grounds and departments — opened in an embedded live map. | Navigate a sprawling campus by **name, category, or exact pin**. |
 | ⚙️ | **Rich Settings** | Profile + avatar upload, UPI payment QR, notification preferences and privacy controls. | Control your identity, payments and visibility **from one place**. |
-| 🎨 | **Premium Design System** | MANIT navy/crimson/gold tokens, full **dark mode**, and a **⌘K command palette**. | Feels like a flagship product, not a college portal. |
+| 🎨 | **Premium Design System** | MANIT navy/crimson/gold tokens, full **dark mode**, a **⌘K command palette**, and a clean 8‑item **hub navigation** (Academics · Study · Marketplace · Campus Life) with in‑page tabs. | Feels like a flagship product, not a college portal. |
 | 📱 | **Native Android App** | The same app shipped via **Capacitor** — offline‑bundled fonts, theme‑aware status bar, signed APK/AAB. | One codebase, **web + Play‑Store‑ready Android**. |
 | 🏛️ | **Multi‑tenant by University** | Every listing, group and message is scoped to the user's university via middleware. | Clean **data isolation** — ready to expand beyond a single campus. |
 
@@ -133,9 +153,10 @@ Built by students, for students — a verified, university‑scoped community on
 | :-- | :-- |
 | **Frontend** | React 19, Vite 7, Tailwind CSS 3, Framer Motion, React Router 7, Axios, Lucide Icons, `@fontsource` |
 | **Realtime** | Socket.IO (client + server) |
-| **Backend** | Node.js, Express 5, Mongoose 9, JSON Web Tokens, bcryptjs, Helmet, CORS, node‑cron |
+| **Backend** | Node.js, Express 5, Mongoose 9, JSON Web Tokens, bcryptjs, Helmet, CORS, node‑cron, Firebase Admin (FCM) |
 | **Database** | MongoDB (Atlas) |
 | **Media** | Cloudinary (via Multer) |
+| **Push & QR** | Firebase Cloud Messaging (web + Android) · `qrcode` (UPI QR generation) |
 | **Mobile** | Capacitor 8 (Android) — App, Status Bar, Splash Screen, native HTTP |
 | **Tooling** | ESLint, PostCSS, Autoprefixer, clsx + tailwind‑merge |
 | **Hosting** | Netlify (web) · Vercel (API) · MongoDB Atlas (DB) |
@@ -158,11 +179,12 @@ graph TB
   subgraph Server["⚙️ API Server — Express · Vercel"]
     REST["REST API<br/>JWT + university scope"]
     WS["Socket.IO<br/>real-time chat"]
-    Cron["node-cron<br/>session reminders"]
+    Cron["node-cron<br/>class · event · session reminders"]
   end
 
   DB[("🍃 MongoDB Atlas<br/>Mongoose ODM")]
   Cloud["🖼️ Cloudinary<br/>image storage"]
+  FCM["🔔 Firebase Cloud Messaging<br/>web + Android push"]
 
   Web -->|axios / HTTPS| REST
   Android -->|native HTTP| REST
@@ -171,6 +193,8 @@ graph TB
   WS --> DB
   Cron --> DB
   REST -->|uploads| Cloud
+  REST -->|push| FCM
+  Cron -->|push| FCM
 ```
 
 ### Folder Structure
@@ -196,10 +220,10 @@ manit-hub/
 │   │   ├── config/            # db (Mongo), cloudinary
 │   │   ├── controllers/       # auth, listings, studyGroups, documents, messages, notifications…
 │   │   ├── middleware/        # auth (JWT), universityScope, uploads, error handler
-│   │   ├── models/            # User, University, Listing, StudyGroup, Document, Conversation, Message, Notification
+│   │   ├── models/            # User, Listing, StudyGroup, Document, Confession, Event, Ride, Question/Answer, Offer, Report, …
 │   │   ├── routes/            # /api/* route definitions
 │   │   ├── socket/            # chat.socket.js (real-time events)
-│   │   ├── jobs/              # studyGroupReminder cron job
+│   │   ├── jobs/              # studyGroup / class / event reminder cron jobs
 │   │   └── utils/             # jwt, unified response helper
 │   └── scripts/seed.js        # Demo data seeder
 │
@@ -240,9 +264,30 @@ erDiagram
   UNIVERSITY ||--o{ LISTING : scopes
   UNIVERSITY ||--o{ STUDYGROUP : scopes
   UNIVERSITY ||--o{ DOCUMENT : scopes
+  UNIVERSITY ||--o{ CONFESSION : scopes
+  UNIVERSITY ||--o{ EVENT : scopes
+  UNIVERSITY ||--o{ RIDE : scopes
+  UNIVERSITY ||--o{ LOSTFOUNDITEM : scopes
+  UNIVERSITY ||--o{ QUESTION : scopes
   USER ||--o{ LISTING : sells
   USER ||--o{ STUDYGROUP : creates
   USER ||--o{ DOCUMENT : uploads
+  USER ||--o{ ACADEMICRECORD : "tracks grades"
+  USER ||--o{ ATTENDANCESUBJECT : "tracks attendance"
+  USER ||--o{ TIMETABLEENTRY : schedules
+  USER ||--o{ CONFESSION : "posts (anonymously)"
+  USER ||--o{ QUESTION : asks
+  QUESTION ||--o{ ANSWER : has
+  USER ||--o{ ANSWER : writes
+  USER ||--o{ RIDE : posts
+  RIDE }o--o{ USER : passengers
+  USER ||--o{ EVENT : organizes
+  EVENT }o--o{ USER : attendees
+  USER ||--o{ LOSTFOUNDITEM : reports
+  LISTING ||--o{ OFFER : receives
+  USER ||--o{ OFFER : makes
+  USER ||--o{ REPORT : files
+  USER ||--o{ DEVICETOKEN : registers
   STUDYGROUP }o--o{ USER : members
   LISTING ||--o{ CONVERSATION : about
   USER ||--o{ CONVERSATION : participates
@@ -305,6 +350,7 @@ Open **http://localhost:5173** and sign up with an `@stu.manit.ac.in` email. �
 | `PORT` | ⬜ | API port (default `5001`) |
 | `NODE_ENV` | ⬜ | `development` or `production` |
 | `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` | ⬜ | Needed for image/avatar uploads |
+| `FIREBASE_SERVICE_ACCOUNT` | ⬜ | Firebase service-account JSON (raw or base64) — enables FCM push; in-app notifications work without it |
 
 ### `frontend/.env`
 
@@ -313,6 +359,7 @@ Open **http://localhost:5173** and sign up with an `@stu.manit.ac.in` email. �
 | `VITE_API_URL` | ⬜ | Explicit backend URL. Leave unset in dev to use the Vite proxy |
 | `VITE_PROXY_TARGET` | ⬜ | Where the dev proxy forwards `/api` (defaults to the hosted backend) |
 | `VITE_SOCKET_URL` | ⬜ | Socket.IO server URL |
+| `VITE_FIREBASE_API_KEY` `…AUTH_DOMAIN` `…PROJECT_ID` `…SENDER_ID` `…APP_ID` `…VAPID_KEY` | ⬜ | Firebase web config — enables browser push; omit to disable |
 
 ---
 
@@ -360,7 +407,19 @@ All endpoints are prefixed with `/api`. Protected routes require `Authorization:
 | `POST` | `/auth/forgot-password` · `/auth/reset-password` | Password recovery |
 | `GET` `POST` `PUT` `DELETE` | `/listings` `…/:id` | Marketplace CRUD, status & images |
 | `GET` `POST` | `/study-groups` `…/:id/join` `…/:id/leave` | Study groups CRUD & membership |
-| `GET` `POST` `DELETE` | `/documents` `…/:id/download` | Study Vault: upload, list/filter, track downloads, delete own |
+| `GET` `POST` `DELETE` | `/documents` `…/:id/download` `…/:id/upvote` `…/:id/comments` | Study Vault: upload, list/filter, downloads, **upvotes & comments**, delete own |
+| `GET` `PUT` `DELETE` | `/academic-records` `…/:semester` | CGPA tracker: list & upsert per‑semester grades |
+| `GET` `POST` `PATCH` `DELETE` | `/attendance` `…/:id` | Attendance: subjects, present/absent/undo actions, targets |
+| `GET` `POST` `PUT` `DELETE` | `/timetable` `…/:id` | Weekly classes (cron sends reminders ~30 min before) |
+| `GET` `POST` `DELETE` | `/confessions` `…/:id/react` `…/:id/comments` `…/:id/report` | Anonymous feed: post, react, reply, report |
+| `GET` `POST` `PATCH` `DELETE` | `/lost-found` `…/:id/status` | Lost & Found board with photos and returned status |
+| `GET` `POST` `DELETE` | `/rides` `…/:id/join` `…/:id/leave` | Ride share: post trips, book/release seats |
+| `GET` `POST` `DELETE` | `/events` `…/:id/rsvp` | Events & clubs calendar with RSVP + reminders |
+| `GET` `POST` `DELETE` | `/forum/questions` `…/:id/answers` `…/upvote` `…/accept` | Course Q&A: questions, answers, upvotes, accepted answers |
+| `GET` `POST` `PATCH` | `/offers` `…/:id` | Price negotiation: make, accept, counter, decline, withdraw |
+| `GET` `POST` `PATCH` | `/reports` `…/:id` | Report content; admin moderation queue (`isAdmin`) |
+| `GET` | `/leaderboard` | Campus karma leaderboard + your rank |
+| `POST` | `/push/register` `/push/unregister` | FCM device-token registry for push |
 | `GET` `POST` | `/conversations` | Start / list conversations |
 | `GET` `PUT` | `/messages/:conversationId` | Fetch & mark messages read *(send is via Socket.IO)* |
 | `GET` `PUT` `DELETE` | `/notifications` | List, mark read, delete |
@@ -387,11 +446,13 @@ All endpoints are prefixed with `/api`. Protected routes require `Authorization:
 
 ## 🗺️ Roadmap
 
-- [ ] Push notifications (FCM)
-- [ ] Lost & Found and Events modules
-- [ ] In‑app UPI deep links for checkout
+- [x] Push notifications (FCM) — wired end‑to‑end, enable by adding Firebase keys
+- [x] Lost & Found and Events modules
+- [x] In‑app UPI deep links + QR for checkout
+- [x] Admin moderation dashboard (`isAdmin` gate)
+- [x] CGPA & attendance trackers, timetable with class reminders
+- [x] Confessions, ride‑share, course Q&A, offers, gamification
 - [ ] iOS build via Capacitor
-- [ ] Admin moderation dashboard
 - [ ] Expand multi‑tenant support to more NITs
 
 ---

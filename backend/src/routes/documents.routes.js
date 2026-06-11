@@ -20,6 +20,18 @@ router.post(
   universityScope(Document),
   documentsController.incrementDownload
 );
+router.post(
+  "/:id/upvote",
+  auth,
+  universityScope(Document),
+  documentsController.toggleUpvote
+);
+router.post(
+  "/:id/comments",
+  auth,
+  universityScope(Document),
+  documentsController.addComment
+);
 router.delete(
   "/:id",
   auth,
