@@ -48,23 +48,21 @@ Built by students, for students — a verified, university‑scoped community on
 
 </div>
 
-> Add UI captures to `docs/screenshots/` and they'll render below.
-
 <div align="center">
 
-| Landing | Dashboard | Marketplace |
+| Landing | Login | Dashboard |
 | :---: | :---: | :---: |
-| ![Landing](docs/screenshots/landing.png) | ![Dashboard](docs/screenshots/dashboard.png) | ![Marketplace](docs/screenshots/marketplace.png) |
-| **Study Groups** | **Real-time Chat** | **Campus Maps** |
-| ![Study Groups](docs/screenshots/study-groups.png) | ![Chat](docs/screenshots/messages.png) | ![Maps](docs/screenshots/campus-maps.png) |
-| **Login** | **Study Vault** | **CGPA Tracker** |
-| ![Login](docs/screenshots/login.png) | ![Study Vault](docs/screenshots/study-vault.png) | ![CGPA Tracker](docs/screenshots/cgpa.png) |
-| **Attendance** | **Timetable** | **Confessions** |
-| ![Attendance](docs/screenshots/attendance.png) | ![Timetable](docs/screenshots/timetable.png) | ![Confessions](docs/screenshots/confessions.png) |
+| ![Landing](docs/screenshots/landing.png) | ![Login](docs/screenshots/login.png) | ![Dashboard](docs/screenshots/dashboard.png) |
+| **CGPA Tracker** | **Attendance** | **Timetable** |
+| ![CGPA Tracker](docs/screenshots/cgpa.png) | ![Attendance](docs/screenshots/attendance.png) | ![Timetable](docs/screenshots/timetable.png) |
+| **Study Vault** | **Course Q&A** | **Study Groups** |
+| ![Study Vault](docs/screenshots/study-vault.png) | ![Course Q&A](docs/screenshots/forum.png) | ![Study Groups](docs/screenshots/study-groups.png) |
+| **Marketplace** | **Offers** | **Confessions** |
+| ![Marketplace](docs/screenshots/marketplace.png) | ![Offers](docs/screenshots/offers.png) | ![Confessions](docs/screenshots/confessions.png) |
 | **Events & Clubs** | **Lost & Found** | **Ride Share** |
 | ![Events](docs/screenshots/events.png) | ![Lost & Found](docs/screenshots/lost-found.png) | ![Ride Share](docs/screenshots/rides.png) |
-| **Course Q&A** | **Leaderboard** | **Offers** |
-| ![Course Q&A](docs/screenshots/forum.png) | ![Leaderboard](docs/screenshots/leaderboard.png) | ![Offers](docs/screenshots/offers.png) |
+| **Campus Maps** | **Real-time Chat** | **Notifications** |
+| ![Maps](docs/screenshots/campus-maps.png) | ![Chat](docs/screenshots/messages.png) | ![Notifications](docs/screenshots/notifications.png) |
 
 </div>
 
