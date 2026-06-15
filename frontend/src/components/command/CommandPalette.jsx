@@ -26,6 +26,7 @@ import {
   HandCoins,
   ShieldCheck,
   Trophy,
+  UserPlus,
 } from "lucide-react";
 import { cn } from "../../lib/cn";
 import { useAuthContext } from "../../context/useAuthContext";
@@ -80,6 +81,7 @@ function CommandPalette({ open, onClose }) {
           { label: "Ride Share", icon: CarFront, run: () => navigate("/rides") },
           { label: "Events & Clubs", icon: PartyPopper, run: () => navigate("/events") },
           { label: "Course Q&A", icon: MessagesSquare, run: () => navigate("/forum") },
+          { label: "Friends", icon: UserPlus, run: () => navigate("/friends") },
           { label: "Leaderboard", icon: Trophy, run: () => navigate("/leaderboard") },
           { label: "Campus Maps", icon: Map, run: () => navigate("/campus-maps") },
           { label: "Messages", icon: MessageCircle, run: () => navigate("/messages") },
@@ -104,6 +106,7 @@ function CommandPalette({ open, onClose }) {
           { label: "Add a class to my timetable", icon: CalendarDays, run: () => navigate("/timetable") },
           { label: "Create a campus event", icon: PartyPopper, run: () => navigate("/events") },
           { label: "Ask a course question", icon: MessagesSquare, run: () => navigate("/forum") },
+          { label: "Find friends", icon: UserPlus, run: () => navigate("/friends") },
           { label: "Log out", icon: LogOut, run: () => logout() },
         ],
       },

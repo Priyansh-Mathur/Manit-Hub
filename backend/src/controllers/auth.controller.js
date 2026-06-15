@@ -3,6 +3,7 @@ const crypto = require("crypto");
 const { generateToken } = require("../utils/jwt");
 const { success, error } = require("../utils/response");
 const { resolveUniversityByEmail } = require("./universities.controller");
+const { generateUniqueHandle } = require("../utils/handle");
 
 /**
  * POST /api/auth/signup
@@ -22,10 +23,13 @@ exports.signup = async (req, res, next) => {
 
     const university = await resolveUniversityByEmail(email);
 
+    const handle = await generateUniqueHandle(User, email.split("@")[0]);
+
     const user = await User.create({
       email,
       password,
       displayName,
+      handle,
       university: university._id,
     });
 
@@ -38,6 +42,7 @@ exports.signup = async (req, res, next) => {
           id: user._id,
           email: user.email,
           displayName: user.displayName,
+          handle: user.handle,
           phone: user.phone,
           bio: user.bio,
           location: user.location,
@@ -78,6 +83,12 @@ exports.login = async (req, res, next) => {
       return error(res, "Invalid credentials", 400);
     }
 
+    // Backfill a handle for legacy accounts created before handles existed.
+    if (!user.handle) {
+      user.handle = await generateUniqueHandle(User, user.email.split("@")[0]);
+      await user.save();
+    }
+
     const token = generateToken(user._id, user.university._id);
 
     return success(res, {
@@ -85,6 +96,7 @@ exports.login = async (req, res, next) => {
         id: user._id,
         email: user.email,
         displayName: user.displayName,
+        handle: user.handle,
         phone: user.phone,
         bio: user.bio,
         location: user.location,

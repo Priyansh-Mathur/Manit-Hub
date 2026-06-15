@@ -9,10 +9,25 @@ const sizes = {
   xl: "h-20 w-20 text-xl",
 };
 
-export default function Avatar({ src, name = "?", size = "md", ring = false, className }) {
+const dotSizes = {
+  xs: "h-2 w-2",
+  sm: "h-2.5 w-2.5",
+  md: "h-3 w-3",
+  lg: "h-3.5 w-3.5",
+  xl: "h-4 w-4",
+};
+
+export default function Avatar({
+  src,
+  name = "?",
+  size = "md",
+  ring = false,
+  online,
+  className,
+}) {
   const initial = (name || "?").trim()[0]?.toUpperCase() || "?";
   const url = src || avatarFor(name || "?", initial);
-  return (
+  const img = (
     <img
       src={url}
       alt={name}
@@ -27,6 +42,23 @@ export default function Avatar({ src, name = "?", size = "md", ring = false, cla
         className
       )}
     />
+  );
+
+  // `online` is tri-state: undefined = no indicator, true = green, false = grey.
+  if (online === undefined) return img;
+
+  return (
+    <span className="relative inline-block shrink-0">
+      {img}
+      <span
+        title={online ? "Online" : "Offline"}
+        className={cn(
+          "absolute bottom-0 right-0 rounded-full ring-2 ring-surface",
+          dotSizes[size],
+          online ? "bg-success-500" : "bg-muted/50"
+        )}
+      />
+    </span>
   );
 }
 

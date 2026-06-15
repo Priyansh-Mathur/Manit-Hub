@@ -24,6 +24,17 @@ const userSchema = new mongoose.Schema(
       trim: true,
     },
 
+    // Unique, shareable @handle used to find people (Instagram-style).
+    // Sparse so legacy users without one don't collide on null.
+    handle: {
+      type: String,
+      unique: true,
+      sparse: true,
+      lowercase: true,
+      trim: true,
+      match: [/^[a-z0-9_.]{3,20}$/, "Invalid handle"],
+    },
+
     phone: {
       type: String,
       trim: true,

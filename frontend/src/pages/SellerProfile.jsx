@@ -12,8 +12,16 @@ import {
   CarFront,
   Package,
   BadgeCheck,
+  UserPlus,
+  Check,
+  Clock,
+  MessageCircle,
+  Users,
+  Lock,
 } from "lucide-react";
 import { usersApi } from "../api/users";
+import { friendsApi } from "../api/friends";
+import { useToast } from "../components/ui/useToast";
 import ListingCard from "../components/marketplace/ListingCard";
 import Card from "../components/ui/Card";
 import Badge from "../components/ui/Badge";
@@ -47,14 +55,20 @@ function StatPill({ icon: Icon, label, value }) {
 export default function SellerProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { show } = useToast();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [friendStatus, setFriendStatus] = useState("none");
+  const [friendBusy, setFriendBusy] = useState(false);
+  const [friendsList, setFriendsList] = useState(null);
 
   useEffect(() => {
     const loadProfile = async () => {
       try {
         const res = await usersApi.getProfile(id);
-        setProfile(res.data?.data || null);
+        const data = res.data?.data || null;
+        setProfile(data);
+        if (data?.user?.friendStatus) setFriendStatus(data.user.friendStatus);
       } catch (err) {
         console.error("Failed to load seller profile", err);
       } finally {
@@ -63,6 +77,86 @@ export default function SellerProfile() {
     };
     loadProfile();
   }, [id]);
+
+  // Friends list is privacy-gated server-side, so load it separately.
+  useEffect(() => {
+    let cancelled = false;
+    friendsApi
+      .listOf(id)
+      .then((res) => {
+        if (!cancelled) setFriendsList(res.data?.data || null);
+      })
+      .catch((err) => console.error("Failed to load friends list", err));
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  const runFriendAction = async (fn, optimistic, okMsg) => {
+    setFriendBusy(true);
+    try {
+      await fn();
+      setFriendStatus(optimistic);
+      show(okMsg, "success");
+    } catch (err) {
+      console.error("Friend action failed", err);
+      show(err?.response?.data?.message || "Action failed", "error");
+    } finally {
+      setFriendBusy(false);
+    }
+  };
+
+  const renderFriendButton = () => {
+    if (friendStatus === "self") return null;
+    if (friendStatus === "friends") {
+      return (
+        <Button
+          size="sm"
+          variant="secondary"
+          leftIcon={MessageCircle}
+          onClick={async () => {
+            try {
+              await friendsApi.startChat(id);
+              navigate("/messages");
+            } catch {
+              show("Could not start chat", "error");
+            }
+          }}
+        >
+          Message
+        </Button>
+      );
+    }
+    if (friendStatus === "outgoing") {
+      return (
+        <Button size="sm" variant="secondary" leftIcon={Clock} disabled>
+          Requested
+        </Button>
+      );
+    }
+    if (friendStatus === "incoming") {
+      return (
+        <Button
+          size="sm"
+          leftIcon={Check}
+          loading={friendBusy}
+          onClick={() => runFriendAction(() => friendsApi.accept(id), "friends", "Friend added")}
+        >
+          Accept request
+        </Button>
+      );
+    }
+    return (
+      <Button
+        size="sm"
+        leftIcon={UserPlus}
+        loading={friendBusy}
+        onClick={() => runFriendAction(() => friendsApi.send(id), "outgoing", "Request sent")}
+      >
+        Add friend
+      </Button>
+    );
+  };
 
   if (loading) {
     return (
@@ -116,7 +210,11 @@ export default function SellerProfile() {
                     aria-label="Verified contributor"
                   />
                 )}
+                <span className="ml-auto">{renderFriendButton()}</span>
               </div>
+              {profile.user.handle && (
+                <p className="mt-0.5 text-sm text-muted">@{profile.user.handle}</p>
+              )}
               <p className="mt-1 inline-flex items-center gap-2 text-sm text-muted">
                 <Trophy size={14} className="text-gold-500" />
                 <span className="font-semibold text-fg">
@@ -207,6 +305,45 @@ export default function SellerProfile() {
           )}
         </Card>
       </div>
+
+      {friendsList && friendsList.count > 0 && (
+        <Card>
+          <div className="mb-4 flex items-center gap-2">
+            <Users size={18} className="text-primary-600" />
+            <h2 className="font-display text-lg font-bold text-fg">
+              Friends
+            </h2>
+            <Badge tone="neutral">{friendsList.count}</Badge>
+          </div>
+          {friendsList.hidden ? (
+            <p className="flex items-center gap-2 text-sm text-muted">
+              <Lock size={14} />
+              This profile's friends list is private.
+            </p>
+          ) : (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              {friendsList.friends.map((f) => (
+                <button
+                  key={f._id}
+                  type="button"
+                  onClick={() => navigate(`/sellers/${f._id}`)}
+                  className="ring-focus flex items-center gap-3 rounded-xl border bg-surface p-2.5 text-left transition hover:border-primary-500/40"
+                >
+                  <Avatar src={f.avatarUrl} name={f.displayName} size="sm" />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-fg">
+                      {f.displayName}
+                    </p>
+                    {f.handle && (
+                      <p className="truncate text-xs text-muted">@{f.handle}</p>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </Card>
+      )}
 
       <div>
         <h2 className="mb-4 font-display text-lg font-bold text-fg">Listings</h2>

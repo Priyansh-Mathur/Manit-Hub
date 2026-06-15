@@ -3,6 +3,20 @@ const User = require("../models/User");
 const Conversation = require("../models/Conversation");
 const Message = require("../models/Message");
 const Notification = require("../models/Notification");
+const Friendship = require("../models/Friendship");
+const presence = require("./presence");
+
+// Accepted-friend ids for a user, as strings.
+const friendIdsOf = async (userId) => {
+  const links = await Friendship.find({
+    users: userId,
+    status: "accepted",
+  }).select("users");
+  const me = userId.toString();
+  return links
+    .flatMap((l) => l.users.map(String))
+    .filter((id) => id !== me);
+};
 
 const chatSocket = (io) => {
   io.use(async (socket, next) => {
@@ -22,8 +36,37 @@ const chatSocket = (io) => {
     }
   });
 
-  io.on("connection", (socket) => {
-    console.log("🟢 Socket connected:", socket.user._id.toString());
+  io.on("connection", async (socket) => {
+    const uid = socket.user._id.toString();
+    console.log("🟢 Socket connected:", uid);
+
+    // --- Online presence ---
+    socket.join(`user:${uid}`); // personal room for targeted presence events
+    const becameOnline = presence.addSocket(uid, socket.id);
+    const sharePresence = socket.user.privacySettings?.showOnlineStatus !== false;
+
+    try {
+      const friendIds = await friendIdsOf(socket.user._id);
+
+      // Tell me which of my friends are currently online (respecting their
+      // own showOnlineStatus — offline-by-choice friends are simply omitted).
+      const visibleOnline = [];
+      for (const fid of presence.onlineAmong(friendIds)) {
+        // eslint-disable-next-line no-await-in-loop
+        const f = await User.findById(fid).select("privacySettings");
+        if (f?.privacySettings?.showOnlineStatus !== false) visibleOnline.push(fid);
+      }
+      socket.emit("presence_snapshot", { online: visibleOnline });
+
+      // Announce me to my friends (only on my first socket, and if I allow it).
+      if (becameOnline && sharePresence) {
+        friendIds.forEach((fid) =>
+          io.to(`user:${fid}`).emit("friend_online", { userId: uid })
+        );
+      }
+    } catch (e) {
+      console.error("presence (connect) failed:", e.message);
+    }
 
     socket.on("join_conversation", async (conversationId) => {
       const conversation = await Conversation.findById(conversationId);
@@ -129,8 +172,19 @@ const chatSocket = (io) => {
       });
     });
 
-    socket.on("disconnect", () => {
-      console.log("🔴 Socket disconnected:", socket.user._id.toString());
+    socket.on("disconnect", async () => {
+      console.log("🔴 Socket disconnected:", uid);
+      const becameOffline = presence.removeSocket(uid, socket.id);
+      if (becameOffline && sharePresence) {
+        try {
+          const friendIds = await friendIdsOf(socket.user._id);
+          friendIds.forEach((fid) =>
+            io.to(`user:${fid}`).emit("friend_offline", { userId: uid })
+          );
+        } catch (e) {
+          console.error("presence (disconnect) failed:", e.message);
+        }
+      }
     });
   });
 };

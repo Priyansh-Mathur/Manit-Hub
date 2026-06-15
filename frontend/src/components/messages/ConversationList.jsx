@@ -2,6 +2,7 @@ import { MessageCircle } from "lucide-react";
 import { cn } from "../../lib/cn";
 import Avatar from "../ui/Avatar";
 import EmptyState from "../ui/EmptyState";
+import { usePresence } from "../../context/usePresence";
 
 export default function ConversationList({
   conversations,
@@ -9,6 +10,7 @@ export default function ConversationList({
   onSelectConversation,
   currentUser,
 }) {
+  const { isOnline } = usePresence();
   const formatTime = (date) =>
     new Date(date).toLocaleTimeString([], {
       hour: "2-digit",
@@ -41,6 +43,7 @@ export default function ConversationList({
             const other = getOtherParticipant(conversation.participants);
             const isSelected = selectedConversation?._id === conversation._id;
             const unread = conversation.unreadCount > 0;
+            const isFriendDm = conversation.contextType === "friend";
 
             return (
               <button
@@ -56,6 +59,7 @@ export default function ConversationList({
                   src={other?.avatarUrl || other?.avatar}
                   name={other?.displayName || "?"}
                   size="md"
+                  online={isFriendDm ? isOnline(other?._id) : undefined}
                 />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-2">
@@ -75,7 +79,9 @@ export default function ConversationList({
                   </div>
                   <div className="mt-0.5 flex items-center justify-between gap-2">
                     <p className="truncate text-sm text-muted">
-                      {conversation.listingTitle}
+                      {conversation.lastMessage ||
+                        conversation.listingTitle ||
+                        (isFriendDm ? "Direct message" : "")}
                     </p>
                     {unread && (
                       <span className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-accent-600 px-1.5 text-[11px] font-bold text-white">

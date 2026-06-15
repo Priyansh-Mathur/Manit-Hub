@@ -8,6 +8,7 @@ import {
   GraduationCap,
   Sparkles,
   ShieldCheck,
+  UserPlus,
 } from "lucide-react";
 
 /**
@@ -82,6 +83,7 @@ const campus = {
   icon: Sparkles,
   match: hubPaths("campus"),
 };
+const friends = { name: "Friends", short: "Friends", to: "/friends", icon: UserPlus };
 const campusMaps = { name: "Campus Maps", short: "Map", to: "/campus-maps", icon: Map };
 const messages = { name: "Messages", short: "Chats", to: "/messages", icon: MessageCircle };
 const notifications = { name: "Notifications", short: "Alerts", to: "/notifications", icon: Bell };
@@ -92,6 +94,7 @@ export const navItems = [
   study,
   market,
   campus,
+  friends,
   campusMaps,
   messages,
   notifications,

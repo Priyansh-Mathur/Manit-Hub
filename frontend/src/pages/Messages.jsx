@@ -37,7 +37,8 @@ export default function Messages() {
     return () => {
       socketService.offReceiveMessage();
       socketService.offMessagesRead();
-      socketService.disconnect();
+      // Don't disconnect — the shared socket is owned by PresenceProvider
+      // (app-wide presence). Just detach this page's listeners.
     };
   }, [loadConversations]);
 

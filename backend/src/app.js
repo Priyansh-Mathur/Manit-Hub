@@ -25,6 +25,7 @@ const offersRoutes = require("./routes/offers.routes");
 const reportsRoutes = require("./routes/reports.routes");
 const leaderboardRoutes = require("./routes/leaderboard.routes");
 const pushRoutes = require("./routes/push.routes");
+const friendsRoutes = require("./routes/friends.routes");
 
 const errorHandler = require("./middleware/error");
 const connectDB = require("./config/db");
@@ -117,6 +118,7 @@ app.use("/api/offers", offersRoutes);
 app.use("/api/reports", reportsRoutes);
 app.use("/api/leaderboard", leaderboardRoutes);
 app.use("/api/push", pushRoutes);
+app.use("/api/friends", friendsRoutes);
 
 // Health check
 app.get("/api/health", (req, res) => {

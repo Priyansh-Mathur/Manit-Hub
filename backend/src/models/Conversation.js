@@ -4,22 +4,24 @@ const conversationSchema = new mongoose.Schema(
   {
     // Polymorphic context id — a Listing for marketplace chats, or the
     // LostFoundItem / Ride the conversation was started from (see contextType).
+    // Null for direct friend DMs (contextType "friend"), which have no listing.
     listingId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Listing",
-      required: true,
+      default: null,
     },
 
     contextType: {
       type: String,
-      enum: ["listing", "lostfound", "ride"],
+      enum: ["listing", "lostfound", "ride", "friend"],
       default: "listing",
     },
 
+    // Empty for friend DMs — the UI shows the other participant's name instead.
     listingTitle: {
       type: String,
-      required: true,
       trim: true,
+      default: "",
     },
 
     participants: {

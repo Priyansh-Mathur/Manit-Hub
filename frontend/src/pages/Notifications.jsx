@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Bell, MessageCircle, Users, ShoppingBag, Check, X, CheckCheck } from "lucide-react";
+import { Bell, MessageCircle, Users, ShoppingBag, Check, X, CheckCheck, UserPlus } from "lucide-react";
 import {
   fetchNotifications,
   markNotificationAsRead,
@@ -17,6 +17,7 @@ const typeMeta = {
   message: { icon: MessageCircle, tone: "bg-info-500/12 text-info-600" },
   "study-group": { icon: Users, tone: "bg-success-500/12 text-success-600" },
   marketplace: { icon: ShoppingBag, tone: "bg-gold-500/14 text-gold-600" },
+  friend: { icon: UserPlus, tone: "bg-accent-500/12 text-accent-600" },
   default: { icon: Bell, tone: "bg-primary-600/10 text-primary-600" },
 };
 
@@ -35,6 +36,7 @@ export default function Notifications() {
       if (filter === "messages") params.type = "message";
       if (filter === "groups") params.type = "study-group";
       if (filter === "marketplace") params.type = "marketplace";
+      if (filter === "friends") params.type = "friend";
       if (filter === "unread") params.read = "false";
       const response = await fetchNotifications({ ...params, page, limit: 8 });
 
@@ -100,6 +102,7 @@ export default function Notifications() {
     { value: "all", label: "All" },
     { value: "unread", label: "Unread" },
     { value: "messages", label: "Messages" },
+    { value: "friends", label: "Friends" },
     { value: "groups", label: "Groups" },
     { value: "marketplace", label: "Marketplace" },
   ];

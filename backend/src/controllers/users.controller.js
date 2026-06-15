@@ -1,11 +1,22 @@
 const { success, error } = require("../utils/response");
 const Listing = require("../models/Listing");
+const User = require("../models/User");
+const { isValidHandle, generateUniqueHandle } = require("../utils/handle");
 
 exports.getMe = async (req, res) => {
+  // Lazy-backfill a handle for legacy accounts.
+  if (!req.user.handle) {
+    req.user.handle = await generateUniqueHandle(
+      User,
+      req.user.email.split("@")[0]
+    );
+    await req.user.save();
+  }
   return success(res, {
     id: req.user._id,
     email: req.user.email,
     displayName: req.user.displayName,
+    handle: req.user.handle,
     phone: req.user.phone,
     bio: req.user.bio,
     location: req.user.location,
@@ -14,17 +25,120 @@ exports.getMe = async (req, res) => {
   });
 };
 
+/**
+ * GET /api/users/handle-available?handle=
+ */
+exports.checkHandle = async (req, res) => {
+  try {
+    const handle = String(req.query.handle || "").toLowerCase().trim();
+    if (!isValidHandle(handle)) {
+      return success(res, {
+        available: false,
+        reason: "3–20 chars, letters/numbers/._ only",
+      });
+    }
+    const taken = await User.exists({
+      handle,
+      _id: { $ne: req.user._id },
+    });
+    return success(res, { available: !taken });
+  } catch (err) {
+    return error(res, err.message, 500);
+  }
+};
+
+/**
+ * GET /api/users/search?q=
+ * Same-university people search by handle (prefix) or display name.
+ */
+exports.searchUsers = async (req, res) => {
+  try {
+    const q = String(req.query.q || "").trim();
+    if (q.length < 2) return success(res, []);
+
+    const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const cleanHandle = q.replace(/^@/, "").toLowerCase();
+
+    const users = await User.find({
+      _id: { $ne: req.user._id },
+      university: req.user.university,
+      isActive: true,
+      $or: [
+        { handle: { $regex: `^${cleanHandle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}` } },
+        { displayName: { $regex: escaped, $options: "i" } },
+      ],
+    })
+      .select("displayName handle avatarUrl")
+      .limit(20);
+
+    // Annotate each result with the friendship status relative to me.
+    // Tolerant of the Friendship model not existing yet (pre-Phase-2).
+    let links = [];
+    try {
+      const Friendship = require("../models/Friendship");
+      links = await Friendship.find({ users: req.user._id }).select(
+        "requester recipient status users"
+      );
+    } catch {
+      links = [];
+    }
+
+    const statusFor = (otherId) => {
+      const link = links.find((l) =>
+        l.users.some((u) => u.toString() === otherId.toString())
+      );
+      if (!link) return "none";
+      if (link.status === "accepted") return "friends";
+      return link.requester.toString() === req.user._id.toString()
+        ? "outgoing"
+        : "incoming";
+    };
+
+    return success(
+      res,
+      users.map((u) => ({
+        _id: u._id,
+        displayName: u.displayName,
+        handle: u.handle,
+        avatarUrl: u.avatarUrl,
+        friendStatus: statusFor(u._id),
+      }))
+    );
+  } catch (err) {
+    return error(res, err.message, 500);
+  }
+};
+
 exports.updateProfile = async (req, res) => {
   try {
-    const { displayName, email, phone, bio, location } = req.body;
+    const { displayName, email, phone, bio, location, handle } = req.body;
 
     if (displayName !== undefined) req.user.displayName = displayName;
     if (phone !== undefined) req.user.phone = phone;
     if (bio !== undefined) req.user.bio = bio;
     if (location !== undefined) req.user.location = location;
 
+    if (handle !== undefined) {
+      const next = String(handle).toLowerCase().trim();
+      if (next !== req.user.handle) {
+        if (!isValidHandle(next)) {
+          return error(
+            res,
+            "Handle must be 3–20 chars: letters, numbers, . or _",
+            400
+          );
+        }
+        const taken = await User.exists({
+          handle: next,
+          _id: { $ne: req.user._id },
+        });
+        if (taken) return error(res, "That handle is taken", 400);
+        req.user.handle = next;
+      }
+    }
+
     if (email !== undefined && email !== req.user.email) {
-      const existingUser = await require("../models/User").findOne({
+      const existingUser = await User.findOne({
         email,
         _id: { $ne: req.user._id },
       });
@@ -43,6 +157,7 @@ exports.updateProfile = async (req, res) => {
         id: req.user._id,
         email: req.user.email,
         displayName: req.user.displayName,
+        handle: req.user.handle,
         phone: req.user.phone,
         bio: req.user.bio,
         location: req.user.location,
@@ -239,7 +354,10 @@ exports.getUserProfile = async (req, res, next) => {
 
     const scope = { university: req.user.university };
 
-    const [listings, documents, questions, answers, events, rides] =
+    const Friendship = require("../models/Friendship");
+    const isSelf = user._id.toString() === req.user._id.toString();
+
+    const [listings, documents, questions, answers, events, rides, link] =
       await Promise.all([
         Listing.find({ seller: user._id, ...scope, isActive: true })
           .sort({ createdAt: -1 })
@@ -249,12 +367,29 @@ exports.getUserProfile = async (req, res, next) => {
         Answer.countDocuments({ author: user._id, ...scope, isActive: true }),
         Event.countDocuments({ organizer: user._id, ...scope, isActive: true }),
         Ride.countDocuments({ poster: user._id, ...scope, isActive: true }),
+        isSelf
+          ? null
+          : Friendship.findOne({
+              users: [req.user._id.toString(), user._id.toString()].sort(),
+            }),
       ]);
+
+    let friendStatus = "self";
+    if (!isSelf) {
+      if (!link) friendStatus = "none";
+      else if (link.status === "accepted") friendStatus = "friends";
+      else
+        friendStatus =
+          link.requester.toString() === req.user._id.toString()
+            ? "outgoing"
+            : "incoming";
+    }
 
     return success(res, {
       user: {
         id: user._id,
         displayName: user.displayName,
+        handle: user.handle,
         phone: user.phone,
         bio: user.bio,
         location: user.location,
@@ -263,6 +398,7 @@ exports.getUserProfile = async (req, res, next) => {
         memberSince: user.createdAt,
         points: user.points || 0,
         badges: user.badges || [],
+        friendStatus,
       },
       paymentInfo: user.paymentInfo,
       listings,

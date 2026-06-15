@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { Mail, Phone, MapPin, Save, Trash2, LogOut, User, CreditCard, Package, Heart } from "lucide-react";
+import { Mail, Phone, MapPin, Save, Trash2, LogOut, User, CreditCard, Package, Heart, AtSign, Check, X } from "lucide-react";
 import { useAuthContext } from "../../context/useAuthContext";
 import { useNavigate } from "react-router-dom";
 import Card from "../ui/Card";
@@ -55,11 +55,14 @@ export default function ProfileSettings({ settings, onSettingsUpdate }) {
   const [avatarLoading, setAvatarLoading] = useState(false);
   const [formData, setFormData] = useState({
     displayName: user?.displayName || "",
+    handle: user?.handle || "",
     email: user?.email || "",
     phone: user?.phone || "",
     location: user?.location || "",
     bio: user?.bio || "",
   });
+  // Live handle availability: null = idle/unchanged, "checking" | true | false
+  const [handleStatus, setHandleStatus] = useState(null);
   const [saving, setSaving] = useState(false);
   const [myListings, setMyListings] = useState([]);
   const [wishlist, setWishlist] = useState([]);
@@ -103,8 +106,35 @@ export default function ProfileSettings({ settings, onSettingsUpdate }) {
     }
   }, [settings, user?.avatarUrl, user?.avatar]);
 
+  // Debounced @handle availability check.
+  useEffect(() => {
+    const next = formData.handle.trim().toLowerCase();
+    if (!next || next === (user?.handle || "")) {
+      setHandleStatus(null);
+      return undefined;
+    }
+    if (!/^[a-z0-9_.]{3,20}$/.test(next)) {
+      setHandleStatus(false);
+      return undefined;
+    }
+    setHandleStatus("checking");
+    const id = setTimeout(async () => {
+      try {
+        const res = await usersApi.checkHandle(next);
+        setHandleStatus(res?.data?.data?.available ?? false);
+      } catch {
+        setHandleStatus(null);
+      }
+    }, 400);
+    return () => clearTimeout(id);
+  }, [formData.handle, user?.handle]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (handleStatus === false) {
+      show("Pick an available handle first", "error");
+      return;
+    }
     setSaving(true);
     try {
       const response = await usersApi.updateProfile(formData);
@@ -124,11 +154,13 @@ export default function ProfileSettings({ settings, onSettingsUpdate }) {
         setFormData((prev) => ({
           ...prev,
           displayName: savedUser.displayName || prev.displayName,
+          handle: savedUser.handle || prev.handle,
           email: savedUser.email || prev.email,
           phone: savedUser.phone || prev.phone,
           location: savedUser.location || prev.location,
           bio: savedUser.bio || prev.bio,
         }));
+        setHandleStatus(null);
         show("Profile updated", "success");
       } else {
         show("Profile saved, but the response was invalid", "error");
@@ -279,6 +311,44 @@ export default function ProfileSettings({ settings, onSettingsUpdate }) {
               onChange={handleAvatarChange}
               className="hidden"
             />
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-fg">
+                Handle (your @ user ID)
+              </label>
+              <div className="relative">
+                <AtSign className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+                <input
+                  type="text"
+                  value={formData.handle}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      handle: e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, ""),
+                    })
+                  }
+                  placeholder="e.g. samay13"
+                  maxLength={20}
+                  className="field pl-11 pr-10"
+                />
+                {handleStatus === "checking" && (
+                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-muted">
+                    …
+                  </span>
+                )}
+                {handleStatus === true && (
+                  <Check className="absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-success-600" />
+                )}
+                {handleStatus === false && (
+                  <X className="absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-danger-600" />
+                )}
+              </div>
+              <p className="mt-1 text-xs text-muted">
+                {handleStatus === false
+                  ? "Taken or invalid — 3–20 chars: letters, numbers, . or _"
+                  : "Friends find you by this. Letters, numbers, . and _ only."}
+              </p>
+            </div>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>

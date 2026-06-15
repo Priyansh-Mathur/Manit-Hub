@@ -6,6 +6,7 @@ const usersController = require("../controllers/users.controller");
 const universityScope = require("../middleware/universityScope");
 const User = require("../models/User");
 const uploadPaymentQr = require("../middleware/uploadPaymentQr");
+const friendsController = require("../controllers/friends.controller");
 
 router.get("/me", auth, usersController.getMe);
 
@@ -43,6 +44,8 @@ router.post(
 
 router.get("/settings", auth, usersController.getSettings);
 router.get("/me/saved-listings", auth, usersController.getSavedListings);
+router.get("/search", auth, usersController.searchUsers);
+router.get("/handle-available", auth, usersController.checkHandle);
 router.delete("/me", auth, usersController.deleteMe);
 
 router.get(
@@ -50,6 +53,13 @@ router.get(
   auth,
   universityScope(User),
   usersController.getUserProfile
+);
+
+router.get(
+  "/:id/friends",
+  auth,
+  universityScope(User),
+  friendsController.getFriendsOf
 );
 
 router.put(

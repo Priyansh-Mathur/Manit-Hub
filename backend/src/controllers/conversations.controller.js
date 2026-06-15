@@ -59,6 +59,11 @@ exports.createConversation = async (req, res, next) => {
   try {
     const { listingId, participantId, contextType = "listing" } = req.body;
 
+    // Direct friend DM — no listing context; gated to accepted friends.
+    if (contextType === "friend") {
+      return startFriendConversation(req, res, next, participantId);
+    }
+
     if (!listingId || !participantId) {
       return error(res, "Missing required fields", 400);
     }
@@ -132,3 +137,55 @@ exports.createConversation = async (req, res, next) => {
     next(err);
   }
 };
+
+/**
+ * Find-or-create a direct friend DM. Requires an accepted friendship and
+ * reuses the same Socket.IO chat (participants + university only).
+ */
+async function startFriendConversation(req, res, next, participantId) {
+  try {
+    if (!participantId) {
+      return error(res, "Missing participant", 400);
+    }
+    if (participantId === req.user._id.toString()) {
+      return error(res, "Cannot message yourself", 400);
+    }
+
+    const otherUser = await User.findById(participantId);
+    if (!otherUser || !otherUser.isActive) {
+      return error(res, "User not found", 404);
+    }
+    if (otherUser.university.toString() !== req.user.university.toString()) {
+      return error(res, "Access denied", 403);
+    }
+
+    // 🔒 Must be accepted friends.
+    const Friendship = require("../models/Friendship");
+    const users = [req.user._id.toString(), otherUser._id.toString()].sort();
+    const friendship = await Friendship.findOne({ users, status: "accepted" });
+    if (!friendship) {
+      return error(res, "You can only message your friends directly", 403);
+    }
+
+    const participants = users;
+    let conversation = await Conversation.findOne({
+      contextType: "friend",
+      participants,
+      university: req.user.university,
+    });
+
+    if (!conversation) {
+      conversation = await Conversation.create({
+        listingId: null,
+        contextType: "friend",
+        listingTitle: "",
+        participants,
+        university: req.user.university,
+      });
+    }
+
+    return success(res, conversation, "Conversation ready", 201);
+  } catch (err) {
+    next(err);
+  }
+}

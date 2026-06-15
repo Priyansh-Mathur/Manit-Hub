@@ -23,6 +23,7 @@ const QuestionDetail = lazy(() => import("./pages/QuestionDetail"));
 const Offers = lazy(() => import("./pages/Offers"));
 const AdminModeration = lazy(() => import("./pages/AdminModeration"));
 const Leaderboard = lazy(() => import("./pages/Leaderboard"));
+const Friends = lazy(() => import("./pages/Friends"));
 const StudyGroupDetails = lazy(() => import("./pages/StudyGroupDetails"));
 const CampusMaps = lazy(() => import("./pages/CampusMaps"));
 const Notifications = lazy(() => import("./pages/Notifications"));
@@ -81,6 +82,7 @@ export default function App() {
               <Route path="/offers" element={<Offers />} />
               <Route path="/admin/moderation" element={<AdminModeration />} />
               <Route path="/leaderboard" element={<Leaderboard />} />
+              <Route path="/friends" element={<Friends />} />
               <Route path="/campus-maps" element={<CampusMaps />} />
               <Route path="/messages" element={<Messages />} />
               <Route path="/notifications" element={<Notifications />} />
