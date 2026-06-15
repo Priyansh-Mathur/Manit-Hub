@@ -84,7 +84,10 @@ function WhatIfCard({ records }) {
   const requiredSgpa = useMemo(() => {
     const t = Number(target);
     const planned = Number(plannedCredits);
-    if (!t || !planned || planned <= 0 || cgpa == null) return null;
+    if (!t || !planned || planned <= 0) return null;
+    // No prior credits yet (e.g. before your first semester): the CGPA you
+    // end up with is just next semester's SGPA, so you need exactly the target.
+    if (cgpa == null || earnedCredits === 0) return t;
     return (t * (earnedCredits + planned) - cgpa * earnedCredits) / planned;
   }, [target, plannedCredits, cgpa, earnedCredits]);
 
