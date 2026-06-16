@@ -12,6 +12,7 @@ export default function ChatWindow({ conversation, currentUser, onRead, onBack }
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
+  const [sendError, setSendError] = useState("");
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () =>
@@ -95,11 +96,21 @@ export default function ChatWindow({ conversation, currentUser, onRead, onBack }
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim()) return;
+    const content = newMessage.trim();
+    if (!content) return;
+    // Messages are sent over the socket. If it isn't connected the emit is
+    // silently dropped, so tell the user and kick a reconnect instead of
+    // clearing their text and losing the message.
+    if (!socketService.isConnected()) {
+      socketService.connect();
+      setSendError("Reconnecting to chat… please try again in a moment.");
+      return;
+    }
+    setSendError("");
     socketService.sendMessage({
       conversationId: conversation._id,
       senderId: currentUser._id,
-      content: newMessage.trim(),
+      content,
     });
     setNewMessage("");
   };
@@ -181,6 +192,9 @@ export default function ChatWindow({ conversation, currentUser, onRead, onBack }
       </div>
 
       <div className="border-t bg-surface p-3">
+        {sendError && (
+          <p className="mb-2 text-center text-xs text-red-500">{sendError}</p>
+        )}
         <form onSubmit={handleSendMessage} className="flex items-center gap-2">
           <input
             type="text"

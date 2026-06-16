@@ -59,6 +59,10 @@ class SocketService {
     if (conversationId) this.joinedConversations.delete(conversationId);
   }
 
+  isConnected() {
+    return !!(this.socket && this.socket.connected);
+  }
+
   sendMessage(data) {
     if (this.socket) {
       this.socket.emit('send_message', data);
