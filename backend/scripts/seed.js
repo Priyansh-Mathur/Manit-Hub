@@ -22,6 +22,12 @@ const Friendship = require("../src/models/Friendship");
 const Conversation = require("../src/models/Conversation");
 const Message = require("../src/models/Message");
 const Notification = require("../src/models/Notification");
+const Confession = require("../src/models/Confession");
+const Ride = require("../src/models/Ride");
+const Event = require("../src/models/Event");
+const Question = require("../src/models/Question");
+const Answer = require("../src/models/Answer");
+const Document = require("../src/models/Document");
 
 const STUDENT_DOMAIN = "stu.manit.ac.in";
 const DEMO_PASSWORD = "password123";
@@ -75,6 +81,11 @@ const IMG = {
   cooler: U("1558618666-fcd25c85cd64"),
 };
 const pravatar = (n) => `https://i.pravatar.cc/200?img=${n}`;
+
+// Public, embeddable sample PDF for seeded Study-Vault documents (the real
+// upload path is Cloudinary; this just gives every doc a working file URL the
+// in-app preview iframe and download button can open).
+const SAMPLE_PDF = "https://pdfobject.com/pdf/sample.pdf";
 
 // ── Seed users ──────────────────────────────────────────────────────────────
 // `key` is the short handle used to reference a user below. The first 4 are the
@@ -187,9 +198,18 @@ async function run() {
   const delG = await StudyGroup.deleteMany({ creator: { $in: seedUserIds } });
   const delF = await LostFoundItem.deleteMany({ reporter: { $in: seedUserIds } });
   const delFr = await Friendship.deleteMany({ users: { $in: seedUserIds } });
+  const delC = await Confession.deleteMany({ author: { $in: seedUserIds } });
+  const delR = await Ride.deleteMany({ poster: { $in: seedUserIds } });
+  const delE = await Event.deleteMany({ organizer: { $in: seedUserIds } });
+  const delQ = await Question.deleteMany({ author: { $in: seedUserIds } });
+  const delA = await Answer.deleteMany({ author: { $in: seedUserIds } });
+  const delD = await Document.deleteMany({ uploader: { $in: seedUserIds } });
   console.log(
     `✓ Cleared ${delL.deletedCount} listings, ${delG.deletedCount} groups, ` +
-      `${delF.deletedCount} lost&found, ${delFr.deletedCount} friendships`
+      `${delF.deletedCount} lost&found, ${delFr.deletedCount} friendships, ` +
+      `${delC.deletedCount} confessions, ${delR.deletedCount} rides, ` +
+      `${delE.deletedCount} events, ${delQ.deletedCount} questions, ` +
+      `${delA.deletedCount} answers, ${delD.deletedCount} documents`
   );
 
   // Reset seed-only conversations (every participant is a seed/primary account).
@@ -371,6 +391,213 @@ async function run() {
     await StudyGroup.create(g);
   }
   console.log(`✓ Inserted ${groups.length} study groups`);
+
+  // Shared helpers for the community content below.
+  const usersFrom = (keys) => keys.map((k) => uid(k));
+  const futureAt = (days, hour) => {
+    const d = inDays(days);
+    d.setHours(hour, 0, 0, 0);
+    return d;
+  };
+
+  // 6b) Confessions — anonymous campus feed (author is private; the API
+  //     anonymises it). Reactions + a few replies, spread across 30 days.
+  const confessionDefs = [
+    { author: "diya", ageDays: 28, content: "Whoever keeps stealing the good chairs from the reading hall — I will find you. 😤", react: [["aarav", "laugh"], ["rohan", "laugh"], ["priya", "heart"], ["sneha", "wow"]], comments: [["rohan", "Justice for the comfy chairs 😂", 27]] },
+    { author: "arjun", ageDays: 25, content: "Mess food today was actually edible. Marking this historic day in my calendar.", react: [["karan", "laugh"], ["isha", "heart"], ["dev", "laugh"], ["nikhil", "wow"], ["pooja", "heart"]], comments: [["isha", "Which mess?? Asking for science.", 24]] },
+    { author: "priya", ageDays: 22, content: "I have a crush on someone from the library 2nd floor but I'm too shy to even say hi. 🙈", react: [["sneha", "heart"], ["riya", "heart"], ["kavya", "wow"], ["ayesha", "heart"], ["meera", "sad"]], comments: [["sneha", "Just say hi, worst case you make a friend!", 21], ["riya", "We're all rooting for you 🥹", 20]] },
+    { author: "nikhil", ageDays: 19, content: "Spent the whole night debugging and the issue was a missing semicolon. I want to cry.", react: [["arjun", "sad"], ["karan", "laugh"], ["dev", "sad"], ["aarav", "laugh"]], comments: [["arjun", "Every single time man 💀", 18]] },
+    { author: "aditya", ageDays: 16, content: "Can we please get more power sockets in the lecture halls? My laptop dies by 11am.", react: [["priya", "heart"], ["harsh", "heart"], ["rohit", "wow"], ["neha", "heart"]], comments: [] },
+    { author: "isha", ageDays: 13, content: "Shoutout to the senior who helped me with my DSA assignment — you're a legend. 🙏", react: [["karan", "heart"], ["arjun", "heart"], ["sneha", "heart"], ["dev", "wow"]], comments: [["karan", "Seniors carrying the whole branch fr", 12]] },
+    { author: "rohan", ageDays: 10, content: "I pretend to understand thermodynamics but honestly I'm just vibing at this point.", react: [["tanvi", "laugh"], ["harsh", "laugh"], ["aditya", "laugh"], ["meera", "laugh"], ["dev", "wow"]], comments: [["harsh", "Entropy is just vibes increasing 😌", 9]] },
+    { author: "harsh", ageDays: 7, content: "The H-7 night canteen Maggi is the only thing keeping my CGPA alive.", react: [["rohan", "heart"], ["vikram", "laugh"], ["rahul", "heart"], ["nikhil", "heart"]], comments: [["vikram", "Maggi + chai = study fuel", 6]] },
+    { author: "kavya", ageDays: 4, content: "Confession: I joined 4 clubs in first week and ghosted all of them by month two.", react: [["ayesha", "laugh"], ["pooja", "laugh"], ["riya", "laugh"], ["neha", "wow"]], comments: [["ayesha", "This is too real 😭", 3]] },
+    { author: "meera", ageDays: 2, content: "Saw a cute dog near the academic block today and it made my entire week. 🐶", react: [["priya", "heart"], ["sneha", "heart"], ["kavya", "heart"], ["isha", "heart"], ["riya", "wow"], ["tanvi", "heart"]], comments: [["sneha", "The campus dogs are the real MVPs ❤️", 1]] },
+  ];
+  const confessions = confessionDefs.map((c) => {
+    const reactions = c.react.map(([k, type]) => ({ user: uid(k), type }));
+    return {
+      author: uid(c.author),
+      university: university._id,
+      content: c.content,
+      reactions,
+      reactionsCount: reactions.length,
+      comments: (c.comments || []).map(([k, content, d]) => ({ author: uid(k), content, createdAt: daysAgo(d) })),
+      createdAt: daysAgo(c.ageDays),
+      updatedAt: daysAgo(c.ageDays),
+    };
+  });
+  await Confession.insertMany(confessions, { timestamps: false });
+  console.log(`✓ Inserted ${confessions.length} confessions`);
+
+  // 6c) Rides — carpool board. departureAt is in the (near) future.
+  const rideDefs = [
+    { poster: "aarav", from: "MANIT Main Gate", to: "Rani Kamlapati Station", days: 1, hour: 7, seatsTotal: 3, passengers: ["rohan"], note: "Leaving sharp at 7, splitting the cab fare.", ageDays: 3 },
+    { poster: "diya", from: "MANIT", to: "DB City Mall", days: 1, hour: 17, seatsTotal: 3, passengers: ["sneha", "priya"], note: "Weekend movie plan — auto share both ways.", ageDays: 2 },
+    { poster: "arjun", from: "MANIT", to: "Bhopal Airport", days: 2, hour: 15, seatsTotal: 2, passengers: [], note: "Flight at 6pm, can drop you on the way.", ageDays: 4 },
+    { poster: "karan", from: "MANIT", to: "Bhopal Junction", days: 3, hour: 6, seatsTotal: 2, passengers: ["nikhil"], note: "Catching the early Shatabdi, leaving at 6 sharp.", ageDays: 2 },
+    { poster: "neha", from: "New Market", to: "MANIT", days: 1, hour: 19, seatsTotal: 2, passengers: [], note: "Returning after shopping, ping me to share the auto.", ageDays: 1 },
+    { poster: "rahul", from: "MANIT", to: "ISBT Bhopal", days: 4, hour: 16, seatsTotal: 3, passengers: ["harsh"], note: "Going home for the weekend, bus from ISBT.", ageDays: 5 },
+    { poster: "vikram", from: "MANIT", to: "Habibganj (RKMP)", days: 2, hour: 8, seatsTotal: 1, passengers: [], note: "One seat only — early class swap.", ageDays: 1 },
+    { poster: "isha", from: "MANIT", to: "Indore", days: 6, hour: 9, seatsTotal: 3, passengers: ["arjun", "tanvi"], note: "Long drive to Indore, sharing fuel cost. Music guaranteed 🎶", ageDays: 6 },
+  ];
+  const rides = rideDefs.map((r) => ({
+    poster: uid(r.poster),
+    university: university._id,
+    from: r.from,
+    to: r.to,
+    departureAt: futureAt(r.days, r.hour),
+    seatsTotal: r.seatsTotal,
+    passengers: usersFrom(r.passengers || []),
+    note: r.note,
+    createdAt: daysAgo(r.ageDays),
+    updatedAt: daysAgo(r.ageDays),
+  }));
+  await Ride.insertMany(rides, { timestamps: false });
+  console.log(`✓ Inserted ${rides.length} rides`);
+
+  // 6d) Events — campus happenings. startAt is in the future.
+  const eventDefs = [
+    { organizer: "priya", title: "Spandan — Cultural Night", club: "Cultural Cell", category: "Cultural", venue: "Open Air Theatre", days: 8, hour: 18, durHrs: 4, attendees: ["aarav", "diya", "sneha", "kavya", "ayesha", "meera"], ageDays: 20, description: "An evening of music, dance and drama by MANIT's clubs. Food stalls outside the OAT." },
+    { organizer: "arjun", title: "TechnoSearch Hackathon 2026", club: "ACM MANIT", category: "Technical", venue: "NTB Computer Labs", days: 5, hour: 9, durHrs: 24, attendees: ["karan", "nikhil", "rohit", "aarav", "dev"], ageDays: 18, description: "24-hour hackathon — build anything. Cash prizes + internship interviews for top teams." },
+    { organizer: "tanvi", title: "Inter-Hostel Cricket Finals", club: "Sports Council", category: "Sports", venue: "Main Cricket Ground", days: 3, hour: 15, durHrs: 4, attendees: ["rohan", "harsh", "rahul", "aditya"], ageDays: 10, description: "H-7 vs H-9 in the season finale. Come cheer for your hostel!" },
+    { organizer: "dev", title: "Hands-on ML with PyTorch", club: "Coding Club", category: "Workshop", venue: "CSE Seminar Hall", days: 4, hour: 14, durHrs: 3, attendees: ["arjun", "karan", "priya", "nikhil", "sneha"], ageDays: 12, description: "Beginner-friendly workshop: build and train your first neural network. Bring a laptop." },
+    { organizer: "ayesha", title: "Alumni Talk: Cracking Product Roles", club: "E-Cell", category: "Talk", venue: "Main Auditorium", days: 6, hour: 17, durHrs: 2, attendees: ["neha", "pooja", "meera", "riya", "rahul"], ageDays: 9, description: "MANIT alumni now at top product companies share how they made the jump." },
+    { organizer: "vikram", title: "Photography Walk & Exhibition", club: "Shutterbugs", category: "Other", venue: "Main Gate → Campus Lake", days: 7, hour: 16, durHrs: 3, attendees: ["dev", "priya", "kavya", "sneha"], ageDays: 7, description: "Golden-hour photo walk across campus, ending with a mini print exhibition. All cameras (and phones) welcome." },
+  ];
+  const events = eventDefs.map((e) => {
+    const startAt = futureAt(e.days, e.hour);
+    const endAt = new Date(startAt.getTime() + (e.durHrs || 2) * 60 * 60 * 1000);
+    return {
+      organizer: uid(e.organizer),
+      university: university._id,
+      title: e.title,
+      description: e.description,
+      club: e.club,
+      category: e.category,
+      venue: e.venue,
+      startAt,
+      endAt,
+      attendees: usersFrom(e.attendees || []),
+      createdAt: daysAgo(e.ageDays),
+      updatedAt: daysAgo(e.ageDays),
+    };
+  });
+  await Event.insertMany(events, { timestamps: false });
+  console.log(`✓ Inserted ${events.length} events`);
+
+  // 6e) Q&A forum — questions + answers, with upvotes and accepted answers.
+  const questionDefs = [
+    { author: "diya", title: "How to prepare for GATE CSE alongside semester exams?", body: "5th sem is heavy and I want to start GATE prep without tanking my CGPA. How did you balance both?", branch: "CSE", subject: "GATE", semester: "5", upvotes: ["aarav", "rohan", "arjun", "priya", "karan"], ageDays: 26 },
+    { author: "isha", title: "Best resources for Operating Systems (our syllabus)?", body: "Looking for notes/videos that actually match the MANIT OS syllabus. Galvin is too much.", branch: "CSE", subject: "OS", semester: "4", upvotes: ["karan", "nikhil", "dev"], ageDays: 21 },
+    { author: "nikhil", title: "BFS vs DFS — when should I use which?", body: "I get how both work but always confused about which to pick in interview problems.", branch: "CSE", subject: "DSA", semester: "3", upvotes: ["arjun", "aarav"], ageDays: 17 },
+    { author: "sneha", title: "How is the placement season for ECE branch?", body: "Curious about core vs IT roles for ECE. What's the realistic picture this year?", branch: "ECE", subject: "Placements", semester: "7", upvotes: ["aditya", "vikram", "rahul", "meera"], ageDays: 13 },
+    { author: "rahul", title: "Tips to improve CGPA after a rough first year?", body: "First year went badly. Is it possible to recover the CGPA meaningfully by final year?", branch: "Mechanical", subject: "General", semester: "3", upvotes: ["rohan", "harsh", "tanvi", "pooja", "aditya"], ageDays: 9 },
+    { author: "karan", title: "Which 6th-sem CSE electives are scoring?", body: "Trying to pick electives. Which ones are interesting AND grade-friendly?", branch: "CSE", subject: "Electives", semester: "6", upvotes: ["arjun", "priya"], ageDays: 5 },
+    { author: "kavya", title: "Anyone has notes for Engineering Mathematics-II?", body: "Specifically the linear algebra + complex analysis units. Exams are close 😅", branch: "Mathematics", subject: "M-II", semester: "2", upvotes: ["riya", "meera"], ageDays: 2 },
+  ];
+  const questions = questionDefs.map((q) => {
+    const upvotes = usersFrom(q.upvotes || []);
+    return {
+      author: uid(q.author),
+      university: university._id,
+      title: q.title,
+      body: q.body,
+      branch: q.branch,
+      subject: q.subject,
+      semester: q.semester,
+      upvotes,
+      upvoteCount: upvotes.length,
+      answersCount: 0,
+      acceptedAnswer: null,
+      createdAt: daysAgo(q.ageDays),
+      updatedAt: daysAgo(q.ageDays),
+    };
+  });
+  const insertedQ = await Question.insertMany(questions, { timestamps: false });
+
+  const answerDefs = [
+    { qIndex: 0, author: "aarav", body: "Start with the high-weight subjects that overlap your semester (DBMS, OS, CN). 2 focused hours daily + previous-year papers on weekends is enough early on.", upvotes: ["diya", "arjun", "priya"], ageDays: 25, accepted: true },
+    { qIndex: 0, author: "arjun", body: "Make a single revision notebook per subject from day one — it doubles as semester + GATE revision later. Saved me a ton of time.", upvotes: ["karan"], ageDays: 24 },
+    { qIndex: 1, author: "dev", body: "NPTEL's OS course matches our syllabus well, and the 'OS Easy' YouTube playlist for quick revision. Pair them with last 3 years' PYQs.", upvotes: ["isha", "karan", "nikhil"], ageDays: 20, accepted: true },
+    { qIndex: 1, author: "karan", body: "Also check the Study Vault — someone uploaded unit-wise OS notes that are gold.", upvotes: ["isha"], ageDays: 19 },
+    { qIndex: 2, author: "arjun", body: "Rule of thumb: BFS for shortest path in unweighted graphs / level-order; DFS for connectivity, cycles, topological sort and anything recursive.", upvotes: ["nikhil", "aarav", "karan"], ageDays: 16, accepted: true },
+    { qIndex: 3, author: "aditya", body: "Core ECE roles exist (PSUs, semiconductor firms) but most people sit for IT too. Brush up DSA + aptitude and you'll have both doors open.", upvotes: ["sneha", "vikram"], ageDays: 12, accepted: true },
+    { qIndex: 4, author: "rohan", body: "Totally recoverable. Later semesters have more credits, so consistent 8+ SGPAs pull the overall up fast. Focus on not backloging and you're golden.", upvotes: ["rahul", "harsh", "tanvi"], ageDays: 8, accepted: true },
+    { qIndex: 4, author: "pooja", body: "Re-appearing for one or two early-sem subjects to improve grades helped me. Talk to your faculty advisor about the options.", upvotes: ["rahul"], ageDays: 7 },
+    { qIndex: 5, author: "priya", body: "Machine Learning and Information Security were both interesting and scored well for our batch. Avoid the project-heavy ones if you want easy grades.", upvotes: ["karan", "arjun"], ageDays: 4, accepted: true },
+  ];
+  const answers = answerDefs.map((a) => {
+    const upvotes = usersFrom(a.upvotes || []);
+    return {
+      question: insertedQ[a.qIndex]._id,
+      author: uid(a.author),
+      university: university._id,
+      body: a.body,
+      upvotes,
+      upvoteCount: upvotes.length,
+      createdAt: daysAgo(a.ageDays),
+      updatedAt: daysAgo(a.ageDays),
+    };
+  });
+  const insertedA = await Answer.insertMany(answers, { timestamps: false });
+
+  // Sync each question's answersCount + acceptedAnswer.
+  const ansByQ = {};
+  insertedA.forEach((a, i) => {
+    const qi = answerDefs[i].qIndex;
+    (ansByQ[qi] = ansByQ[qi] || []).push({ id: a._id, accepted: answerDefs[i].accepted });
+  });
+  for (const [qi, list] of Object.entries(ansByQ)) {
+    const accepted = list.find((x) => x.accepted);
+    await Question.updateOne(
+      { _id: insertedQ[qi]._id },
+      { $set: { answersCount: list.length, acceptedAnswer: accepted ? accepted.id : null } },
+      { timestamps: false }
+    );
+  }
+  console.log(`✓ Inserted ${questions.length} questions + ${answers.length} answers`);
+
+  // 6f) Study Vault documents — notes / PYQs / syllabi. Real, openable file URL.
+  const docDefs = [
+    { uploader: "aarav", title: "DSA Complete Handwritten Notes", description: "Full data structures notes — arrays to graphs, with diagrams and complexity tables.", type: "Notes", branch: "CSE", subject: "Data Structures", semester: "3", sizeKB: 4200, downloads: 210, upvotes: ["diya", "rohan", "arjun", "priya", "karan", "nikhil"], comments: [["nikhil", "These saved me before the exam, thank you!", 12]], ageDays: 27 },
+    { uploader: "diya", title: "Operating Systems PYQ (2021–2024)", description: "Last four years' mid + end-sem question papers, sorted unit-wise.", type: "PYQ", branch: "CSE", subject: "OS", semester: "4", year: 2024, sizeKB: 2600, downloads: 178, upvotes: ["isha", "karan", "dev"], comments: [], ageDays: 24 },
+    { uploader: "kavya", title: "Engineering Mathematics-II Full Notes", description: "Linear algebra, complex analysis and differential equations — clean typed notes.", type: "Notes", branch: "Mathematics", subject: "M-II", semester: "2", sizeKB: 3100, downloads: 142, upvotes: ["riya", "meera", "sneha"], comments: [["riya", "Lifesaver for the LA unit 🙌", 6]], ageDays: 20 },
+    { uploader: "dev", title: "DBMS Unit-wise Notes", description: "ER models, normalization, SQL and transactions with solved examples.", type: "Notes", branch: "CSE", subject: "DBMS", semester: "5", sizeKB: 3700, downloads: 96, upvotes: ["arjun", "aarav"], comments: [], ageDays: 17 },
+    { uploader: "priya", title: "MANIT CSE Syllabus (2024 Scheme)", description: "Official branch-wise syllabus PDF for all 8 semesters.", type: "Syllabus", branch: "CSE", sizeKB: 900, downloads: 320, upvotes: ["diya", "karan", "isha", "nikhil"], comments: [], ageDays: 14 },
+    { uploader: "sneha", title: "Digital Electronics PYQ 2023", description: "End-sem papers with rough solutions for the tricky ones.", type: "PYQ", branch: "ECE", subject: "Digital Electronics", semester: "3", year: 2023, sizeKB: 1800, downloads: 64, upvotes: ["vikram", "aditya"], comments: [], ageDays: 11 },
+    { uploader: "rohan", title: "Thermodynamics Notes", description: "Laws, cycles and entropy explained simply, with formula sheets.", type: "Notes", branch: "Mechanical", subject: "Thermodynamics", semester: "3", sizeKB: 2900, downloads: 73, upvotes: ["harsh", "tanvi", "rahul"], comments: [["harsh", "The formula sheet at the end is 🔥", 8]], ageDays: 9 },
+    { uploader: "ayesha", title: "Even Semester Exam Schedule 2026", description: "Datesheet for all branches — even semester 2025-26.", type: "Sem Schedule", sizeKB: 450, downloads: 410, upvotes: ["neha", "pooja", "meera"], comments: [], ageDays: 6 },
+    { uploader: "arjun", title: "Computer Networks Quick Revision", description: "OSI/TCP-IP, routing and the important protocols on 6 pages. Perfect for the night before.", type: "Notes", branch: "CSE", subject: "CN", semester: "6", sizeKB: 1500, downloads: 88, upvotes: ["karan", "priya", "dev"], comments: [], ageDays: 3 },
+    { uploader: "pooja", title: "Aptitude & Reasoning Cheat Sheet", description: "Shortcuts for quant + logical reasoning. Great for placements and CAT.", type: "Other", subject: "Aptitude", sizeKB: 1100, downloads: 155, upvotes: ["rahul", "neha", "aditya", "ayesha"], comments: [["rahul", "Bookmarking this for placement season.", 2]], ageDays: 1 },
+  ];
+  const slugify = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  const documents = docDefs.map((d) => {
+    const upvotes = usersFrom(d.upvotes || []);
+    return {
+      title: d.title,
+      description: d.description,
+      type: d.type,
+      branch: d.branch,
+      subject: d.subject,
+      semester: d.semester,
+      year: d.year,
+      fileUrl: SAMPLE_PDF,
+      fileName: `${slugify(d.title)}.pdf`,
+      fileFormat: "pdf",
+      fileSize: (d.sizeKB || 1000) * 1024,
+      uploader: uid(d.uploader),
+      university: university._id,
+      downloadCount: d.downloads || 0,
+      upvotes,
+      upvoteCount: upvotes.length,
+      comments: (d.comments || []).map(([k, content, dd]) => ({ author: uid(k), content, createdAt: daysAgo(dd) })),
+      createdAt: daysAgo(d.ageDays),
+      updatedAt: daysAgo(d.ageDays),
+    };
+  });
+  await Document.insertMany(documents, { timestamps: false });
+  console.log(`✓ Inserted ${documents.length} study-vault documents`);
 
   // 7) Friend graph — accepted friendships + a few pending requests.
   const fDocs = [];

@@ -40,33 +40,17 @@ const chatSocket = (io) => {
     const uid = socket.user._id.toString();
     console.log("🟢 Socket connected:", uid);
 
-    // --- Online presence ---
+    // --- Online presence (synchronous bookkeeping) ---
     socket.join(`user:${uid}`); // personal room for targeted presence events
     const becameOnline = presence.addSocket(uid, socket.id);
     const sharePresence = socket.user.privacySettings?.showOnlineStatus !== false;
 
-    try {
-      const friendIds = await friendIdsOf(socket.user._id);
-
-      // Tell me which of my friends are currently online (respecting their
-      // own showOnlineStatus — offline-by-choice friends are simply omitted).
-      const visibleOnline = [];
-      for (const fid of presence.onlineAmong(friendIds)) {
-        // eslint-disable-next-line no-await-in-loop
-        const f = await User.findById(fid).select("privacySettings");
-        if (f?.privacySettings?.showOnlineStatus !== false) visibleOnline.push(fid);
-      }
-      socket.emit("presence_snapshot", { online: visibleOnline });
-
-      // Announce me to my friends (only on my first socket, and if I allow it).
-      if (becameOnline && sharePresence) {
-        friendIds.forEach((fid) =>
-          io.to(`user:${fid}`).emit("friend_online", { userId: uid })
-        );
-      }
-    } catch (e) {
-      console.error("presence (connect) failed:", e.message);
-    }
+    // IMPORTANT: register every client-event handler SYNCHRONOUSLY here, before
+    // any `await`. Socket.IO does not buffer events for handlers that aren't
+    // attached yet, so if we awaited DB work first (as this used to), a client
+    // that emits `join_conversation` immediately after connecting would have it
+    // silently dropped — and then never receive messages for that conversation.
+    // The async presence announce runs *after* these registrations (see below).
 
     socket.on("join_conversation", async (conversationId) => {
       const conversation = await Conversation.findById(conversationId);
@@ -186,6 +170,31 @@ const chatSocket = (io) => {
         }
       }
     });
+
+    // --- Presence announce (async; runs only after the handlers above are
+    // attached, so it can never delay/drop a client's early join_conversation). ---
+    try {
+      const friendIds = await friendIdsOf(socket.user._id);
+
+      // Tell me which of my friends are currently online (respecting their
+      // own showOnlineStatus — offline-by-choice friends are simply omitted).
+      const visibleOnline = [];
+      for (const fid of presence.onlineAmong(friendIds)) {
+        // eslint-disable-next-line no-await-in-loop
+        const f = await User.findById(fid).select("privacySettings");
+        if (f?.privacySettings?.showOnlineStatus !== false) visibleOnline.push(fid);
+      }
+      socket.emit("presence_snapshot", { online: visibleOnline });
+
+      // Announce me to my friends (only on my first socket, and if I allow it).
+      if (becameOnline && sharePresence) {
+        friendIds.forEach((fid) =>
+          io.to(`user:${fid}`).emit("friend_online", { userId: uid })
+        );
+      }
+    } catch (e) {
+      console.error("presence (connect) failed:", e.message);
+    }
   });
 };
 

@@ -7,6 +7,10 @@ const SOCKET_URL =
 class SocketService {
   constructor() {
     this.socket = null;
+    // Conversation rooms the user currently has open. The set is re-joined on
+    // every (re)connect so messages keep arriving after a network blip or a
+    // server restart (see connect()).
+    this.joinedConversations = new Set();
   }
 
   connect() {
@@ -19,6 +23,16 @@ class SocketService {
         token: localStorage.getItem('token')
       }
     });
+    // socket.io emits 'connect' on the FIRST connection and on EVERY
+    // reconnection. Each (re)connection is a fresh server-side socket that has
+    // joined no conversation rooms, so we must re-join every open room here —
+    // otherwise incoming messages silently stop after a reconnect until the
+    // conversation is re-selected.
+    this.socket.on('connect', () => {
+      this.joinedConversations.forEach((id) =>
+        this.socket.emit('join_conversation', id)
+      );
+    });
     return this.socket;
   }
 
@@ -27,12 +41,22 @@ class SocketService {
       this.socket.disconnect();
       this.socket = null;
     }
+    this.joinedConversations.clear();
   }
 
   joinConversation(conversationId) {
+    if (!conversationId) return;
+    this.joinedConversations.add(conversationId);
     if (this.socket) {
       this.socket.emit('join_conversation', conversationId);
     }
+  }
+
+  leaveConversation(conversationId) {
+    // Stop re-joining a room we no longer have open (so a reconnect doesn't
+    // pull stale rooms back in). We don't emit a server-side leave — the
+    // server has no leave handler and drops the room on disconnect anyway.
+    if (conversationId) this.joinedConversations.delete(conversationId);
   }
 
   sendMessage(data) {

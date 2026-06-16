@@ -56,6 +56,9 @@ export default function ChatWindow({ conversation, currentUser, onRead, onBack }
       socketService.joinConversation(conversation._id);
 
       socketService.onReceiveMessage((message) => {
+        // The shared socket can be in several rooms (e.g. after a reconnect
+        // re-join), so only append messages for the conversation on screen.
+        if (String(message.conversation) !== String(conversation._id)) return;
         setMessages((prev) => [...prev, message]);
         if (message.sender !== currentUser._id) {
           socketService.markRead(conversation._id);
@@ -79,6 +82,9 @@ export default function ChatWindow({ conversation, currentUser, onRead, onBack }
       return () => {
         socketService.offReceiveMessage();
         socketService.offMessagesRead();
+        // Stop re-joining this room once it's no longer on screen, so a later
+        // reconnect only restores the conversation the user actually has open.
+        socketService.leaveConversation(conversation._id);
       };
     }
   }, [conversation, currentUser?._id, loadMessages, onRead]);
