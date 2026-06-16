@@ -14,6 +14,10 @@ const io = new Server(server, {
   cors: { origin: "*" },
 });
 
+// Expose io to REST controllers (req.app.get("io")) so the REST send endpoint
+// can fan out in real time. Undefined on serverless, where io never starts.
+app.set("io", io);
+
 chatSocket(io);
 
 async function startServer() {

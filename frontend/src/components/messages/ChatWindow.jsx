@@ -60,7 +60,11 @@ export default function ChatWindow({ conversation, currentUser, onRead, onBack }
         // The shared socket can be in several rooms (e.g. after a reconnect
         // re-join), so only append messages for the conversation on screen.
         if (String(message.conversation) !== String(conversation._id)) return;
-        setMessages((prev) => [...prev, message]);
+        // De-dupe by _id: the sender already appended this from the REST
+        // response, and a reconnect can re-deliver.
+        setMessages((prev) =>
+          prev.some((m) => m._id === message._id) ? prev : [...prev, message]
+        );
         if (message.sender !== currentUser._id) {
           socketService.markRead(conversation._id);
           messagesApi.markConversationRead(conversation._id).catch(() => {});
@@ -94,25 +98,58 @@ export default function ChatWindow({ conversation, currentUser, onRead, onBack }
     scrollToBottom();
   }, [messages]);
 
+  // Fallback delivery for environments with no live socket (e.g. the serverless
+  // deploy): poll for new messages while a conversation is open. Skips the
+  // fetch whenever the socket is connected, so it's a no-op in real-time mode.
+  useEffect(() => {
+    if (!conversation?._id || !currentUser?._id) return undefined;
+    const interval = setInterval(async () => {
+      if (socketService.isConnected()) return;
+      try {
+        const res = await messagesApi.getMessages(conversation._id, {
+          page: 1,
+          limit: 30,
+        });
+        const incoming = res.data?.data?.messages || [];
+        setMessages((prev) => {
+          const seen = new Set(prev.map((m) => m._id));
+          const fresh = incoming.filter((m) => !seen.has(m._id));
+          if (!fresh.length) return prev;
+          // Mark the conversation read since the user is looking at it.
+          messagesApi.markConversationRead(conversation._id).catch(() => {});
+          if (onRead) onRead();
+          return [...prev, ...fresh];
+        });
+      } catch {
+        /* ignore transient poll errors */
+      }
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [conversation?._id, currentUser?._id, onRead]);
+
   const handleSendMessage = async (e) => {
     e.preventDefault();
     const content = newMessage.trim();
     if (!content) return;
-    // Messages are sent over the socket. If it isn't connected the emit is
-    // silently dropped, so tell the user and kick a reconnect instead of
-    // clearing their text and losing the message.
-    if (!socketService.isConnected()) {
-      socketService.connect();
-      setSendError("Reconnecting to chat… please try again in a moment.");
-      return;
-    }
-    setSendError("");
-    socketService.sendMessage({
-      conversationId: conversation._id,
-      senderId: currentUser._id,
-      content,
-    });
     setNewMessage("");
+    setSendError("");
+    try {
+      // Send over REST so it works even with no live socket (e.g. the
+      // serverless deploy). When the socket IS connected the server also
+      // pushes this to the other person in real time; we de-dupe by _id.
+      const res = await messagesApi.sendMessage(conversation._id, content);
+      const saved = res.data?.data;
+      if (saved) {
+        setMessages((prev) =>
+          prev.some((m) => m._id === saved._id) ? prev : [...prev, saved]
+        );
+      }
+      if (onRead) onRead();
+    } catch (err) {
+      console.error("Error sending message:", err);
+      setSendError("Couldn't send your message. Please try again.");
+      setNewMessage(content); // restore so it isn't lost
+    }
   };
 
   if (!conversation) {
