@@ -25,65 +25,39 @@ Built with **Node.js, Express, MongoDB, and Socket.io**.
 
 ## Project Structure
 
+The API follows a **one-file-per-endpoint** layout: every route lives in its own
+`.js` file (an `express.Router()` with the handler inline) grouped by feature, and
+`app.js` mounts each at its base path. No `controllers/` + `routes/` split.
+
 ```bash
 backend/
-├── src/
-│   ├── server.js
-│   ├── app.js
+├── server.js                  # HTTP server + Socket.IO bootstrap
+├── app.js                     # Express app — mounts one router per endpoint
 │
-│   ├── config/
-│   │   ├── db.js
-│   │   └── env.js
+├── config/                    # db (Mongo), cloudinary, firebase
+├── models/                    # Mongoose schemas: User, University, Listing, StudyGroup,
+│                              #   Conversation, Message, Notification, Document, …
+├── middleware/                # auth, universityScope, isAdmin, upload*, error
+├── socket/                    # chat.socket.js (real-time events)
+├── jobs/                      # studyGroupReminder · classReminder · eventReminder (cron)
+├── utils/                     # jwt, response, gamification, handle, push,
+│                              #   notifications + universities (shared helpers)
 │
-│   ├── models/
-│   │   ├── User.js
-│   │   ├── University.js       
-│   │   ├── Listing.js
-│   │   ├── StudyGroup.js
-│   │   ├── Conversation.js
-│   │   ├── Message.js
-│   │   └── Notification.js
+│   # One .js file per endpoint, grouped by feature (router + handler inline):
+├── auth/                      # signup · login · forgotPassword · resetPassword
+├── users/                     # getMe · updateProfile · uploadAvatar · searchUsers · … (15)
+├── listings/                  # getAllListings · getListingById · createListing · … (8)
+├── studyGroups/               # getAllStudyGroups · createStudyGroup · join · leave · … (10)
+├── messages/   conversations/   notifications/   dashboard/
+├── documents/   academicRecords/   attendance/   lostFound/   confessions/
+├── rides/   timetable/   events/   forum/   offers/   reports/
+├── leaderboard/   push/   friends/   universities/
+│                              #   (feature-local shared code lives in <feature>/helpers.js)
 │
-│   ├── controllers/
-│   │   ├── auth.controller.js
-│   │   ├── universities.controller.js  
-│   │   ├── listings.controller.js
-│   │   ├── studyGroups.controller.js
-│   │   ├── conversations.controller.js
-│   │   ├── messages.controller.js
-│   │   ├── notifications.controller.js
-│   │   └── dashboard.controller.js
-│
-│   ├── routes/
-│   │   ├── auth.routes.js
-│   │   ├── universities.routes.js        
-│   │   ├── listings.routes.js
-│   │   ├── studyGroups.routes.js
-│   │   ├── conversations.routes.js
-│   │   ├── messages.routes.js
-│   │   ├── notifications.routes.js
-│   │   └── dashboard.routes.js
-│
-│   ├── middleware/
-│   │   ├── auth.js
-│   │   ├── universityScope.js     
-│   │   ├── uploadAvatar.js
-│   │   ├── uploadListingImages.js
-│   │   ├── uploadStudyGroupCover.js
-│   │   ├── uploadPaymentQr.js
-│   │   └── error.js
-│
-│   ├── socket/
-│   │   └── chat.socket.js
-│   ├── jobs/
-│   │   └── studyGroupReminder.job.js
-│
-│   └── utils/
-│       ├── jwt.js
-│       └── response.js
-│
+├── scripts/seed.js            # Demo data seeder
 ├── .env
 ├── package.json
+├── vercel.json
 └── README.md
 ```
 
@@ -113,7 +87,7 @@ CLOUDINARY_API_SECRET=your_api_secret
 CAMPUS_LOCATIONS_COUNT=10
 ```
 
-For Vercel production, set the same values in the project environment variables, especially `MONGO_URI`, `JWT_SECRET`, and `CLIENT_URL=https://manithub-samayjainbm.netlify.app`.
+For Render production, set the same values in the service's environment variables (Render dashboard), especially `MONGO_URI`, `JWT_SECRET`, and `CLIENT_URL=https://manithub-samayjainbm.netlify.app`.
 
 ### 3. Run the Server
 
@@ -150,7 +124,10 @@ JWT is returned on **signup** and **login**.
 
 ## Jobs
 
-- `studyGroupReminder.job.js` runs every 10 minutes and sends in-app notifications for upcoming sessions.
+Cron jobs run every 10 minutes and create in-app notifications (mirrored to push):
+
+- `studyGroupReminder.job.js` — upcoming study-group sessions
+- `classReminder.job.js` — classes starting soon (from each user's timetable)
+- `eventReminder.job.js` — events about to start
 
 ---
-

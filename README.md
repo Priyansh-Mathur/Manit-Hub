@@ -67,7 +67,7 @@ Built by students, for students — a verified, university‑scoped community on
 </div>
 
 **🔗 Live web app:** https://manithub-samayjainbm.netlify.app/
-**🔌 API base URL:** `https://manithub-backend.vercel.app/api`
+**🔌 API base URL:** `https://manit-hub.onrender.com/api`
 
 <details>
 <summary><b>Example API response</b> — <code>POST /api/auth/login</code></summary>
@@ -157,7 +157,7 @@ Built by students, for students — a verified, university‑scoped community on
 | **Push & QR** | Firebase Cloud Messaging (web + Android) · `qrcode` (UPI QR generation) |
 | **Mobile** | Capacitor 8 (Android) — App, Status Bar, Splash Screen, native HTTP |
 | **Tooling** | ESLint, PostCSS, Autoprefixer, clsx + tailwind‑merge |
-| **Hosting** | Netlify (web) · Vercel (API) · MongoDB Atlas (DB) |
+| **Hosting** | Netlify (web) · Render (API) · MongoDB Atlas (DB) |
 
 ---
 
@@ -174,7 +174,7 @@ graph TB
     Android["📱 Android App<br/>Capacitor"]
   end
 
-  subgraph Server["⚙️ API Server — Express · Vercel"]
+  subgraph Server["⚙️ API Server — Express · Render"]
     REST["REST API<br/>JWT + university scope"]
     WS["Socket.IO<br/>real-time chat"]
     Cron["node-cron<br/>class · event · session reminders"]
@@ -202,27 +202,32 @@ manit-hub/
 ├── frontend/                  # React + Vite SPA  (also the Capacitor Android shell)
 │   ├── src/
 │   │   ├── api/               # Axios clients (auth, listings, studyGroups, messages…)
-│   │   ├── components/        # UI kit, nav, command palette, feature components
+│   │   ├── components/        # UI kit (ui/, brand/), nav, command palette, feature components
 │   │   ├── context/           # Auth + Theme providers
 │   │   ├── hooks/             # useAuth, useUnreadCount
 │   │   ├── layouts/           # AppLayout (sidebar + topbar shell)
 │   │   ├── lib/               # cn(), inline image fallbacks
-│   │   ├── pages/             # Route-level screens
+│   │   ├── screens/           # Route-level screens (one per route)
 │   │   └── utils/             # Socket.IO service
 │   ├── android/               # Capacitor Android project (Gradle)
 │   ├── scripts/               # App-icon generator
 │   └── capacitor.config.json
 │
-├── backend/                   # Express REST + Socket.IO API
-│   ├── src/
-│   │   ├── config/            # db (Mongo), cloudinary
-│   │   ├── controllers/       # auth, listings, studyGroups, documents, messages, notifications…
-│   │   ├── middleware/        # auth (JWT), universityScope, uploads, error handler
-│   │   ├── models/            # User, Listing, StudyGroup, Document, Confession, Event, Ride, Question/Answer, Offer, Report, …
-│   │   ├── routes/            # /api/* route definitions
-│   │   ├── socket/            # chat.socket.js (real-time events)
-│   │   ├── jobs/              # studyGroup / class / event reminder cron jobs
-│   │   └── utils/             # jwt, unified response helper
+├── backend/                   # Express REST + Socket.IO API — one .js file per endpoint
+│   ├── app.js                 # Express app — mounts one router per endpoint
+│   ├── server.js              # HTTP + Socket.IO bootstrap
+│   ├── config/                # db (Mongo), cloudinary, firebase
+│   ├── middleware/            # auth (JWT), universityScope, uploads, isAdmin, error handler
+│   ├── models/                # User, Listing, StudyGroup, Document, Confession, Event, Ride, Question/Answer, Offer, Report, …
+│   ├── utils/                 # jwt, response, gamification + shared notifications/universities helpers
+│   ├── socket/                # chat.socket.js (real-time events)
+│   ├── jobs/                  # studyGroup / class / event reminder cron jobs
+│   ├── <feature>/             # 23 feature folders, one .js file per endpoint —
+│   │                          #   auth · users · universities · listings · conversations ·
+│   │                          #   messages · studyGroups · notifications · dashboard · documents ·
+│   │                          #   academicRecords · attendance · lostFound · confessions · rides ·
+│   │                          #   timetable · events · forum · offers · reports · leaderboard ·
+│   │                          #   push · friends   (shared bits in <feature>/helpers.js)
 │   └── scripts/seed.js        # Demo data seeder
 │
 └── README.md
@@ -434,11 +439,11 @@ All endpoints are prefixed with `/api`. Protected routes require `Authorization:
 | Component | Platform | Notes |
 | :-- | :-- | :-- |
 | **Web** | Netlify | `npm run build` → publish `frontend/dist` (SPA redirect to `/index.html`) |
-| **API** | Vercel | Express app; set env vars in the dashboard |
+| **API** | Render | Express + Socket.IO web service; set env vars in the dashboard |
 | **Database** | MongoDB Atlas | Whitelist your hosts |
 | **Android** | Google Play | Upload the signed `.aab` |
 
-> ℹ️ **Live chat note:** Socket.IO needs a persistent (non‑serverless) host. REST works everywhere; for production websockets, run the API on a long‑lived host (Render/Railway/Fly).
+> ℹ️ **Live chat note:** Socket.IO needs a persistent (non‑serverless) host. The API runs on **Render** as a long‑lived Node web service, so real‑time chat works in production. (Serverless hosts like Vercel can't hold WebSocket connections.)
 
 ---
 
