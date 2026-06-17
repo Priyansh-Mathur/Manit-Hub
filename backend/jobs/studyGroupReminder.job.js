@@ -1,6 +1,6 @@
 const cron = require("node-cron");
 const StudyGroup = require("../models/StudyGroup");
-const { createNotification } = require("../controllers/notifications.controller");
+const { createNotification } = require("../utils/notifications");
 
 /**
  * Runs every 10 minutes
