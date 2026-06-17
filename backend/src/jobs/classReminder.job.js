@@ -1,6 +1,6 @@
 const cron = require("node-cron");
 const TimetableEntry = require("../models/TimetableEntry");
-const { createNotification } = require("../controllers/notifications.controller");
+const { createNotification } = require("../utils/notifications");
 
 const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
 
