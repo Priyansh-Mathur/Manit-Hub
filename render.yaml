@@ -1,0 +1,52 @@
+# Render blueprint — deploys the Manit Hub backend (Express + Socket.IO) as a
+# single persistent web service, so real-time chat over WebSockets works
+# (Vercel is serverless and cannot hold socket connections).
+#
+# How to use:
+#   1. Push this file on `main`.
+#   2. Render dashboard → New → Blueprint → pick this repo. Render reads this file.
+#   3. Fill in the secret env vars below (they are sync:false = NOT stored in git).
+#   4. Deploy, then copy the service URL (https://<name>.onrender.com) into
+#      frontend/.env.production (VITE_API_URL + VITE_SOCKET_URL).
+#
+# Notes:
+#   - PORT is injected by Render automatically — do NOT set it. server.js already
+#     uses process.env.PORT and binds 0.0.0.0.
+#   - Health check hits /api/health (already implemented).
+#   - Free plan spins down after ~15 min idle (cold start ~30–60s); the app's
+#     polling fallback covers that gap. Bump to a paid plan for always-on.
+services:
+  - type: web
+    name: manithub-backend
+    runtime: node
+    rootDir: backend
+    plan: free
+    branch: main
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # The deployed web origin, used for CORS. (*.netlify.app is already allowed
+      # in code, so this is belt-and-suspenders / for a custom domain.)
+      - key: CLIENT_URL
+        value: https://manithub-samayjainbm.netlify.app
+      # --- Secrets: set real values in the Render dashboard ---
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      # Optional — leave unset to disable web push.
+      - key: FIREBASE_SERVICE_ACCOUNT
+        sync: false
+      # Optional — only read by the dashboard "campus locations" stat.
+      - key: CAMPUS_LOCATIONS_COUNT
+        sync: false
