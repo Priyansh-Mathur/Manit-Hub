@@ -57,7 +57,6 @@ backend/
 ├── scripts/seed.js            # Demo data seeder
 ├── .env
 ├── package.json
-├── vercel.json
 └── README.md
 ```
 
