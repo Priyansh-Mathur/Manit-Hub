@@ -46,7 +46,7 @@ frontend/
 ├── src/
 │   ├── api/
 │   ├── components/
-│   ├── screens/
+│   ├── pages/
 │   ├── layouts/
 │   ├── context/
 │   ├── hooks/

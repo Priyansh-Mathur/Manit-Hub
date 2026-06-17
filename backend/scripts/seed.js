@@ -13,21 +13,21 @@
 require("dotenv").config();
 const mongoose = require("mongoose");
 
-const University = require("../models/University");
-const User = require("../models/User");
-const Listing = require("../models/Listing");
-const StudyGroup = require("../models/StudyGroup");
-const LostFoundItem = require("../models/LostFoundItem");
-const Friendship = require("../models/Friendship");
-const Conversation = require("../models/Conversation");
-const Message = require("../models/Message");
-const Notification = require("../models/Notification");
-const Confession = require("../models/Confession");
-const Ride = require("../models/Ride");
-const Event = require("../models/Event");
-const Question = require("../models/Question");
-const Answer = require("../models/Answer");
-const Document = require("../models/Document");
+const University = require("../src/models/University");
+const User = require("../src/models/User");
+const Listing = require("../src/models/Listing");
+const StudyGroup = require("../src/models/StudyGroup");
+const LostFoundItem = require("../src/models/LostFoundItem");
+const Friendship = require("../src/models/Friendship");
+const Conversation = require("../src/models/Conversation");
+const Message = require("../src/models/Message");
+const Notification = require("../src/models/Notification");
+const Confession = require("../src/models/Confession");
+const Ride = require("../src/models/Ride");
+const Event = require("../src/models/Event");
+const Question = require("../src/models/Question");
+const Answer = require("../src/models/Answer");
+const Document = require("../src/models/Document");
 
 const STUDENT_DOMAIN = "stu.manit.ac.in";
 const DEMO_PASSWORD = "password123";
