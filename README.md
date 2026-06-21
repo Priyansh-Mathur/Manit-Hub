@@ -30,7 +30,7 @@ Built by students, for students — a verified, university‑scoped community on
 
 <br/>
 
-[**🌐 Live Demo**](https://manithub-samayjainbm.netlify.app/) · [**▶️ Demo Link**](https://example.com/demo) · [**📱 Android App**](#-mobile-app-android) · [**🐛 Report Bug**](https://github.com/Samay-Jain/Manit-Hub/issues) · [**✨ Request Feature**](https://github.com/Samay-Jain/Manit-Hub/issues)
+[**🌐 Live Demo**](https://manithub-samayjainbm.vercel.app/) · [**▶️ Demo Link**](https://example.com/demo) · [**📱 Android App**](#-mobile-app-android) · [**🐛 Report Bug**](https://github.com/Samay-Jain/Manit-Hub/issues) · [**✨ Request Feature**](https://github.com/Samay-Jain/Manit-Hub/issues)
 
 </div>
 
@@ -66,7 +66,7 @@ Built by students, for students — a verified, university‑scoped community on
 
 </div>
 
-**🔗 Live web app:** https://manithub-samayjainbm.netlify.app/
+**🔗 Live web app:** https://manithub-samayjainbm.vercel.app/
 **🔌 API base URL:** `https://manit-hub.onrender.com/api`
 
 <details>
@@ -157,7 +157,7 @@ Built by students, for students — a verified, university‑scoped community on
 | **Push & QR** | Firebase Cloud Messaging (web + Android) · `qrcode` (UPI QR generation) |
 | **Mobile** | Capacitor 8 (Android) — App, Status Bar, Splash Screen, native HTTP |
 | **Tooling** | ESLint, PostCSS, Autoprefixer, clsx + tailwind‑merge |
-| **Hosting** | Netlify (web) · Render (API) · MongoDB Atlas (DB) |
+| **Hosting** | Vercel (web) · Render (API) · MongoDB Atlas (DB) |
 
 ---
 
@@ -170,7 +170,7 @@ Manit Hub is a **monorepo** with a decoupled SPA/native client and a REST + WebS
 ```mermaid
 graph TB
   subgraph Clients
-    Web["🌐 Web App<br/>React + Vite · Netlify"]
+    Web["🌐 Web App<br/>React + Vite · Vercel"]
     Android["📱 Android App<br/>Capacitor"]
   end
 
@@ -438,7 +438,7 @@ All endpoints are prefixed with `/api`. Protected routes require `Authorization:
 
 | Component | Platform | Notes |
 | :-- | :-- | :-- |
-| **Web** | Netlify | `npm run build` → publish `frontend/dist` (SPA redirect to `/index.html`) |
+| **Web** | Vercel | `npm run build` → output `frontend/dist` (SPA rewrite to `/index.html` via `vercel.json`) |
 | **API** | Render | Express + Socket.IO web service; set env vars in the dashboard |
 | **Database** | MongoDB Atlas | Whitelist your hosts |
 | **Android** | Google Play | Upload the signed `.aab` |

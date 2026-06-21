@@ -17,7 +17,7 @@ app.use(
 // CORS — allow the configured client origin(s), local dev, and
 // Netlify/Vercel deploy + preview subdomains.
 const explicitOrigins = (
-  process.env.CLIENT_URL || "https://manithub-samayjainbm.netlify.app"
+  process.env.CLIENT_URL || "https://manithub-samayjainbm.vercel.app"
 )
   .split(",")
   // trim + strip trailing slashes — browser Origin headers never have one,

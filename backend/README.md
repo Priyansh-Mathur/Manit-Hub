@@ -86,7 +86,7 @@ CLOUDINARY_API_SECRET=your_api_secret
 CAMPUS_LOCATIONS_COUNT=10
 ```
 
-For Render production, set the same values in the service's environment variables (Render dashboard), especially `MONGO_URI`, `JWT_SECRET`, and `CLIENT_URL=https://manithub-samayjainbm.netlify.app`.
+For Render production, set the same values in the service's environment variables (Render dashboard), especially `MONGO_URI`, `JWT_SECRET`, and `CLIENT_URL=https://manithub-samayjainbm.vercel.app`.
 
 ### 3. Run the Server
 
