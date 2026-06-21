@@ -7,7 +7,9 @@ const generateToken = (userId, universityId) => {
       university: universityId,
     },
     process.env.JWT_SECRET,
-    { expiresIn: "7d" }
+    // Long-lived session: users stay logged in until they explicitly log out.
+    // Configurable via JWT_EXPIRE (e.g. "365d", "730d"); defaults to ~1 year.
+    { expiresIn: process.env.JWT_EXPIRE || "365d" }
   );
 };
 
