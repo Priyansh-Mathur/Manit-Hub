@@ -6,7 +6,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   // During `npm run dev`, requests to /api are proxied to this target so the
   // browser never makes a cross-origin call (no CORS headaches locally).
-  const proxyTarget = env.VITE_PROXY_TARGET || 'https://manithub-backend.vercel.app'
+  const proxyTarget = env.VITE_PROXY_TARGET || 'https://manit-hub.onrender.com'
 
   return {
     plugins: [react()],
