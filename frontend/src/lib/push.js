@@ -34,6 +34,15 @@ export async function initPush() {
 }
 
 async function initNativePush() {
+  // Native push needs Firebase (google-services.json) wired into the Android
+  // build. Without it, PushNotifications.register() triggers a native
+  // "Default FirebaseApp is not initialized" crash that JS try/catch CANNOT
+  // catch — it takes the whole app down the moment the user taps "Allow".
+  // So we stay opt-in: only attempt registration when push is actually
+  // configured (set VITE_PUSH_ENABLED=true once google-services.json + the
+  // backend FIREBASE_SERVICE_ACCOUNT are in place).
+  if (import.meta.env.VITE_PUSH_ENABLED !== "true") return;
+
   const { PushNotifications } = await import("@capacitor/push-notifications");
 
   let perm = await PushNotifications.checkPermissions();
