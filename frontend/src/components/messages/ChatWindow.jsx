@@ -1,6 +1,32 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, Fragment } from "react";
 import { Send, MessageSquare, ArrowLeft } from "lucide-react";
 import MessageBubble from "./MessageBubble";
+
+// WhatsApp-style day separators: "Today", "Yesterday", else a full date.
+const isSameDay = (a, b) => {
+  const x = new Date(a);
+  const y = new Date(b);
+  return (
+    x.getFullYear() === y.getFullYear() &&
+    x.getMonth() === y.getMonth() &&
+    x.getDate() === y.getDate()
+  );
+};
+
+const formatDateLabel = (date) => {
+  const d = new Date(date);
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+
+  if (isSameDay(d, today)) return "Today";
+  if (isSameDay(d, yesterday)) return "Yesterday";
+  return d.toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "long",
+    ...(d.getFullYear() !== today.getFullYear() ? { year: "numeric" } : {}),
+  });
+};
 import { messagesApi } from "../../api/messages";
 import socketService from "../../utils/socket";
 import Avatar from "../ui/Avatar";
@@ -216,13 +242,26 @@ export default function ChatWindow({ conversation, currentUser, onRead, onBack }
                 </button>
               </div>
             )}
-            {messages.map((message) => (
-              <MessageBubble
-                key={message._id}
-                message={message}
-                isOwn={message.sender === currentUser._id}
-              />
-            ))}
+            {messages.map((message, i) => {
+              const prev = messages[i - 1];
+              const showDate =
+                !prev || !isSameDay(prev.createdAt, message.createdAt);
+              return (
+                <Fragment key={message._id}>
+                  {showDate && (
+                    <div className="flex justify-center py-1">
+                      <span className="rounded-full bg-muted/15 px-3 py-1 text-[11px] font-medium text-muted">
+                        {formatDateLabel(message.createdAt)}
+                      </span>
+                    </div>
+                  )}
+                  <MessageBubble
+                    message={message}
+                    isOwn={message.sender === currentUser._id}
+                  />
+                </Fragment>
+              );
+            })}
             <div ref={messagesEndRef} />
           </>
         )}

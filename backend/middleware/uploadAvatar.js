@@ -1,19 +1,23 @@
-const fs = require("fs");
-const path = require("path");
 const multer = require("multer");
+const createCloudinaryStorage = require("./cloudinaryStorage");
 
-const avatarsDir = path.join(__dirname, "../../uploads/avatars");
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    fs.mkdirSync(avatarsDir, { recursive: true });
-    cb(null, avatarsDir);
-  },
-  filename: (req, file, cb) => {
-    const extension = path.extname(file.originalname).toLowerCase();
-    cb(null, `avatar-${req.user._id}-${Date.now()}${extension}`);
-  },
-});
+// Avatars go to Cloudinary (like every other upload in the app) so they
+// persist on the serverless deploy and are served from a stable CDN URL.
+const storage = createCloudinaryStorage(async (req, file) => ({
+  folder: "manit-hub/avatars",
+  resource_type: "image",
+  public_id: `avatar_${req.user?._id}_${Date.now()}`,
+  allowed_formats: ["jpg", "jpeg", "png", "webp"],
+  transformation: [
+    {
+      width: 400,
+      height: 400,
+      crop: "fill",
+      gravity: "face",
+      quality: "auto",
+    },
+  ],
+}));
 
 const fileFilter = (req, file, cb) => {
   if (!file.mimetype.startsWith("image/")) {

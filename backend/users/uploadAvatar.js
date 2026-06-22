@@ -10,7 +10,8 @@ router.put("/avatar", auth, uploadAvatar.single("avatar"), async (req, res) => {
       return error(res, "No image uploaded", 400);
     }
 
-    req.user.avatarUrl = `${req.protocol}://${req.get("host")}/uploads/avatars/${req.file.filename}`;
+    // cloudinaryStorage sets req.file.path to the Cloudinary secure URL.
+    req.user.avatarUrl = req.file.path;
     await req.user.save();
 
     return success(
