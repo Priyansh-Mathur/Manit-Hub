@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { SearchCheck, Upload, X, AlertCircle, ImageIcon } from "lucide-react";
 import { cn } from "../../lib/cn";
+import { resizeImages } from "../../lib/resizeImage";
 import Modal from "../ui/Modal";
 import Button from "../ui/Button";
 import { LF_CATEGORIES } from "./constants";
@@ -25,11 +26,12 @@ export default function PostItemModal({ isOpen, onClose, onSubmit }) {
     setError("");
     setLoading(true);
     try {
+      const resized = await resizeImages(files, 1000);
       const payload = new FormData();
       Object.entries(formData).forEach(([key, value]) => {
         if (value !== "") payload.append(key, value);
       });
-      files.forEach((file) => payload.append("images", file));
+      resized.forEach((file) => payload.append("images", file, file.name || "image.jpg"));
 
       await onSubmit(payload);
 

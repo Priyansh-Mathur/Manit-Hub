@@ -1,20 +1,9 @@
 const multer = require("multer");
-const createCloudinaryStorage = require("./cloudinaryStorage");
+const createDataUrlStorage = require("./dataUrlStorage");
 
-const storage = createCloudinaryStorage(async (req, file) => ({
-  folder: "manit-hub/study-groups",
-  resource_type: "image",
-  public_id: `study_group_${req.user?._id}_${Date.now()}`,
-  allowed_formats: ["jpg", "jpeg", "png", "webp"],
-  transformation: [
-    {
-      width: 1400,
-      height: 800,
-      crop: "limit",
-      quality: "auto",
-    },
-  ],
-}));
+// Cover image stored inline as a data URL (no Cloudinary in prod). The client
+// resizes before upload; this cap is just a safety net for the DB document.
+const storage = createDataUrlStorage();
 
 const fileFilter = (req, file, cb) => {
   if (!file.mimetype.startsWith("image/")) {
@@ -27,7 +16,7 @@ const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB
+    fileSize: 3 * 1024 * 1024, // 3MB (client resizes to ~300KB)
   },
 });
 

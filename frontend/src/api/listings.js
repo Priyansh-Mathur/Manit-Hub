@@ -1,4 +1,5 @@
 import api from "./axios";
+import { resizeImages } from "../lib/resizeImage";
 
 export const fetchListings = async (params = {}) => {
   const res = await api.get("/listings", { params });
@@ -24,8 +25,9 @@ export const updateListingStatus = async (listingId, status) => {
 };
 
 export const uploadListingImages = async (listingId, files) => {
+  const resized = await resizeImages(files, 1000);
   const formData = new FormData();
-  files.forEach((file) => formData.append("images", file));
+  resized.forEach((file) => formData.append("images", file, file.name || "image.jpg"));
   const res = await api.post(`/listings/${listingId}/images`, formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });

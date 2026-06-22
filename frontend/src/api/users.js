@@ -1,4 +1,5 @@
 import api from "./axios";
+import { resizeImage } from "../lib/resizeImage";
 
 export const usersApi = {
   getProfile: (userId) => api.get(`/users/${userId}/profile`),
@@ -9,9 +10,10 @@ export const usersApi = {
   getSavedListings: () => api.get("/users/me/saved-listings"),
   toggleSavedListing: (listingId) => api.post(`/users/saved-listings/${listingId}`),
   deleteMe: () => api.delete("/users/me"),
-  uploadAvatar: (file) => {
+  uploadAvatar: async (file) => {
+    const resized = await resizeImage(file, 256);
     const formData = new FormData();
-    formData.append("avatar", file, file.name || "avatar.jpg");
+    formData.append("avatar", resized, resized.name || "avatar.jpg");
     return api.put("/users/avatar", formData);
   },
 };

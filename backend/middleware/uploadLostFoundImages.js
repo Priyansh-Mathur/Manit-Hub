@@ -1,20 +1,10 @@
 const multer = require("multer");
-const createCloudinaryStorage = require("./cloudinaryStorage");
+const createDataUrlStorage = require("./dataUrlStorage");
 
-const storage = createCloudinaryStorage(async (req, file) => ({
-  folder: "manit-hub/lost-found",
-  resource_type: "image",
-  public_id: `lostfound_${req.user?._id}_${Date.now()}`,
-  allowed_formats: ["jpg", "jpeg", "png", "webp"],
-  transformation: [
-    {
-      width: 1200,
-      height: 1200,
-      crop: "limit",
-      quality: "auto",
-    },
-  ],
-}));
+// Images are stored inline as data URLs (no Cloudinary in prod). The client
+// resizes before upload; this size cap is just a safety net so the item
+// document (up to 4 images) stays well under MongoDB's 16MB limit.
+const storage = createDataUrlStorage();
 
 const fileFilter = (req, file, cb) => {
   if (!file.mimetype.startsWith("image/")) {
@@ -27,7 +17,7 @@ const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB
+    fileSize: 2 * 1024 * 1024, // 2MB per image (client resizes to ~200KB)
   },
 });
 

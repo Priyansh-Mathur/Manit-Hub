@@ -1,4 +1,5 @@
 import axios from './axios';
+import { resizeImage } from '../lib/resizeImage';
 
 export const fetchUserSettings = async () => {
   const response = await axios.get('/users/settings');
@@ -21,8 +22,9 @@ export const updatePaymentInfo = async (paymentInfo) => {
 };
 
 export const uploadPaymentQr = async (file) => {
+  const resized = await resizeImage(file, 600);
   const formData = new FormData();
-  formData.append("qr", file);
+  formData.append("qr", resized, resized.name || "qr.jpg");
   const response = await axios.put('/users/payment-qr', formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });

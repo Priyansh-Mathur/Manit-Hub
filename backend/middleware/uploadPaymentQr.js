@@ -1,20 +1,9 @@
 const multer = require("multer");
-const createCloudinaryStorage = require("./cloudinaryStorage");
+const createDataUrlStorage = require("./dataUrlStorage");
 
-const storage = createCloudinaryStorage(async (req, file) => ({
-  folder: "manit-hub/payment-qr",
-  resource_type: "image",
-  public_id: `payment_qr_${req.user?._id}_${Date.now()}`,
-  allowed_formats: ["jpg", "jpeg", "png", "webp"],
-  transformation: [
-    {
-      width: 600,
-      height: 600,
-      crop: "limit",
-      quality: "auto",
-    },
-  ],
-}));
+// QR image stored inline as a data URL (no Cloudinary in prod). The client
+// resizes before upload; this cap is just a safety net for the DB document.
+const storage = createDataUrlStorage();
 
 const fileFilter = (req, file, cb) => {
   if (!file.mimetype.startsWith("image/")) {
@@ -27,7 +16,7 @@ const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB
+    fileSize: 3 * 1024 * 1024, // 3MB (client resizes to ~300KB)
   },
 });
 
