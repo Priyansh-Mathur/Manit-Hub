@@ -20,6 +20,38 @@ import {
   updatePrivacySettings,
 } from "../../api/settings";
 
+// Shrink the picked image to a small square-ish JPEG in the browser so the
+// avatar stays tiny when stored as a data URL on the user document.
+function resizeImage(file, max = 256, quality = 0.85) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const scale = Math.min(1, max / Math.max(img.width, img.height));
+      const w = Math.max(1, Math.round(img.width * scale));
+      const h = Math.max(1, Math.round(img.height * scale));
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) return reject(new Error("Could not process image"));
+          resolve(new File([blob], "avatar.jpg", { type: "image/jpeg" }));
+        },
+        "image/jpeg",
+        quality
+      );
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Could not load image"));
+    };
+    img.src = url;
+  });
+}
+
 function Toggle({ checked, onChange, label }) {
   return (
     <button
@@ -198,7 +230,9 @@ export default function ProfileSettings({ settings, onSettingsUpdate }) {
     }
     try {
       setAvatarLoading(true);
-      const response = await usersApi.uploadAvatar(file);
+      // Resize in the browser; fall back to the original if it fails.
+      const upload = await resizeImage(file).catch(() => file);
+      const response = await usersApi.uploadAvatar(upload);
       const newAvatarUrl = response?.data?.data?.avatarUrl || response?.data?.avatarUrl;
       if (newAvatarUrl) {
         setAvatarUrl(newAvatarUrl);

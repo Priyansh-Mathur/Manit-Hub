@@ -1,23 +1,11 @@
 const multer = require("multer");
-const createCloudinaryStorage = require("./cloudinaryStorage");
 
-// Avatars go to Cloudinary (like every other upload in the app) so they
-// persist on the serverless deploy and are served from a stable CDN URL.
-const storage = createCloudinaryStorage(async (req, file) => ({
-  folder: "manit-hub/avatars",
-  resource_type: "image",
-  public_id: `avatar_${req.user?._id}_${Date.now()}`,
-  allowed_formats: ["jpg", "jpeg", "png", "webp"],
-  transformation: [
-    {
-      width: 400,
-      height: 400,
-      crop: "fill",
-      gravity: "face",
-      quality: "auto",
-    },
-  ],
-}));
+// Keep the upload in memory; the route turns it into a base64 data URL stored
+// on the user document. This deliberately avoids Cloudinary (prod creds are not
+// configured) and local disk (ephemeral on the host), so a freshly uploaded
+// avatar persists via the database and survives redeploys. The client resizes
+// the image before sending, so the stored data URL stays small.
+const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
   if (!file.mimetype.startsWith("image/")) {
@@ -30,7 +18,7 @@ const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB
+    fileSize: 5 * 1024 * 1024, // 5MB (pre-resize safety cap)
   },
 });
 

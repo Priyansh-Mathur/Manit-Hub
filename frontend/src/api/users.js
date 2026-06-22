@@ -11,7 +11,7 @@ export const usersApi = {
   deleteMe: () => api.delete("/users/me"),
   uploadAvatar: (file) => {
     const formData = new FormData();
-    formData.append("avatar", file);
+    formData.append("avatar", file, file.name || "avatar.jpg");
     return api.put("/users/avatar", formData);
   },
 };
