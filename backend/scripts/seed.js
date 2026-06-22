@@ -147,6 +147,41 @@ async function run() {
     console.log(`✓ Using existing university "${university.name}"`);
   }
 
+  // 1b) One-time legacy cleanup — older seeds used name.demo@stu.manit.ac.in
+  //     emails (now disallowed by the scholar-email login rule). They share
+  //     handles with the new scholar-number accounts, so remove them and every
+  //     doc they own before re-seeding; otherwise the unique `handle` index
+  //     collides. Idempotent: a no-op once the legacy accounts are gone.
+  const legacyUsers = await User.find({
+    email: /\.demo@stu\.manit\.ac\.in$/i,
+  }).select("_id");
+  if (legacyUsers.length) {
+    const legacyIds = legacyUsers.map((u) => u._id);
+    await Promise.all([
+      Listing.deleteMany({ seller: { $in: legacyIds } }),
+      StudyGroup.deleteMany({ creator: { $in: legacyIds } }),
+      LostFoundItem.deleteMany({ reporter: { $in: legacyIds } }),
+      Friendship.deleteMany({ users: { $in: legacyIds } }),
+      Confession.deleteMany({ author: { $in: legacyIds } }),
+      Ride.deleteMany({ poster: { $in: legacyIds } }),
+      Event.deleteMany({ organizer: { $in: legacyIds } }),
+      Question.deleteMany({ author: { $in: legacyIds } }),
+      Answer.deleteMany({ author: { $in: legacyIds } }),
+      Document.deleteMany({ uploader: { $in: legacyIds } }),
+      Notification.deleteMany({ user: { $in: legacyIds } }),
+    ]);
+    const legacyConvos = await Conversation.find({
+      participants: { $in: legacyIds },
+    }).select("_id");
+    const legacyConvoIds = legacyConvos.map((c) => c._id);
+    await Message.deleteMany({ conversation: { $in: legacyConvoIds } });
+    await Conversation.deleteMany({ _id: { $in: legacyConvoIds } });
+    await User.deleteMany({ _id: { $in: legacyIds } });
+    console.log(
+      `✓ Removed ${legacyIds.length} legacy .demo accounts + the data they owned`
+    );
+  }
+
   // 2) Seed users — create if missing (password hashed by the model hook),
   //    otherwise refresh their demo profile fields (never the password).
   const byKey = {};
@@ -699,13 +734,22 @@ async function run() {
         continue;
       }
       const participants = [String(primary._id), String(seller._id)].sort();
-      const conversation = await Conversation.create({
-        listingId: listing._id,
-        contextType: "listing",
-        listingTitle: listing.title,
-        participants,
-        university: university._id,
-      });
+      let conversation;
+      try {
+        conversation = await Conversation.create({
+          listingId: listing._id,
+          contextType: "listing",
+          listingTitle: listing.title,
+          participants,
+          university: university._id,
+        });
+      } catch (e) {
+        if (e.code === 11000) {
+          console.log(`  ! skipped existing listing chat: ${spec.title}`);
+          continue;
+        }
+        throw e;
+      }
 
       const start = daysAgo(spec.startDaysAgo).getTime();
       const docs = spec.thread.map((m, i) => {
@@ -761,13 +805,22 @@ async function run() {
     if (!aUser || !bUser) continue;
 
     const participants = [String(aUser._id), String(bUser._id)].sort();
-    const conversation = await Conversation.create({
-      listingId: null,
-      contextType: "friend",
-      listingTitle: "",
-      participants,
-      university: university._id,
-    });
+    let conversation;
+    try {
+      conversation = await Conversation.create({
+        listingId: null,
+        contextType: "friend",
+        listingTitle: "",
+        participants,
+        university: university._id,
+      });
+    } catch (e) {
+      if (e.code === 11000) {
+        console.log(`  ! skipped friend chat (a participant already has one)`);
+        continue;
+      }
+      throw e;
+    }
 
     const start = daysAgo(spec.startDaysAgo).getTime();
     const docs = spec.thread.map((m, i) => {
