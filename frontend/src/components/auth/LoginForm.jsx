@@ -5,6 +5,7 @@ import { Mail, Lock, Eye, EyeOff, AlertCircle } from "lucide-react";
 import Input from "../ui/Input";
 import Button from "../ui/Button";
 import { useNavigate } from "react-router-dom";
+import { isValidScholarEmail, SCHOLAR_EMAIL_MESSAGE } from "../../utils/validation";
 
 export default function LoginForm({ onForgot }) {
   const { login } = useAuth();
@@ -18,6 +19,12 @@ export default function LoginForm({ onForgot }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+
+    if (!isValidScholarEmail(email)) {
+      setError(SCHOLAR_EMAIL_MESSAGE);
+      return;
+    }
+
     setLoading(true);
 
     try {

@@ -3,6 +3,7 @@ import api from "../../api/axios";
 import { Mail, AlertCircle, CheckCircle2, ArrowLeft } from "lucide-react";
 import Input from "../ui/Input";
 import Button from "../ui/Button";
+import { isValidScholarEmail, SCHOLAR_EMAIL_MESSAGE } from "../../utils/validation";
 
 export default function ForgotPasswordForm({ onBack, onSent }) {
   const [email, setEmail] = useState("");
@@ -14,6 +15,12 @@ export default function ForgotPasswordForm({ onBack, onSent }) {
     e.preventDefault();
     setError("");
     setInfo("");
+
+    if (!isValidScholarEmail(email)) {
+      setError(SCHOLAR_EMAIL_MESSAGE);
+      return;
+    }
+
     setLoading(true);
 
     try {

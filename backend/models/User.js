@@ -9,6 +9,7 @@ const userSchema = new mongoose.Schema(
       unique: true,
       trim: true,
       lowercase: true,
+      match: [/^\d{10}@stu\.manit\.ac\.in$/, "Invalid MANIT scholar email"],
     },
 
     password: {

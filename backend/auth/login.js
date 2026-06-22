@@ -4,6 +4,11 @@ const User = require("../models/User");
 const { generateToken } = require("../utils/jwt");
 const { success, error } = require("../utils/response");
 const { generateUniqueHandle } = require("../utils/handle");
+const {
+  isValidScholarEmail,
+  normalizeEmail,
+  SCHOLAR_EMAIL_MESSAGE,
+} = require("../utils/email");
 
 /**
  * POST /api/auth/login
@@ -16,7 +21,13 @@ router.post("/login", async (req, res, next) => {
       return error(res, "Email and password required", 400);
     }
 
-    const user = await User.findOne({ email })
+    if (!isValidScholarEmail(email)) {
+      return error(res, SCHOLAR_EMAIL_MESSAGE, 400);
+    }
+
+    const normalizedEmail = normalizeEmail(email);
+
+    const user = await User.findOne({ email: normalizedEmail })
       .select("+password")
       .populate("university", "name logoUrl");
 

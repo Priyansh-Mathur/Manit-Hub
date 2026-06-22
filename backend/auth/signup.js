@@ -5,6 +5,11 @@ const { generateToken } = require("../utils/jwt");
 const { success, error } = require("../utils/response");
 const { resolveUniversityByEmail } = require("../utils/universities");
 const { generateUniqueHandle } = require("../utils/handle");
+const {
+  isValidScholarEmail,
+  normalizeEmail,
+  SCHOLAR_EMAIL_MESSAGE,
+} = require("../utils/email");
 
 /**
  * POST /api/auth/signup
@@ -17,17 +22,26 @@ router.post("/signup", async (req, res, next) => {
       return error(res, "All fields are required", 400);
     }
 
-    const existingUser = await User.findOne({ email });
+    if (!isValidScholarEmail(email)) {
+      return error(res, SCHOLAR_EMAIL_MESSAGE, 400);
+    }
+
+    const normalizedEmail = normalizeEmail(email);
+
+    const existingUser = await User.findOne({ email: normalizedEmail });
     if (existingUser) {
       return error(res, "Email already in use", 400);
     }
 
-    const university = await resolveUniversityByEmail(email);
+    const university = await resolveUniversityByEmail(normalizedEmail);
 
-    const handle = await generateUniqueHandle(User, email.split("@")[0]);
+    const handle = await generateUniqueHandle(
+      User,
+      normalizedEmail.split("@")[0]
+    );
 
     const user = await User.create({
-      email,
+      email: normalizedEmail,
       password,
       displayName,
       handle,

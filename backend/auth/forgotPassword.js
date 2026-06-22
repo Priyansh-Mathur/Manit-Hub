@@ -3,6 +3,11 @@ const router = express.Router();
 const User = require("../models/User");
 const crypto = require("crypto");
 const { success, error } = require("../utils/response");
+const {
+  isValidScholarEmail,
+  normalizeEmail,
+  SCHOLAR_EMAIL_MESSAGE,
+} = require("../utils/email");
 
 /**
  * POST /api/auth/forgot-password
@@ -15,7 +20,11 @@ router.post("/forgot-password", async (req, res, next) => {
       return error(res, "Email is required", 400);
     }
 
-    const user = await User.findOne({ email }).select(
+    if (!isValidScholarEmail(email)) {
+      return error(res, SCHOLAR_EMAIL_MESSAGE, 400);
+    }
+
+    const user = await User.findOne({ email: normalizeEmail(email) }).select(
       "+passwordResetToken +passwordResetExpires"
     );
 
