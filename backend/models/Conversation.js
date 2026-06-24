@@ -65,10 +65,12 @@ conversationSchema.pre("save", function () {
   }
 });
 
-
-conversationSchema.index(
-  { listingId: 1, participants: 1 },
-  { unique: true }
-);
+// Lookup index for "my conversations" (getUserConversations filters by
+// participants). NOT unique: a unique index on the participants array is
+// multikey, which wrongly caps each user at one conversation per listingId
+// value — e.g. one friend DM total, or only the first buyer per listing.
+// Duplicate conversations are instead prevented at the application layer
+// (createConversation does findOne-then-create for each pair + context).
+conversationSchema.index({ participants: 1 });
 
 module.exports = mongoose.model("Conversation", conversationSchema);
