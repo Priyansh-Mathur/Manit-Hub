@@ -117,7 +117,7 @@ Built by students, for students — a verified, university‑scoped community on
 
 | | Feature | What it does | Why it matters |
 | :-- | :-- | :-- | :-- |
-| 🔐 | **University‑scoped auth** | Sign up with your `@stu.manit.ac.in` email; JWT sessions with password reset. | A **verified, students‑only** community — every account is a real campus identity. |
+| 🔐 | **University‑scoped auth** | Sign up with your `@stu.manit.ac.in` email; long‑lived JWT sessions that **persist across app/browser restarts** (durable native storage on Android) with password reset. | A **verified, students‑only** community — every account is a real campus identity, and you stay signed in until you log out. |
 | 🛒 | **Student Marketplace** | List, search, filter & sort items across 6 categories with condition badges, Cloudinary photos, wishlist and "mark sold". | Buy & sell textbooks, cycles and hostel gear **safely within campus** — settle over UPI. |
 | 👥 | **Study Groups** | Create or join branch‑wise groups with tags, member caps, scheduled sessions and WhatsApp/Telegram/Discord/Meet links. | Find your people and **organise revision** without scattering across 5 apps. |
 | 📚 | **Study Vault** | Upload, search & download notes, PYQs, syllabi and schedules — filtered by branch, subject, semester and type, with download counts, **in‑app PDF/image preview, upvotes & comments**. | The campus knowledge base: **exam prep material in one place** — and the best notes float to the top. |
@@ -208,7 +208,7 @@ manit-hub/
 │   │   ├── layouts/           # AppLayout (sidebar + topbar shell)
 │   │   ├── lib/               # cn(), inline image fallbacks
 │   │   ├── screens/           # Route-level screens (one per route)
-│   │   └── utils/             # Socket.IO service
+│   │   └── utils/             # Socket.IO service, durable auth storage (Preferences + localStorage)
 │   ├── android/               # Capacitor Android project (Gradle)
 │   ├── scripts/               # App-icon generator
 │   └── capacitor.config.json
@@ -249,7 +249,7 @@ sequenceDiagram
   A->>M: find user · verify bcrypt hash
   M-->>A: user + university
   A-->>C: { user, JWT }
-  C->>C: persist token (localStorage)
+  C->>C: persist session (durable native storage + localStorage mirror)
 
   Note over C,A: All later calls send "Authorization: Bearer <JWT>"
   C->>A: GET /api/listings
