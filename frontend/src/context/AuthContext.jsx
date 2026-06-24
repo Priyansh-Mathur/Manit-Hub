@@ -1,4 +1,5 @@
 import { createContext, useState } from "react";
+import { persistAuth, clearAuth } from "../utils/authStorage";
 
 const AuthContext = createContext(null);
 
@@ -25,14 +26,16 @@ export function AuthProvider({ children }) {
     const normalizedUser = user && user.id && !user._id
       ? { ...user, _id: user.id }
       : user;
-    localStorage.setItem("user", JSON.stringify(normalizedUser));
-    localStorage.setItem("token", token);
+    // Write-through to durable native storage (+ localStorage mirror). Not
+    // awaited: the localStorage writes inside persistAuth are synchronous, so
+    // the token is usable immediately; the native write finishes in the
+    // background. See utils/authStorage.js.
+    persistAuth({ user: normalizedUser, token });
     setUser(normalizedUser);
   };
 
   const logout = () => {
-    localStorage.removeItem("user");
-    localStorage.removeItem("token");
+    clearAuth();
     setUser(null);
   };
 
