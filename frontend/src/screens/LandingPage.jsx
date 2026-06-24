@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { motion as Motion } from "framer-motion";
+import { useAuthContext } from "../context/useAuthContext";
 import {
   ShoppingBag,
   Users,
@@ -126,6 +127,15 @@ function FaqItem({ q, a }) {
 }
 
 export default function Landing() {
+  const { user } = useAuthContext();
+  // Already logged in (session restored from storage)? Skip the marketing page
+  // and go straight into the app. Without this, reopening the app/site lands on
+  // this logged-out-looking page even though the session is still valid — which
+  // is what made it feel like you were logged out on every launch.
+  if (user) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   return (
     <div className="min-h-screen bg-bg text-fg">
       {/* Header */}

@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { AnimatePresence, motion as Motion } from "framer-motion";
+import { useAuthContext } from "../context/useAuthContext";
 import { ShoppingBag, Users, MessageCircle, Map, ArrowLeft } from "lucide-react";
 import Logo, { Crest } from "../components/brand/Logo";
 import ThemeToggle from "../components/ui/ThemeToggle";
@@ -69,8 +70,14 @@ function BrandPanel() {
 }
 
 export default function Auth() {
+  const { user } = useAuthContext();
   const [mode, setMode] = useState("login");
   const [resetToken, setResetToken] = useState("");
+
+  // Already signed in? Don't show the login/signup screen — go to the app.
+  if (user) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   return (
     <div className="min-h-screen bg-bg text-fg lg:grid lg:grid-cols-2">

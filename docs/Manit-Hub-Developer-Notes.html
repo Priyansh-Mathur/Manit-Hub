@@ -416,8 +416,9 @@ error(res, message, status, extra)   → { success:false, message, ...(dev ? ext
 </ol>
 
 <h3>6.3 The token — <code>utils/jwt.js</code></h3>
-<pre><code>jwt.sign({ id: userId, university: universityId }, JWT_SECRET, { expiresIn: "7d" });</code></pre>
-<p>Two claims, 7-day expiry, HS256 (symmetric — the same secret signs and verifies). Putting <code>university</code> in the token lets middleware do a tenant sanity-check without an extra query.</p>
+<pre><code>jwt.sign({ id: userId, university: universityId }, JWT_SECRET,
+  { expiresIn: process.env.JWT_EXPIRE || "365d" });</code></pre>
+<p>Two claims, a <b>long-lived ~1-year expiry</b> (configurable via <code>JWT_EXPIRE</code>) so users stay signed in until they explicitly log out, HS256 (symmetric — the same secret signs and verifies). Putting <code>university</code> in the token lets middleware do a tenant sanity-check without an extra query. Because the auth middleware re-loads the user on every request (see 6.4), a long expiry doesn't weaken revocation — a banned/deleted account stops working on its next call regardless of token lifetime.</p>
 
 <h3>6.4 The auth middleware — <code>middleware/auth.js</code></h3>
 <pre><code>const header = req.header("Authorization");           // "Bearer &lt;jwt&gt;"
@@ -460,7 +461,7 @@ req.user = user;  next();</code></pre>
 
 <div class="qa box">
 <div class="q">Q: Where is the JWT stored on the client, and what are the implications?</div>
-<div class="a">A: In <code>localStorage</code> (<code>AuthContext</code> + the axios request interceptor reads it). Trade-off: simple and works identically in the WebView, but it's readable by JS, so it's exposed to XSS. The mitigations are React's default output escaping, Helmet headers, and a short 7-day expiry. The more hardened alternative is an httpOnly cookie (immune to JS access) — but cookies complicate the Capacitor native-HTTP path and CORS credentials, which is why <code>localStorage</code> was chosen here.</div>
+<div class="a">A: In <b>two tiers</b> (see <code>src/utils/authStorage.js</code>): the durable copy lives in <b>Capacitor Preferences</b> — native <code>SharedPreferences</code> on Android — and a synchronous mirror sits in <code>localStorage</code> for the axios interceptor and the socket handshake, which read the token synchronously. <b>Why two:</b> Android's WebView flushes <code>localStorage</code> to disk lazily and the OS wipes it whenever it kills the app process (swipe-close, low memory), which used to log users out on every restart; Preferences survives that. On the web, Preferences is itself <code>localStorage</code>-backed, so the second tier is a harmless no-op there. Trade-off: the token is still JS-readable (XSS exposure), mitigated by React's default output escaping and Helmet headers. The more hardened alternative is an httpOnly cookie (immune to JS access) — but cookies complicate the Capacitor native-HTTP path and CORS credentials, which is why token-in-storage was chosen here.</div>
 </div>
 </div>
 
