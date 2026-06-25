@@ -17,14 +17,21 @@ const KEYS = ["token", "user"];
 // Write-through. The localStorage writes run synchronously (before the first
 // await) so callers that don't await still get an immediately-usable token.
 export async function persistAuth({ user, token }) {
-  if (token != null) {
-    localStorage.setItem("token", token);
-    await Preferences.set({ key: "token", value: token });
-  }
-  if (user != null) {
-    const serialized = typeof user === "string" ? user : JSON.stringify(user);
-    localStorage.setItem("user", serialized);
-    await Preferences.set({ key: "user", value: serialized });
+  try {
+    if (token != null) {
+      localStorage.setItem("token", token);
+      await Preferences.set({ key: "token", value: token });
+    }
+    if (user != null) {
+      const serialized = typeof user === "string" ? user : JSON.stringify(user);
+      localStorage.setItem("user", serialized);
+      await Preferences.set({ key: "user", value: serialized });
+    }
+    // [DIAG] temporary device diagnostics — remove after debugging.
+    console.log(`[authStorage] persist OK token=${token ? "yes" : "no"} user=${user ? "yes" : "no"}`);
+  } catch (err) {
+    // [DIAG] surface a failing native write instead of an unhandled rejection.
+    console.warn("[authStorage] persist FAILED:", err);
   }
 }
 
@@ -48,6 +55,10 @@ export async function bootstrapAuthStorage() {
   try {
     for (const key of KEYS) {
       const { value } = await Preferences.get({ key });
+      // [DIAG] temporary device diagnostics — remove after debugging.
+      console.log(
+        `[authStorage] bootstrap ${key}: prefs=${value ? "PRESENT" : "null"} local=${localStorage.getItem(key) ? "PRESENT" : "null"}`
+      );
       if (value != null) {
         localStorage.setItem(key, value);
       } else {
