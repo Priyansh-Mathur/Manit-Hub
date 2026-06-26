@@ -1,2 +1,0 @@
-Backend in render with id 7389
-frontend netlify
