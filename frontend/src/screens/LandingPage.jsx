@@ -202,7 +202,7 @@ export default function Landing() {
                 <ArrowRight className="h-5 w-5" />
               </Link>
               <a
-                href="https://example.com/demo"
+                href="https://youtu.be/4ngVWX2E0rU"
                 target="_blank"
                 rel="noreferrer"
                 className="ring-focus inline-flex items-center justify-center rounded-xl border-2 border-white/25 px-7 py-3.5 text-base font-semibold text-white transition hover:bg-white/10"

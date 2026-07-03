@@ -30,7 +30,7 @@ Built by students, for students — a verified, university‑scoped community on
 
 <br/>
 
-[**🌐 Live Demo**](https://manithub-samayjainbm.vercel.app/) · [**▶️ Demo Link**](https://example.com/demo) · [**📱 Android App**](#-mobile-app-android) · [**🐛 Report Bug**](https://github.com/Samay-Jain/Manit-Hub/issues) · [**✨ Request Feature**](https://github.com/Samay-Jain/Manit-Hub/issues)
+[**🌐 Live Demo**](https://manithub-samayjainbm.vercel.app/) · [**▶️ Video Tour**](https://youtu.be/4ngVWX2E0rU) · [**📱 Android App**](#-mobile-app-android) · [**🐛 Report Bug**](https://github.com/Samay-Jain/Manit-Hub/issues) · [**✨ Request Feature**](https://github.com/Samay-Jain/Manit-Hub/issues)
 
 </div>
 
@@ -40,11 +40,11 @@ Built by students, for students — a verified, university‑scoped community on
 
 <div align="center">
 
-<a href="https://example.com/demo">
+<a href="https://youtu.be/4ngVWX2E0rU">
   <img src="docs/screenshots/landing.png" alt="Manit Hub demo preview" width="680" />
 </a>
 
-<sub>▶️ Click to open the demo link</sub>
+<sub>▶️ Click to watch the full video tour on YouTube</sub>
 
 </div>
 
