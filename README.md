@@ -101,6 +101,7 @@ Built by students, for students — a verified, university‑scoped community on
   - [Folder Structure](#folder-structure)
   - [Request & Data Flow](#request--data-flow)
   - [Data Model](#data-model)
+- [🔒 Security & Moderation](#-security--moderation)
 - [🚀 Getting Started](#-getting-started)
 - [🔑 Environment Variables](#-environment-variables)
 - [🌱 Seeding Demo Data](#-seeding-demo-data)
@@ -300,6 +301,34 @@ erDiagram
 
 ---
 
+## 🔒 Security & Moderation
+
+Manit Hub is built **defence-in-depth** — no single control is trusted alone. Highlights:
+
+| Area | What's in place |
+| :-- | :-- |
+| **Passwords** | bcrypt (salted, cost 10), `select:false`; minimum 8 characters |
+| **Sessions** | JWTs carry a `tokenVersion` claim — a password reset increments it and **instantly revokes every old token** (revoke-on-compromise without giving up long, friction-free sessions) |
+| **Account verification** | Only `@stu.manit.ac.in` scholar emails are accepted (model + every auth route); with SMTP set, signup requires a **6-digit email code** (stored SHA-256-hashed, 30-min expiry) to prove ownership |
+| **Rate limiting** | `express-rate-limit`: 600 req/15 min per IP across the API, and **20 failed attempts/15 min** on auth routes (successful logins aren't counted) — stops brute force, signup spam and code guessing |
+| **Password reset** | Random token, **only its SHA-256 hash stored** (30-min expiry), emailed via Nodemailer; token returned in the response **only** in dev when no SMTP is configured |
+| **Multi-tenancy** | Every read/write is scoped to `req.user.university`; `universityScope` guards `:id` routes; the socket layer re-checks tenant before join/send |
+| **CORS** | Exact origin allow-list; preview deploys matched on the **full project slug** as a subdomain label (no loose substring that a `manithub-*.vercel.app` could forge); Socket.IO shares the same policy |
+| **Mass assignment** | Write handlers copy an explicit **field whitelist** — `seller`/`university`/`isActive` can't be set from the request body |
+| **Uploads** | Raster-only MIME allow-list (**SVG rejected** — it can carry XSS), size caps, per-listing image count cap |
+| **Privacy** | `private` profiles are hidden; phone numbers are shown only to the user and accepted friends (no harvesting) |
+| **Error handling** | 500-level errors return a generic message in production (no internal detail leaks) |
+
+**Content moderation** runs in three layers:
+
+1. **Text filter** — a self-contained English + Hindi/Hinglish profanity filter (de-obfuscates leetspeak, spacing and repeats, whole-word matching to avoid false positives) rejects abusive text in confessions, forum and listings. Extend it at runtime with `EXTRA_BLOCKED_WORDS`.
+2. **Report → auto-hide → strikes → ban** — content auto-hides after `AUTO_HIDE_REPORTS` distinct reports; the author gets a strike; `AUTO_BAN_STRIKES` strikes auto-suspends the account (blocked at login, API and socket). Admins keep a manual review queue.
+3. **Image moderation** — an **env-gated** hook (Google Cloud Vision SafeSearch or Sightengine) rejects adult/explicit images **before they're stored**. Off by default (uploads allowed) until you set a provider key; fails open on a provider outage so the report queue remains the backstop.
+
+> 📄 A full **why / how / why-this-not-that** write-up of every control lives in [`docs/Manit-Hub-Developer-Notes.pdf`](docs/Manit-Hub-Developer-Notes.pdf) → *Section 16 · Security hardening & content moderation*.
+
+---
+
 ## 🚀 Getting Started
 
 ### Prerequisites
@@ -349,11 +378,17 @@ Open **http://localhost:5173** and sign up with an `@stu.manit.ac.in` email. �
 | :-- | :--: | :-- |
 | `MONGO_URI` | ✅ | MongoDB connection string (Atlas recommended) |
 | `JWT_SECRET` | ✅ | Long random string used to sign JWTs |
-| `CLIENT_URL` | ⬜ | Allowed CORS origin(s), comma‑separated (`*.netlify.app` / `*.vercel.app` & localhost are auto‑allowed) |
+| `JWT_EXPIRE` | ⬜ | Session lifetime (default `365d`) |
+| `CLIENT_URL` | ⬜ | Allowed CORS origin(s), comma‑separated. Localhost dev origins and this project's own `*.vercel.app` / `*.netlify.app` preview subdomains (matched on the full project slug) are also allowed |
+| `DEPLOY_SLUGS` | ⬜ | Project slug(s) whose preview subdomains are CORS‑allowed (default `manithub-samayjainbm`) |
 | `PORT` | ⬜ | API port (default `5001`) |
 | `NODE_ENV` | ⬜ | `development` or `production` |
 | `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` | ⬜ | Needed for image/avatar uploads |
 | `FIREBASE_SERVICE_ACCOUNT` | ⬜ | Firebase service-account JSON (raw or base64) — enables FCM push; in-app notifications work without it |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `EMAIL_FROM` | ⬜ | Outbound email. When set, signup requires email verification and password‑reset links are emailed; when unset, both fall back to dev behaviour |
+| `EXTRA_BLOCKED_WORDS` | ⬜ | Extra comma‑separated words for the profanity filter |
+| `AUTO_HIDE_REPORTS` / `AUTO_BAN_STRIKES` | ⬜ | Moderation thresholds (defaults `3` / `3`) |
+| `IMAGE_MODERATION_PROVIDER` + `GOOGLE_VISION_API_KEY` *or* `SIGHTENGINE_USER`/`SIGHTENGINE_SECRET` | ⬜ | Enables automated image moderation; off by default |
 
 ### `frontend/.env`
 
@@ -407,6 +442,7 @@ All endpoints are prefixed with `/api`. Protected routes require `Authorization:
 | Method | Endpoint | Description |
 | :-- | :-- | :-- |
 | `POST` | `/auth/signup` · `/auth/login` | Register / authenticate |
+| `POST` | `/auth/verify-email` · `/auth/resend-verification` | Confirm the 6-digit signup code (when email verification is enabled) |
 | `POST` | `/auth/forgot-password` · `/auth/reset-password` | Password recovery |
 | `GET` `POST` `PUT` `DELETE` | `/listings` `…/:id` | Marketplace CRUD, status & images |
 | `GET` `POST` | `/study-groups` `…/:id/join` `…/:id/leave` | Study groups CRUD & membership |
