@@ -15,6 +15,10 @@ router.post("/reset-password", async (req, res, next) => {
       return error(res, "Token and password are required", 400);
     }
 
+    if (String(password).length < 8) {
+      return error(res, "Password must be at least 8 characters", 400);
+    }
+
     const hashedToken = crypto
       .createHash("sha256")
       .update(token)
@@ -23,7 +27,7 @@ router.post("/reset-password", async (req, res, next) => {
     const user = await User.findOne({
       passwordResetToken: hashedToken,
       passwordResetExpires: { $gt: new Date() },
-    }).select("+password +passwordResetToken +passwordResetExpires");
+    }).select("+password +passwordResetToken +passwordResetExpires +tokenVersion");
 
     if (!user) {
       return error(res, "Invalid or expired token", 400);
@@ -32,6 +36,9 @@ router.post("/reset-password", async (req, res, next) => {
     user.password = password;
     user.passwordResetToken = null;
     user.passwordResetExpires = null;
+    // Invalidate every JWT issued before this reset — if the password was
+    // changed because an account was compromised, the thief's session dies.
+    user.tokenVersion = (user.tokenVersion || 0) + 1;
     await user.save();
 
     return success(res, null, "Password reset successful");

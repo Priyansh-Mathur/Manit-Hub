@@ -28,7 +28,7 @@ router.post("/login", async (req, res, next) => {
     const normalizedEmail = normalizeEmail(email);
 
     const user = await User.findOne({ email: normalizedEmail })
-      .select("+password")
+      .select("+password +tokenVersion")
       .populate("university", "name logoUrl");
 
     if (!user) {
@@ -40,13 +40,24 @@ router.post("/login", async (req, res, next) => {
       return error(res, "Invalid credentials", 400);
     }
 
+    // Suspended accounts can't sign in.
+    if (user.isBanned) {
+      return error(res, "Your account has been suspended", 403);
+    }
+
+    // Accounts created under the email-verification regime must verify
+    // first. Legacy accounts (field missing → default true) are unaffected.
+    if (user.emailVerified === false) {
+      return error(res, "Please verify your email to sign in", 403);
+    }
+
     // Backfill a handle for legacy accounts created before handles existed.
     if (!user.handle) {
       user.handle = await generateUniqueHandle(User, user.email.split("@")[0]);
       await user.save();
     }
 
-    const token = generateToken(user._id, user.university._id);
+    const token = generateToken(user._id, user.university._id, user.tokenVersion || 0);
 
     return success(res, {
       user: {

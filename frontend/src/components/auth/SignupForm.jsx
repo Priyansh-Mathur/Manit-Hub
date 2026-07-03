@@ -7,7 +7,7 @@ import Button from "../ui/Button";
 import { useNavigate } from "react-router-dom";
 import { isValidScholarEmail, SCHOLAR_EMAIL_MESSAGE } from "../../utils/validation";
 
-export default function SignupForm() {
+export default function SignupForm({ onNeedsVerification }) {
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -34,8 +34,14 @@ export default function SignupForm() {
         email,
         password,
       });
-      // backend returns { data: { user, token } }
-      login(res.data?.data);
+      const data = res.data?.data;
+      // With email verification enabled the backend returns
+      // { requiresVerification: true, email } instead of { user, token }.
+      if (data?.requiresVerification) {
+        if (onNeedsVerification) onNeedsVerification(data.email);
+        return;
+      }
+      login(data);
       navigate("/dashboard");
     } catch (err) {
       setError(err.response?.data?.message || "Signup failed");
@@ -70,8 +76,8 @@ export default function SignupForm() {
         label="Password"
         icon={Lock}
         type="password"
-        minLength={6}
-        placeholder="At least 6 characters"
+        minLength={8}
+        placeholder="At least 8 characters"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         required

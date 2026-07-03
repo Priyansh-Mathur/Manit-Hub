@@ -4,6 +4,7 @@ const auth = require("../middleware/auth");
 const Confession = require("../models/Confession");
 const { success, error } = require("../utils/response");
 const { awardPoints } = require("../utils/gamification");
+const { isClean } = require("../utils/contentFilter");
 const serializeConfession = require("./serializeConfession");
 
 /**
@@ -18,6 +19,9 @@ router.post("/", auth, async (req, res, next) => {
     }
     if (content.trim().length > 1000) {
       return error(res, "Keep it under 1000 characters", 400);
+    }
+    if (!isClean(content)) {
+      return error(res, "Your post contains language that isn't allowed", 400);
     }
 
     const confession = await Confession.create({

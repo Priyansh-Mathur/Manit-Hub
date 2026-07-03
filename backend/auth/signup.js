@@ -1,10 +1,12 @@
 const express = require("express");
+const crypto = require("crypto");
 const router = express.Router();
 const User = require("../models/User");
 const { generateToken } = require("../utils/jwt");
 const { success, error } = require("../utils/response");
 const { resolveUniversityByEmail } = require("../utils/universities");
 const { generateUniqueHandle } = require("../utils/handle");
+const { isEmailConfigured, sendMail } = require("../utils/mailer");
 const {
   isValidScholarEmail,
   normalizeEmail,
@@ -26,6 +28,10 @@ router.post("/signup", async (req, res, next) => {
       return error(res, SCHOLAR_EMAIL_MESSAGE, 400);
     }
 
+    if (String(password).length < 8) {
+      return error(res, "Password must be at least 8 characters", 400);
+    }
+
     const normalizedEmail = normalizeEmail(email);
 
     const existingUser = await User.findOne({ email: normalizedEmail });
@@ -40,13 +46,46 @@ router.post("/signup", async (req, res, next) => {
       normalizedEmail.split("@")[0]
     );
 
-    const user = await User.create({
+    // With SMTP configured, prove the person owns this scholar email before
+    // letting them in (stops impersonation by registering someone else's
+    // scholar number). Without SMTP, signup works exactly as before.
+    const requireVerification = isEmailConfigured();
+
+    let verificationCode = null;
+    const userFields = {
       email: normalizedEmail,
       password,
       displayName,
       handle,
       university: university._id,
-    });
+    };
+
+    if (requireVerification) {
+      verificationCode = crypto.randomInt(100000, 1000000).toString();
+      userFields.emailVerified = false;
+      userFields.emailVerificationToken = crypto
+        .createHash("sha256")
+        .update(verificationCode)
+        .digest("hex");
+      userFields.emailVerificationExpires = new Date(Date.now() + 30 * 60 * 1000);
+    }
+
+    const user = await User.create(userFields);
+
+    if (requireVerification) {
+      await sendMail({
+        to: normalizedEmail,
+        subject: "Manit Hub — verify your email",
+        text: `Welcome to Manit Hub!\n\nYour verification code is: ${verificationCode}\n\nIt expires in 30 minutes. If you didn't sign up, you can ignore this email.`,
+      });
+
+      return success(
+        res,
+        { requiresVerification: true, email: normalizedEmail },
+        "Verification code sent to your email",
+        201
+      );
+    }
 
     const token = generateToken(user._id, university._id);
 

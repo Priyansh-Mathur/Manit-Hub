@@ -1,12 +1,17 @@
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
 const path = require("path");
 
 const errorHandler = require("./middleware/error");
 const connectDB = require("./config/db");
 
 const app = express();
+
+// Render (and most hosts) sit behind one reverse proxy — needed so
+// express-rate-limit sees the real client IP, not the proxy's.
+app.set("trust proxy", 1);
 
 // Middleware
 app.use(
@@ -36,18 +41,42 @@ const devOrigins = [
 
 const allowedOrigins = new Set([...explicitOrigins, ...devOrigins]);
 
+// Vercel/Netlify preview URLs for THIS project look like:
+//   manithub-samayjainbm-<hash>-<team>.vercel.app
+//   deploy-preview-12--manithub-samayjainbm.netlify.app
+// so we match on the exact project slug as a subdomain prefix, not a loose
+// substring. A plain `hostname.includes("manithub")` would let anyone register
+// e.g. "manithub-evil.vercel.app" and pass — so we require the full slug.
+const PROJECT_SLUGS = (process.env.DEPLOY_SLUGS || "manithub-samayjainbm")
+  .split(",")
+  .map((s) => s.trim().toLowerCase())
+  .filter(Boolean);
+
+function isProjectPreviewHost(hostname) {
+  const host = hostname.toLowerCase();
+  const isPreviewPlatform =
+    host.endsWith(".vercel.app") || host.endsWith(".netlify.app");
+  if (!isPreviewPlatform) return false;
+  // The leftmost DNS label (before the platform domain) must start with,
+  // end with, or exactly equal one of our project slugs.
+  const label = host.split(".")[0];
+  return PROJECT_SLUGS.some(
+    (slug) =>
+      label === slug ||
+      label.startsWith(`${slug}-`) ||
+      label.endsWith(`--${slug}`)
+  );
+}
+
 function isAllowedOrigin(origin) {
   if (!origin) return true; // same-origin / server-to-server / curl
   if (allowedOrigins.has(origin)) return true;
   try {
     const { hostname } = new URL(origin);
-    if (hostname.endsWith(".netlify.app") || hostname.endsWith(".vercel.app")) {
-      return true;
-    }
+    return isProjectPreviewHost(hostname);
   } catch {
     return false;
   }
-  return false;
 }
 
 app.use(
@@ -61,6 +90,36 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+// Rate limiting — a broad per-IP cap on the whole API, plus a much stricter
+// cap on the auth endpoints (login brute force, signup spam, reset-token
+// guessing). standardHeaders lets clients see their remaining quota.
+//
+// NOTE: the default store is in-memory, which is correct for the single Render
+// instance we run today. If this is ever scaled to multiple instances, the
+// counters won't be shared — swap in a shared store (e.g. rate-limit-redis)
+// so the limits hold across the fleet.
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 600,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { message: "Too many requests, please try again later" },
+});
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 20,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  // Don't count successful logins/signups against the cap — only failures
+  // (wrong password, invalid token…), which is what brute force looks like.
+  skipSuccessfulRequests: true,
+  message: { message: "Too many attempts, please try again in 15 minutes" },
+});
+
+app.use("/api", apiLimiter);
+app.use("/api/auth", authLimiter);
 
 app.use(async (req, res, next) => {
   try {
@@ -80,6 +139,8 @@ app.use("/api/auth", require("./auth/signup"));
 app.use("/api/auth", require("./auth/login"));
 app.use("/api/auth", require("./auth/forgotPassword"));
 app.use("/api/auth", require("./auth/resetPassword"));
+app.use("/api/auth", require("./auth/verifyEmail"));
+app.use("/api/auth", require("./auth/resendVerification"));
 
 // Users
 app.use("/api/users", require("./users/getMe"));
@@ -244,3 +305,5 @@ app.get('/', (req, res) => {
 app.use(errorHandler);
 
 module.exports = app;
+// Shared with server.js so Socket.IO enforces the same origin policy.
+module.exports.isAllowedOrigin = isAllowedOrigin;

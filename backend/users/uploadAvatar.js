@@ -3,6 +3,7 @@ const router = express.Router();
 const auth = require("../middleware/auth");
 const uploadAvatar = require("../middleware/uploadAvatar");
 const { success, error } = require("../utils/response");
+const { moderateImageDataUrl } = require("../utils/imageModeration");
 
 router.put("/avatar", auth, uploadAvatar.single("avatar"), async (req, res) => {
   try {
@@ -18,7 +19,16 @@ router.put("/avatar", auth, uploadAvatar.single("avatar"), async (req, res) => {
 
     // Store the image inline as a base64 data URL (works without Cloudinary or
     // disk; persists in the DB across redeploys).
-    req.user.avatarUrl = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
+    const dataUrl = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
+
+    // Reject explicit imagery before it ever touches the DB (no-op unless an
+    // image-moderation provider is configured).
+    const verdict = await moderateImageDataUrl(dataUrl);
+    if (!verdict.allowed) {
+      return error(res, "This image was rejected by content moderation", 400);
+    }
+
+    req.user.avatarUrl = dataUrl;
     await req.user.save();
 
     return success(

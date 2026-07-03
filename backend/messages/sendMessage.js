@@ -17,9 +17,12 @@ const { success, error } = require("../utils/response");
 router.post("/:conversationId", auth, universityScope(Conversation, "conversationId"), async (req, res, next) => {
   try {
     const { conversationId } = req.params;
-    const content = (req.body?.content || "").trim();
+    const content = String(req.body?.content || "").trim();
     if (!content) {
       return error(res, "Message content is required", 400);
+    }
+    if (content.length > 2000) {
+      return error(res, "Message is too long (max 2000 characters)", 400);
     }
 
     const conversation = req.resource; // loaded + university-scoped by middleware

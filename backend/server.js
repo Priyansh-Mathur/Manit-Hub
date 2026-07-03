@@ -11,7 +11,14 @@ const chatSocket = require("./socket/chat.socket");
 
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: { origin: "*" },
+  // Same origin policy as the REST API (was "*", which let any website
+  // open authenticated-looking socket connections).
+  cors: {
+    origin(origin, callback) {
+      callback(null, app.isAllowedOrigin(origin));
+    },
+    credentials: true,
+  },
 });
 
 // Expose io to REST controllers (req.app.get("io")) so the REST send endpoint

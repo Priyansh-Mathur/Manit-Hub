@@ -4,6 +4,7 @@ const auth = require("../middleware/auth");
 const Question = require("../models/Question");
 const { success, error } = require("../utils/response");
 const { awardPoints } = require("../utils/gamification");
+const { isClean } = require("../utils/contentFilter");
 const { AUTHOR_FIELDS, withMyUpvote } = require("./helpers");
 
 /**
@@ -15,6 +16,9 @@ router.post("/questions", auth, async (req, res, next) => {
 
     if (!title || !title.trim()) {
       return error(res, "Question title is required", 400);
+    }
+    if (!isClean(title) || !isClean(body)) {
+      return error(res, "Your post contains language that isn't allowed", 400);
     }
 
     const question = await Question.create({

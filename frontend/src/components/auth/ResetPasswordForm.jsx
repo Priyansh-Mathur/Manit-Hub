@@ -43,8 +43,8 @@ export default function ResetPasswordForm({ defaultToken = "", onBack, onReset }
         label="New password"
         icon={Lock}
         type="password"
-        minLength={6}
-        placeholder="At least 6 characters"
+        minLength={8}
+        placeholder="At least 8 characters"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         required

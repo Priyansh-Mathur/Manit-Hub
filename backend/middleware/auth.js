@@ -14,10 +14,21 @@ const auth = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     const user = await User.findById(decoded.id).select(
-      "_id email displayName handle phone bio location avatarUrl university savedListings isAdmin points badges"
+      "_id email displayName handle phone bio location avatarUrl university savedListings isAdmin points badges isBanned +tokenVersion"
     );
 
     if (!user) {
+      return error(res, "Unauthorized", 401);
+    }
+
+    // Suspended accounts are locked out of the entire API.
+    if (user.isBanned) {
+      return error(res, "Your account has been suspended", 403);
+    }
+
+    // Reject tokens issued before the last password reset. Legacy tokens
+    // (no `tv` claim) count as version 0.
+    if ((decoded.tv || 0) !== (user.tokenVersion || 0)) {
       return error(res, "Unauthorized", 401);
     }
 

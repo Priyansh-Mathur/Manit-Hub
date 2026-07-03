@@ -7,6 +7,7 @@ const Answer = require("../models/Answer");
 const { success, error } = require("../utils/response");
 const { createNotification } = require("../utils/notifications");
 const { awardPoints } = require("../utils/gamification");
+const { isClean } = require("../utils/contentFilter");
 const { AUTHOR_FIELDS, withMyUpvote } = require("./helpers");
 
 /**
@@ -20,6 +21,9 @@ router.post("/questions/:id/answers", auth, universityScope(Question), async (re
     const { body } = req.body;
     if (!body || !body.trim()) {
       return error(res, "Answer can't be empty", 400);
+    }
+    if (!isClean(body)) {
+      return error(res, "Your answer contains language that isn't allowed", 400);
     }
 
     const answer = await Answer.create({

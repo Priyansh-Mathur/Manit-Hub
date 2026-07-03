@@ -1,4 +1,5 @@
 const multer = require("multer");
+const { imageFileFilter } = require("./imageFileFilter");
 
 // Keep the upload in memory; the route turns it into a base64 data URL stored
 // on the user document. This deliberately avoids Cloudinary (prod creds are not
@@ -7,16 +8,9 @@ const multer = require("multer");
 // the image before sending, so the stored data URL stays small.
 const storage = multer.memoryStorage();
 
-const fileFilter = (req, file, cb) => {
-  if (!file.mimetype.startsWith("image/")) {
-    return cb(new Error("Only image files are allowed"), false);
-  }
-  cb(null, true);
-};
-
 const upload = multer({
   storage,
-  fileFilter,
+  fileFilter: imageFileFilter,
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB (pre-resize safety cap)
   },

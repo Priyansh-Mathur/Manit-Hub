@@ -7,7 +7,7 @@ import Button from "../ui/Button";
 import { useNavigate } from "react-router-dom";
 import { isValidScholarEmail, SCHOLAR_EMAIL_MESSAGE } from "../../utils/validation";
 
-export default function LoginForm({ onForgot }) {
+export default function LoginForm({ onForgot, onNeedsVerification }) {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -33,6 +33,11 @@ export default function LoginForm({ onForgot }) {
       login(res.data?.data);
       navigate("/dashboard");
     } catch (err) {
+      // Unverified account — jump to the code-entry screen instead of a dead end.
+      if (err.response?.status === 403 && onNeedsVerification) {
+        onNeedsVerification(email.trim().toLowerCase());
+        return;
+      }
       setError(err.response?.data?.message || "Login failed");
     } finally {
       setLoading(false);

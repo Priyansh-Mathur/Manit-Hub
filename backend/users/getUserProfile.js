@@ -28,6 +28,14 @@ router.get("/:id/profile", auth, universityScope(User), async (req, res, next) =
     const Friendship = require("../models/Friendship");
     const isSelf = user._id.toString() === req.user._id.toString();
 
+    // Respect the target user's privacy setting. "private" profiles are only
+    // visible to the user themselves; "students"/"everyone" are visible to any
+    // signed-in same-university student (which the auth + scope already ensure).
+    const visibility = user.privacySettings?.profileVisibility || "everyone";
+    if (visibility === "private" && !isSelf) {
+      return error(res, "This profile is private", 403);
+    }
+
     const [listings, documents, questions, answers, events, rides, link] =
       await Promise.all([
         Listing.find({ seller: user._id, ...scope, isActive: true })
@@ -56,12 +64,17 @@ router.get("/:id/profile", auth, universityScope(User), async (req, res, next) =
             : "incoming";
     }
 
+    // Phone is personal contact info — only expose it to the user themselves or
+    // to accepted friends, so it can't be harvested from every profile. (Chat
+    // exists for contacting non-friends.)
+    const canSeePhone = isSelf || friendStatus === "friends";
+
     return success(res, {
       user: {
         id: user._id,
         displayName: user.displayName,
         handle: user.handle,
-        phone: user.phone,
+        phone: canSeePhone ? user.phone : "",
         bio: user.bio,
         location: user.location,
         avatarUrl: user.avatarUrl,

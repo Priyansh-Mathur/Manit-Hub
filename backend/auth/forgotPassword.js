@@ -3,6 +3,7 @@ const router = express.Router();
 const User = require("../models/User");
 const crypto = require("crypto");
 const { success, error } = require("../utils/response");
+const { isEmailConfigured, sendMail } = require("../utils/mailer");
 const {
   isValidScholarEmail,
   normalizeEmail,
@@ -42,10 +43,19 @@ router.post("/forgot-password", async (req, res, next) => {
     user.passwordResetExpires = new Date(Date.now() + 30 * 60 * 1000);
     await user.save();
 
+    if (isEmailConfigured()) {
+      await sendMail({
+        to: user.email,
+        subject: "Manit Hub — password reset",
+        text: `Someone requested a password reset for your Manit Hub account.\n\nYour reset token is:\n\n${resetToken}\n\nPaste it in the "Reset password" form in the app. It expires in 30 minutes. If this wasn't you, ignore this email — your password is unchanged.`,
+      });
+      return success(res, null, "If the email exists, a reset link was sent");
+    }
+
+    // No mailer configured: local-dev fallback only. NEVER return the token
+    // in production — that would be a one-request account takeover.
     const payload =
-      process.env.NODE_ENV !== "production"
-        ? { resetToken }
-        : null;
+      process.env.NODE_ENV !== "production" ? { resetToken } : null;
 
     return success(res, payload, "Password reset link sent");
   } catch (err) {

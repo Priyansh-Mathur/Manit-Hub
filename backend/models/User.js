@@ -15,7 +15,7 @@ const userSchema = new mongoose.Schema(
     password: {
       type: String,
       required: true,
-      minlength: 6,
+      minlength: 8,
       select: false,
     },
 
@@ -143,6 +143,29 @@ const userSchema = new mongoose.Schema(
       default: true,
     },
 
+    // Moderation: a suspended account can't log in or use the API/socket.
+    // `strikes` accumulates when this user's content is auto-hidden or removed
+    // by a moderator; a ban can be set manually or triggered by strikes.
+    isBanned: {
+      type: Boolean,
+      default: false,
+    },
+
+    strikes: {
+      type: Number,
+      default: 0,
+    },
+
+    banReason: {
+      type: String,
+      default: "",
+    },
+
+    bannedAt: {
+      type: Date,
+      default: null,
+    },
+
     passwordResetToken: {
       type: String,
       default: null,
@@ -150,6 +173,34 @@ const userSchema = new mongoose.Schema(
     },
 
     passwordResetExpires: {
+      type: Date,
+      default: null,
+      select: false,
+    },
+
+    // Bumped on password reset to invalidate all previously issued JWTs.
+    // Legacy tokens without a `tv` claim are treated as version 0.
+    tokenVersion: {
+      type: Number,
+      default: 0,
+      select: false,
+    },
+
+    // Email ownership verification. Missing/true = verified — legacy accounts
+    // (created before verification existed) must keep working, so only
+    // accounts explicitly created with `false` are gated at login.
+    emailVerified: {
+      type: Boolean,
+      default: true,
+    },
+
+    emailVerificationToken: {
+      type: String,
+      default: null,
+      select: false,
+    },
+
+    emailVerificationExpires: {
       type: Date,
       default: null,
       select: false,

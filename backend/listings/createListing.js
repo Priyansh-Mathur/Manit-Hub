@@ -5,6 +5,7 @@ const Listing = require("../models/Listing");
 const { success, error } = require("../utils/response");
 const { createNotification } = require("../utils/notifications");
 const { awardPoints } = require("../utils/gamification");
+const { isClean } = require("../utils/contentFilter");
 
 /**
  * POST /api/listings
@@ -23,6 +24,13 @@ router.post("/", auth, async (req, res, next) => {
 
     if (!title || !price || !category) {
       return error(res, "Missing required fields", 400);
+    }
+
+    if (Array.isArray(images) && images.length > 6) {
+      return error(res, "A listing can have at most 6 images", 400);
+    }
+    if (!isClean(title) || !isClean(description)) {
+      return error(res, "Your listing contains language that isn't allowed", 400);
     }
 
     const listing = await Listing.create({

@@ -8,6 +8,7 @@ export default function AuthCard({ mode, setMode, children }) {
     signup: "Join the MANIT campus community.",
     forgot: "We’ll help you reset your password.",
     reset: "Set a new password for your account.",
+    verify: "Enter the code we emailed you.",
   }[mode];
 
   return (
@@ -22,6 +23,7 @@ export default function AuthCard({ mode, setMode, children }) {
           {mode === "signup" && "Create your account"}
           {mode === "forgot" && "Reset your password"}
           {mode === "reset" && "Set a new password"}
+          {mode === "verify" && "Verify your email"}
         </h1>
         <p className="mt-1.5 text-sm text-muted">{subtitle}</p>
       </div>

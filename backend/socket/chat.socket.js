@@ -25,9 +25,17 @@ const chatSocket = (io) => {
       if (!token) return next(new Error("Unauthorized"));
 
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const user = await User.findById(decoded.id);
+      const user = await User.findById(decoded.id).select("+tokenVersion");
 
       if (!user) return next(new Error("Unauthorized"));
+
+      // Same token-version check as the REST auth middleware.
+      if ((decoded.tv || 0) !== (user.tokenVersion || 0)) {
+        return next(new Error("Unauthorized"));
+      }
+
+      // Suspended accounts can't open a socket (no chat/presence).
+      if (user.isBanned) return next(new Error("Suspended"));
 
       socket.user = user;
       next();
@@ -70,7 +78,13 @@ const chatSocket = (io) => {
       socket.join(conversationId);
     });
 
-    socket.on("send_message", async ({ conversationId, content }) => {
+    socket.on("send_message", async ({ conversationId, content } = {}) => {
+      // Validate untrusted client input — must be a real, non-empty string
+      // and bounded (matches the REST endpoint's cap).
+      if (typeof content !== "string") return;
+      content = content.trim();
+      if (!content || content.length > 2000) return;
+
       const conversation = await Conversation.findById(conversationId);
       if (!conversation) return;
 

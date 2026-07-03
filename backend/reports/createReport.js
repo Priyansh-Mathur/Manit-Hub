@@ -3,6 +3,7 @@ const router = express.Router();
 const auth = require("../middleware/auth");
 const Report = require("../models/Report");
 const { success, error } = require("../utils/response");
+const { maybeAutoHide } = require("../utils/moderation");
 const TARGETS = require("./targets");
 
 /**
@@ -45,6 +46,10 @@ router.post("/", auth, async (req, res, next) => {
       reason: reason.trim(),
       snapshot: target.snapshot(doc),
     });
+
+    // Auto-hide the content (and strike its author) once enough distinct users
+    // have reported it, so it disappears before a moderator can review it.
+    await maybeAutoHide(targetType, targetId);
 
     return success(res, report, "Reported — a moderator will review it", 201);
   } catch (err) {

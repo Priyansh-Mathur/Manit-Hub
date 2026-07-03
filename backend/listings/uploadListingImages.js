@@ -5,6 +5,7 @@ const universityScope = require("../middleware/universityScope");
 const uploadListingImages = require("../middleware/uploadListingImages");
 const Listing = require("../models/Listing");
 const { success, error } = require("../utils/response");
+const { moderateImageDataUrls } = require("../utils/imageModeration");
 
 /**
  * POST /api/listings/:id/images
@@ -31,6 +32,14 @@ router.post(
       }
 
       const urls = req.files.map((file) => file.path);
+
+      // Reject explicit imagery before saving (no-op unless a moderation
+      // provider is configured).
+      const verdict = await moderateImageDataUrls(urls);
+      if (!verdict.allowed) {
+        return error(res, "One of the images was rejected by content moderation", 400);
+      }
+
       listing.images = [...listing.images, ...urls];
       await listing.save();
 

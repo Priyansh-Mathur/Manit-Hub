@@ -5,7 +5,20 @@ const isAdmin = require("../middleware/isAdmin");
 const universityScope = require("../middleware/universityScope");
 const Report = require("../models/Report");
 const { success, error } = require("../utils/response");
+const { addStrike } = require("../utils/moderation");
 const TARGETS = require("./targets");
+
+// Author field per reportable type (for attributing a strike on removal).
+const AUTHOR_FIELD = {
+  listing: "seller",
+  document: "uploader",
+  confession: "author",
+  question: "author",
+  answer: "author",
+  lostfound: "reporter",
+  ride: "poster",
+  event: "organizer",
+};
 
 /**
  * PATCH /api/reports/:id  (admin)  { action: "dismiss" | "remove" }
@@ -28,6 +41,12 @@ router.patch("/:id", auth, isAdmin, universityScope(Report), async (req, res, ne
       if (doc) {
         target.remove(doc);
         await doc.save();
+
+        // Strike the content's author — enough strikes auto-suspends them.
+        const authorId = doc[AUTHOR_FIELD[report.targetType]];
+        if (authorId) {
+          await addStrike(authorId, `${report.targetType} removed by moderator`);
+        }
       }
       report.status = "resolved";
 

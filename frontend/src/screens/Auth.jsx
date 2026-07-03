@@ -10,6 +10,7 @@ import LoginForm from "../components/auth/LoginForm";
 import SignupForm from "../components/auth/SignupForm";
 import ForgotPasswordForm from "../components/auth/ForgotPasswordForm";
 import ResetPasswordForm from "../components/auth/ResetPasswordForm";
+import VerifyEmailForm from "../components/auth/VerifyEmailForm";
 
 const highlights = [
   { icon: ShoppingBag, text: "Buy & sell with verified students" },
@@ -73,6 +74,12 @@ export default function Auth() {
   const { user } = useAuthContext();
   const [mode, setMode] = useState("login");
   const [resetToken, setResetToken] = useState("");
+  const [pendingEmail, setPendingEmail] = useState("");
+
+  const goToVerify = (email) => {
+    setPendingEmail(email);
+    setMode("verify");
+  };
 
   // Already signed in? Don't show the login/signup screen — go to the app.
   if (user) {
@@ -107,9 +114,20 @@ export default function Auth() {
             >
               <AuthCard mode={mode} setMode={setMode}>
                 {mode === "login" && (
-                  <LoginForm onForgot={() => setMode("forgot")} />
+                  <LoginForm
+                    onForgot={() => setMode("forgot")}
+                    onNeedsVerification={goToVerify}
+                  />
                 )}
-                {mode === "signup" && <SignupForm />}
+                {mode === "signup" && (
+                  <SignupForm onNeedsVerification={goToVerify} />
+                )}
+                {mode === "verify" && (
+                  <VerifyEmailForm
+                    email={pendingEmail}
+                    onBack={() => setMode("login")}
+                  />
+                )}
                 {mode === "forgot" && (
                   <ForgotPasswordForm
                     onBack={() => setMode("login")}
