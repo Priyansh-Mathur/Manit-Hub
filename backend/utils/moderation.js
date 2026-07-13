@@ -1,6 +1,6 @@
 const User = require("../models/User");
 const Report = require("../models/Report");
-const TARGETS = require("../reports/targets");
+const TARGETS = require("../apis/reports/targets");
 
 // Auto-hide a piece of content once this many distinct users have reported it,
 // so egregious content disappears before a moderator gets to it. Configurable.

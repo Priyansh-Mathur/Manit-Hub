@@ -43,15 +43,15 @@ backend/
 ├── utils/                     # jwt, response, gamification, handle, push,
 │                              #   notifications + universities (shared helpers)
 │
-│   # One .js file per endpoint, grouped by feature (router + handler inline):
-├── auth/                      # signup · login · forgotPassword · resetPassword
-├── users/                     # getMe · updateProfile · uploadAvatar · searchUsers · … (15)
-├── listings/                  # getAllListings · getListingById · createListing · … (8)
-├── studyGroups/               # getAllStudyGroups · createStudyGroup · join · leave · … (10)
-├── messages/   conversations/   notifications/   dashboard/
-├── documents/   academicRecords/   attendance/   lostFound/   confessions/
-├── rides/   timetable/   events/   forum/   offers/   reports/
-├── leaderboard/   push/   friends/   universities/
+├── apis/                      # One .js file per endpoint, grouped by feature (router + handler inline):
+│   ├── auth/                  # signup · login · forgotPassword · resetPassword
+│   ├── users/                 # getMe · updateProfile · uploadAvatar · searchUsers · … (15)
+│   ├── listings/              # getAllListings · getListingById · createListing · … (8)
+│   ├── studyGroups/           # getAllStudyGroups · createStudyGroup · join · leave · … (10)
+│   ├── messages/   conversations/   notifications/   dashboard/
+│   ├── documents/   academicRecords/   attendance/   lostFound/   confessions/
+│   ├── rides/   timetable/   events/   forum/   offers/   reports/
+│   └── leaderboard/   push/   friends/   universities/
 │                              #   (feature-local shared code lives in <feature>/helpers.js)
 │
 ├── scripts/seed.js            # Demo data seeder
