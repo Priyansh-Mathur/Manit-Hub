@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Manit Hub — Database Schema Reference</title>
+<style>
+  @page {
+    size: A4;
+    margin: 16mm 14mm 18mm 14mm;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    font-size: 10.5px;
+    line-height: 1.45;
+    color: #1a2332;
+    margin: 0;
+  }
+  /* ---------- Cover ---------- */
+  .cover {
+    page-break-after: always;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 240mm;
+    text-align: center;
+  }
+  .cover h1 {
+    font-size: 34px;
+    margin: 0 0 6px;
+    color: #0f2c59;
+    letter-spacing: -0.5px;
+  }
+  .cover .subtitle {
+    font-size: 15px;
+    color: #4a5a76;
+    margin-bottom: 28px;
+  }
+  .cover .meta {
+    font-size: 11px;
+    color: #7a8699;
+  }
+  .cover .pill-row { margin: 22px auto 0; max-width: 400px; }
+  .pill {
+    display: inline-block;
+    background: #eef3fb;
+    color: #0f2c59;
+    border: 1px solid #c9d8ef;
+    border-radius: 20px;
+    padding: 3px 12px;
+    margin: 3px;
+    font-size: 10.5px;
+    font-weight: 600;
+  }
+  /* ---------- Headings ---------- */
+  h2.section {
+    font-size: 17px;
+    color: #ffffff;
+    background: #0f2c59;
+    padding: 7px 12px;
+    border-radius: 5px;
+    margin: 26px 0 12px;
+    page-break-after: avoid;
+  }
+  h3.collection {
+    font-size: 14px;
+    color: #0f2c59;
+    border-bottom: 2px solid #0f2c59;
+    padding-bottom: 3px;
+    margin: 20px 0 4px;
+    page-break-after: avoid;
+  }
+  h3.collection .coll-name {
+    font-family: Consolas, monospace;
+    font-size: 11px;
+    color: #64748b;
+    font-weight: 400;
+    float: right;
+    margin-top: 3px;
+  }
+  .purpose {
+    color: #4a5a76;
+    margin: 2px 0 8px;
+    font-style: italic;
+    page-break-after: avoid;
+  }
+  /* ---------- Tables ---------- */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 6px;
+  }
+  thead { display: table-header-group; }
+  th {
+    background: #e8eef8;
+    color: #0f2c59;
+    text-align: left;
+    padding: 4px 7px;
+    font-size: 10px;
+    border: 1px solid #c4d0e4;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  td {
+    border: 1px solid #d5dded;
+    padding: 3.5px 7px;
+    vertical-align: top;
+  }
+  tr { page-break-inside: avoid; }
+  tr:nth-child(even) td { background: #f7f9fd; }
+  code, .mono {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 9.8px;
+    background: #f1f4f9;
+    padding: 0 3px;
+    border-radius: 3px;
+  }
+  td .req { color: #b42318; font-weight: 700; }
+  .type { color: #175cd3; font-weight: 600; font-family: Consolas, monospace; font-size: 9.8px; white-space: nowrap; }
+  .extras {
+    margin: 0 0 14px;
+    padding: 6px 10px;
+    background: #f4f7fc;
+    border-left: 3px solid #0f2c59;
+    border-radius: 0 4px 4px 0;
+    font-size: 10px;
+    page-break-inside: avoid;
+  }
+  .extras b { color: #0f2c59; }
+  .extras ul { margin: 2px 0 2px 16px; padding: 0; }
+  .extras li { margin: 1px 0; }
+  /* ---------- Summary table ---------- */
+  .summary td:first-child { font-weight: 600; }
+  .note {
+    background: #fffaeb;
+    border: 1px solid #f5deac;
+    border-radius: 5px;
+    padding: 8px 12px;
+    margin: 10px 0 18px;
+    font-size: 10.5px;
+  }
+  .toc-page { page-break-after: always; }
+</style>
+</head>
+<body>
+
+<!-- ================= COVER ================= -->
+<div class="cover">
+  <h1>Manit Hub</h1>
+  <div class="subtitle">Database Schema Reference — MongoDB Collections (Mongoose Models)</div>
+  <div class="pill-row">
+    <span class="pill">21 collections</span>
+    <span class="pill">MongoDB + Mongoose</span>
+    <span class="pill">Multi-tenant by University</span>
+    <span class="pill">Generated July 2026</span>
+  </div>
+  <div class="meta" style="margin-top:30px;">
+    Source: <span class="mono">backend/models/*.js</span> &nbsp;·&nbsp; Campus super-app for MANIT students —
+    marketplace, notes, Q&amp;A, chat, study groups, rides, events, attendance &amp; more.
+  </div>
+</div>
+
+<!-- ================= OVERVIEW ================= -->
+<div class="toc-page">
+<h2 class="section">Overview — All Collections</h2>
+
+<div class="note">
+  <b>Conventions used throughout:</b> every collection has an implicit <code>_id&nbsp;(ObjectId)</code> primary key and
+  <code>createdAt</code>/<code>updatedAt</code> timestamps (<code>timestamps:&nbsp;true</code>).
+  Almost every collection carries a required, indexed <code>university → University</code> reference — the app is
+  multi-tenant and every query is scoped to the user's university. <span class="req">*</span> marks required fields.
+  <span class="type">ObjectId→X</span> means a reference to collection X.
+</div>
+
+<table class="summary">
+  <thead><tr><th>Model</th><th>Collection</th><th>Domain</th><th>Purpose</th></tr></thead>
+  <tbody>
+    <tr><td>User</td><td class="mono">users</td><td>Identity</td><td>Student accounts, auth, profile, gamification, moderation state</td></tr>
+    <tr><td>University</td><td class="mono">universities</td><td>Identity</td><td>Tenant root — campus + allowed email domains</td></tr>
+    <tr><td>Friendship</td><td class="mono">friendships</td><td>Social</td><td>Friend requests / accepted friendships (one doc per user pair)</td></tr>
+    <tr><td>Listing</td><td class="mono">listings</td><td>Marketplace</td><td>Items for sale (textbooks, electronics, …)</td></tr>
+    <tr><td>Offer</td><td class="mono">offers</td><td>Marketplace</td><td>Price offers &amp; counter-offers on listings</td></tr>
+    <tr><td>Conversation</td><td class="mono">conversations</td><td>Chat</td><td>1-to-1 chat threads (listing / lost-found / ride / friend DM)</td></tr>
+    <tr><td>Message</td><td class="mono">messages</td><td>Chat</td><td>Individual chat messages with read receipts</td></tr>
+    <tr><td>Document</td><td class="mono">documents</td><td>Academics</td><td>Shared study material (notes, PYQs, syllabus) with votes &amp; comments</td></tr>
+    <tr><td>Question</td><td class="mono">questions</td><td>Academics</td><td>Q&amp;A forum questions</td></tr>
+    <tr><td>Answer</td><td class="mono">answers</td><td>Academics</td><td>Answers to questions, upvotable, acceptable</td></tr>
+    <tr><td>StudyGroup</td><td class="mono">studygroups</td><td>Academics</td><td>Study groups with members, links &amp; scheduled sessions</td></tr>
+    <tr><td>AcademicRecord</td><td class="mono">academicrecords</td><td>Academics</td><td>Per-semester grades for CGPA calculation</td></tr>
+    <tr><td>AttendanceSubject</td><td class="mono">attendancesubjects</td><td>Academics</td><td>Per-subject attendance tracker (attended / held / target%)</td></tr>
+    <tr><td>TimetableEntry</td><td class="mono">timetableentries</td><td>Academics</td><td>Weekly class schedule slots with reminders</td></tr>
+    <tr><td>Confession</td><td class="mono">confessions</td><td>Campus life</td><td>Anonymous confessions with reactions &amp; comments</td></tr>
+    <tr><td>Event</td><td class="mono">events</td><td>Campus life</td><td>Campus events with attendees &amp; reminders</td></tr>
+    <tr><td>LostFoundItem</td><td class="mono">lostfounditems</td><td>Campus life</td><td>Lost &amp; found posts</td></tr>
+    <tr><td>Ride</td><td class="mono">rides</td><td>Campus life</td><td>Ride-sharing posts with seats &amp; passengers</td></tr>
+    <tr><td>Notification</td><td class="mono">notifications</td><td>Infra</td><td>In-app notification feed (polymorphic related entity)</td></tr>
+    <tr><td>DeviceToken</td><td class="mono">devicetokens</td><td>Infra</td><td>Push-notification device tokens (web/android/ios)</td></tr>
+    <tr><td>Report</td><td class="mono">reports</td><td>Moderation</td><td>User reports on any content type, with admin review queue</td></tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ================= IDENTITY ================= -->
+<h2 class="section">1 · Identity &amp; Tenancy</h2>
+
+<h3 class="collection">User <span class="coll-name">users</span></h3>
+<p class="purpose">Student accounts: authentication, profile, wallet/UPI, preferences, gamification and moderation state.</p>
+<table>
+  <thead><tr><th style="width:24%">Field</th><th style="width:20%">Type</th><th>Constraints / Notes</th></tr></thead>
+  <tbody>
+    <tr><td>email <span class="req">*</span></td><td class="type">String</td><td>unique, lowercase; must match <code>^\d{10}@stu.manit.ac.in$</code> (MANIT scholar email)</td></tr>
+    <tr><td>password <span class="req">*</span></td><td class="type">String</td><td>min 8 chars; <code>select:false</code>; bcrypt-hashed in a pre-save hook</td></tr>
+    <tr><td>displayName <span class="req">*</span></td><td class="type">String</td><td>trimmed</td></tr>
+    <tr><td>handle</td><td class="type">String</td><td>unique + sparse @handle (Instagram-style), <code>^[a-z0-9_.]{3,20}$</code></td></tr>
+    <tr><td>phone / bio / location</td><td class="type">String</td><td>optional profile fields, default <code>""</code></td></tr>
+    <tr><td>avatarUrl</td><td class="type">String</td><td>Cloudinary URL, default <code>""</code></td></tr>
+    <tr><td>university <span class="req">*</span></td><td class="type">ObjectId→University</td><td>indexed — tenant scope</td></tr>
+    <tr><td>isAdmin</td><td class="type">Boolean</td><td>default false; grants moderation queue access</td></tr>
+    <tr><td>points</td><td class="type">Number</td><td>default 0, indexed — gamification (leaderboard)</td></tr>
+    <tr><td>badges</td><td class="type">[String]</td><td>earned badge slugs</td></tr>
+    <tr><td>savedListings</td><td class="type">[ObjectId→Listing]</td><td>wishlist</td></tr>
+    <tr><td>paymentInfo.upiId</td><td class="type">String</td><td>validated UPI pattern <code>^[\w.\-]{2,}@[a-zA-Z]{2,}$</code></td></tr>
+    <tr><td>paymentInfo.upiQrUrl</td><td class="type">String</td><td>uploaded QR image URL</td></tr>
+    <tr><td>notificationPreferences</td><td class="type">Object</td><td><code>messages</code> / <code>studyGroups</code> / <code>marketplace</code> — Booleans, default true</td></tr>
+    <tr><td>privacySettings.profileVisibility</td><td class="type">String enum</td><td><code>everyone | students | private</code> (default everyone)</td></tr>
+    <tr><td>privacySettings.showOnlineStatus</td><td class="type">Boolean</td><td>default true</td></tr>
+    <tr><td>privacySettings.allowDirectMessages</td><td class="type">Boolean</td><td>default true</td></tr>
+    <tr><td>isActive</td><td class="type">Boolean</td><td>default true (soft delete)</td></tr>
+    <tr><td>isBanned / strikes / banReason / bannedAt</td><td class="type">Boolean / Number / String / Date</td><td>moderation: strikes accumulate on removed content; ban blocks login, API &amp; socket</td></tr>
+    <tr><td>passwordResetToken / passwordResetExpires</td><td class="type">String / Date</td><td><code>select:false</code> — forgot-password flow</td></tr>
+    <tr><td>tokenVersion</td><td class="type">Number</td><td><code>select:false</code>; bumped on password reset to invalidate all issued JWTs</td></tr>
+    <tr><td>emailVerified</td><td class="type">Boolean</td><td>default true (legacy accounts stay valid); only accounts created with <code>false</code> are gated</td></tr>
+    <tr><td>emailVerificationToken / emailVerificationExpires</td><td class="type">String / Date</td><td><code>select:false</code> — email ownership verification</td></tr>
+  </tbody>
+</table>
+<div class="extras">
+  <b>Hooks &amp; methods:</b>
+  <ul>
+    <li>pre-save: bcrypt-hash <code>password</code> (cost 10) when modified</li>
+    <li><code>comparePassword(candidate)</code> instance method for login</li>
+  </ul>
+</div>
+
+<h3 class="collection">University <span class="coll-name">universities</span></h3>
+<p class="purpose">Tenant root. Every other collection references it; email domains gate signup.</p>
+<table>
+  <thead><tr><th style="width:24%">Field</th><th style="width:20%">Type</th><th>Constraints / Notes</th></tr></thead>
+  <tbody>
+    <tr><td>name</td><td class="type">String</td><td>display name</td></tr>
+    <tr><td>domains <span class="req">*</span></td><td class="type">[String]</td><td>unique — allowed student email domains</td></tr>
+    <tr><td>isVerified</td><td class="type">Boolean</td><td>default false</td></tr>
+    <tr><td>isActive</td><td class="type">Boolean</td><td>default true</td></tr>
+  </tbody>
+</table>
+
+<h3 class="collection">Friendship <span class="coll-name">friendships</span></h3>
+<p class="purpose">One document per pair of users — friend request lifecycle (pending → accepted).</p>
+<table>
+  <thead><tr><th style="width:24%">Field</th><th style="width:20%">Type</th><th>Constraints / Notes</th></tr></thead>
+  <tbody>
+    <tr><td>requester <span class="req">*</span></td><td class="type">ObjectId→User</td><td>indexed — who sent the request</td></tr>
+    <tr><td>recipient <span class="req">*</span></td><td class="type">ObjectId→User</td><td>indexed — who received it</td></tr>
+    <tr><td>users</td><td class="type">[ObjectId→User]</td><td>exactly 2, kept sorted (pre-validate hook)</td></tr>
+    <tr><td>pairKey</td><td class="type">String</td><td><b>unique</b> — canonical <code>"&lt;lowId&gt;_&lt;highId&gt;"</code>; scalar because a unique index on the array would be multikey (one friendship per user!)</td></tr>
+    <tr><td>status</td><td class="type">String enum</td><td><code>pending | accepted</code> (default pending, indexed)</td></tr>
+    <tr><td>university <span class="req">*</span></td><td class="type">ObjectId→University</td><td>indexed</td></tr>
+  </tbody>
+</table>
+<div class="extras">
+  <b>Indexes:</b> <code>{pairKey:1} unique</code> · <code>{users:1, status:1}</code>
+  &nbsp;&nbsp;<b>Hooks:</b> pre-validate sorts <code>users</code> and derives <code>pairKey</code>
+</div>
+
+<!-- ================= MARKETPLACE ================= -->
+<h2 class="section">2 · Marketplace</h2>
+
+<h3 class="collection">Listing <span class="coll-name">listings</span></h3>
+<p class="purpose">Items students sell to each other.</p>
+<table>
+  <thead><tr><th style="width:24%">Field</th><th style="width:20%">Type</th><th>Constraints / Notes</th></tr></thead>
+  <tbody>
+    <tr><td>title <span class="req">*</span></td><td class="type">String</td><td>trimmed; part of text index</td></tr>
+    <tr><td>description</td><td class="type">String</td><td>part of text index</td></tr>
+    <tr><td>price <span class="req">*</span></td><td class="type">Number</td><td>min 0</td></tr>
+    <tr><td>category <span class="req">*</span></td><td class="type">String enum</td><td><code>Textbooks | Electronics | Furniture | Clothing | Sports | Other</code></td></tr>
+    <tr><td>images</td><td class="type">[String]</td><td>Cloudinary URLs</td></tr>
+    <tr><td>seller <span class="req">*</span></td><td class="type">ObjectId→User</td><td></td></tr>
+    <tr><td>university <span class="req">*</span></td><td class="type">ObjectId→University</td><td>indexed</td></tr>
+    <tr><td>condition</td><td class="type">String enum</td><td><code>new | like-new | good | fair</code> (default good)</td></tr>
+    <tr><td>status</td><td class="type">String enum</td><td><code>available | sold | reserved</code> (default available, indexed)</td></tr>
+    <tr><td>isActive</td><td class="type">Boolean</td><td>default true (soft delete)</td></tr>
+  </tbody>
+</table>
+<div class="extras"><b>Indexes:</b> text <code>{title, description}</code> · <code>{university:1, isActive:1}</code></div>
+
+<h3 class="collection">Offer <span class="coll-name">offers</span></h3>
+<p class="purpose">Haggling: buyers make offers, sellers accept / decline / counter.</p>
+<table>
+  <thead><tr><th style="width:24%">Field</th><th style="width:20%">Type</th><th>Constraints / Notes</th></tr></thead>
+  <tbody>
+    <tr><td>listing <span class="req">*</span></td><td class="type">ObjectId→Listing</td><td>indexed</td></tr>
+    <tr><td>buyer <span class="req">*</span></td><td class="type">ObjectId→User</td><td>indexed</td></tr>
+    <tr><td>seller <span class="req">*</span></td><td class="type">ObjectId→User</td><td>indexed; denormalized from the listing for fast "offers received" queries</td></tr>
+    <tr><td>university <span class="req">*</span></td><td class="type">ObjectId→University</td><td>indexed</td></tr>
+    <tr><td>amount <span class="req">*</span></td><td class="type">Number</td><td>min 1</td></tr>
+    <tr><td>message</td><td class="type">String</td><td>max 300 chars</td></tr>
+    <tr><td>counterAmount</td><td class="type">Number</td><td>min 1 — seller's counter (status becomes "countered")</td></tr>
+    <tr><td>status</td><td class="type">String enum</td><td><code>pending | countered | accepted | declined | withdrawn</code> (default pending, indexed)</td></tr>
+  </tbody>
+</table>
+<div class="extras"><b>Indexes:</b> <code>{listing:1, buyer:1, status:1}</code></div>
+
+<!-- ================= CHAT ================= -->
+<h2 class="section">3 · Chat &amp; Messaging</h2>
+
+<h3 class="collection">Conversation <span class="coll-name">conversations</span></h3>
+<p class="purpose">1-to-1 chat threads. Polymorphic: started from a listing, a lost-&amp;-found item, a ride, or as a friend DM.</p>
+<table>
+  <thead><tr><th style="width:24%">Field</th><th style="width:20%">Type</th><th>Constraints / Notes</th></tr></thead>
+  <tbody>
+    <tr><td>listingId</td><td class="type">ObjectId→Listing</td><td>polymorphic context id — Listing, LostFoundItem or Ride depending on <code>contextType</code>; null for friend DMs</td></tr>
+    <tr><td>contextType</td><td class="type">String enum</td><td><code>listing | lostfound | ride | friend</code> (default listing)</td></tr>
+    <tr><td>listingTitle</td><td class="type">String</td><td>denormalized title; empty for friend DMs (UI shows the other participant)</td></tr>
+    <tr><td>participants <span class="req">*</span></td><td class="type">[ObjectId→User]</td><td>exactly 2; sorted in pre-save for canonical ordering</td></tr>
+    <tr><td>university <span class="req">*</span></td><td class="type">ObjectId→University</td><td>indexed</td></tr>
+    <tr><td>lastMessage</td><td class="type">String</td><td>denormalized preview for the inbox list</td></tr>
+    <tr><td>lastMessageAt</td><td class="type">Date</td><td>default now, indexed — inbox sort key</td></tr>
+  </tbody>
+</table>
+<div class="extras">
+  <b>Indexes:</b> <code>{participants:1}</code> (non-unique lookup index — a unique multikey index here wrongly caps each user at one conversation per listing; duplicates are prevented in the application layer instead)
+</div>
+
+<h3 class="collection">Message <span class="coll-name">messages</span></h3>
+<p class="purpose">Individual chat messages, delivered live over Socket.IO.</p>
+<table>
+  <thead><tr><th style="width:24%">Field</th><th style="width:20%">Type</th><th>Constraints / Notes</th></tr></thead>
+  <tbody>
+    <tr><td>conversation <span class="req">*</span></td><td class="type">ObjectId→Conversation</td><td>indexed</td></tr>
+    <tr><td>sender <span class="req">*</span></td><td class="type">ObjectId→User</td><td>indexed</td></tr>
+    <tr><td>university <span class="req">*</span></td><td class="type">ObjectId→University</td><td>indexed</td></tr>
+    <tr><td>content <span class="req">*</span></td><td class="type">String</td><td>trimmed</td></tr>
+    <tr><td>readAt</td><td class="type">Date</td><td>null until read — read receipts</td></tr>
+    <tr><td>type</td><td class="type">String enum</td><td><code>text | system</code> (default text)</td></tr>
+    <tr><td>isDeleted</td><td class="type">Boolean</td><td>default false (soft delete)</td></tr>
+  </tbody>
+</table>
+<div class="extras"><b>Indexes:</b> <code>{conversation:1, createdAt:1}</code> — chat history loading</div>
+
+<!-- ================= ACADEMICS ================= -->
+<h2 class="section">4 · Academics &amp; Study</h2>
+
+<h3 class="collection">Document <span class="coll-name">documents</span></h3>
+<p class="purpose">Shared study material — notes, previous-year questions, syllabus — with voting and comments.</p>
+<table>
+  <thead><tr><th style="width:24%">Field</th><th style="width:20%">Type</th><th>Constraints / Notes</th></tr></thead>
+  <tbody>
+    <tr><td>title <span class="req">*</span></td><td class="type">String</td><td>part of text index</td></tr>
+    <tr><td>description</td><td class="type">String</td><td></td></tr>
+    <tr><td>type <span class="req">*</span></td><td class="type">String enum</td><td><code>Notes | PYQ | Syllabus | Sem Schedule | Other</code></td></tr>
+    <tr><td>branch / subject / semester</td><td class="type">String</td><td>filters; <code>subject</code> is in the text index</td></tr>
+    <tr><td>year</td><td class="type">Number</td><td></td></tr>
+    <tr><td>fileUrl <span class="req">*</span></td><td class="type">String</td><td>Cloudinary URL of the file</td></tr>
+    <tr><td>fileName / fileFormat</td><td class="type">String</td><td>original name and extension</td></tr>
+    <tr><td>fileSize</td><td class="type">Number</td><td>bytes</td></tr>
+    <tr><td>uploader <span class="req">*</span></td><td class="type">ObjectId→User</td><td></td></tr>
+    <tr><td>university <span class="req">*</span></td><td class="type">ObjectId→University</td><td>indexed</td></tr>
+    <tr><td>downloadCount</td><td class="type">Number</td><td>default 0</td></tr>
+    <tr><td>upvotes</td><td class="type">[ObjectId→User]</td><td>voter list (one vote per user)</td></tr>
+    <tr><td>upvoteCount</td><td class="type">Number</td><td>default 0, indexed — denormalized for "Top rated" sort</td></tr>
+    <tr><td>comments</td><td class="type">[Subdoc]</td><td><code>{author* → User, content* (max 500), createdAt}</code></td></tr>
+    <tr><td>isActive</td><td class="type">Boolean</td><td>default true</td></tr>
+  </tbody>
+</table>
+<div class="extras"><b>Indexes:</b> text <code>{title, subject}</code> · <code>{university:1, isActive:1}</code></div>
+
+<h3 class="collection">Question <span class="coll-name">questions</span></h3>
+<p class="purpose">Q&amp;A forum questions (Stack Overflow-style).</p>
+<table>
+  <thead><tr><th style="width:24%">Field</th><th style="width:20%">Type</th><th>Constraints / Notes</th></tr></thead>
+  <tbody>
+    <tr><td>author <span class="req">*</span></td><td class="type">ObjectId→User</td><td>indexed</td></tr>
+    <tr><td>university <span class="req">*</span></td><td class="type">ObjectId→University</td><td>indexed</td></tr>
+    <tr><td>title <span class="req">*</span></td><td class="type">String</td><td>max 150; text index</td></tr>
+    <tr><td>body</td><td class="type">String</td><td>max 3000; text index</td></tr>
+    <tr><td>branch / subject / semester</td><td class="type">String</td><td>filters; <code>subject</code> in text index</td></tr>
+    <tr><td>upvotes</td><td class="type">[ObjectId→User]</td><td>voter list</td></tr>
+    <tr><td>upvoteCount</td><td class="type">Number</td><td>default 0, indexed — denormalized sort key</td></tr>
+    <tr><td>answersCount</td><td class="type">Number</td><td>default 0 — denormalized</td></tr>
+    <tr><td>acceptedAnswer</td><td class="type">ObjectId→Answer</td><td>null until the author accepts one</td></tr>
+    <tr><td>isActive</td><td class="type">Boolean</td><td>default true</td></tr>
+  </tbody>
+</table>
+<div class="extras"><b>Indexes:</b> text <code>{title, body, subject}</code> · <code>{university:1, isActive:1, createdAt:-1}</code></div>
+
+<h3 class="collection">Answer <span class="coll-name">answers</span></h3>
+<p class="purpose">Answers to forum questions.</p>
+<table>
+  <thead><tr><th style="width:24%">Field</th><th style="width:20%">Type</th><th>Constraints / Notes</th></tr></thead>
+  <tbody>
+    <tr><td>question <span class="req">*</span></td><td class="type">ObjectId→Question</td><td>indexed</td></tr>
+    <tr><td>author <span class="req">*</span></td><td class="type">ObjectId→User</td><td>indexed</td></tr>
+    <tr><td>university <span class="req">*</span></td><td class="type">ObjectId→University</td><td>indexed</td></tr>
+    <tr><td>body <span class="req">*</span></td><td class="type">String</td><td>max 3000</td></tr>
+    <tr><td>upvotes</td><td class="type">[ObjectId→User]</td><td>voter list</td></tr>
+    <tr><td>upvoteCount</td><td class="type">Number</td><td>default 0 — denormalized</td></tr>
+    <tr><td>isActive</td><td class="type">Boolean</td><td>default true</td></tr>
+  </tbody>
+</table>
+<div class="extras"><b>Indexes:</b> <code>{question:1, isActive:1}</code></div>
+
+<h3 class="collection">StudyGroup <span class="coll-name">studygroups</span></h3>
+<p class="purpose">Student study groups with membership, external links and scheduled sessions.</p>
+<table>
+  <thead><tr><th style="width:24%">Field</th><th style="width:20%">Type</th><th>Constraints / Notes</th></tr></thead>
+  <tbody>
+    <tr><td>name <span class="req">*</span></td><td class="type">String</td><td>text index</td></tr>
+    <tr><td>description</td><td class="type">String</td><td>text index</td></tr>
+    <tr><td>subject <span class="req">*</span></td><td class="type">String</td><td>text index</td></tr>
+    <tr><td>tags</td><td class="type">[String]</td><td>indexed; also in text index</td></tr>
+    <tr><td>image</td><td class="type">String</td><td>cover image URL</td></tr>
+    <tr><td>creator <span class="req">*</span></td><td class="type">ObjectId→User</td><td>auto-added to members (pre-save hook)</td></tr>
+    <tr><td>members</td><td class="type">[ObjectId→User]</td><td>deduplicated in pre-save</td></tr>
+    <tr><td>maxMembers</td><td class="type">Number</td><td>default 10, min 2</td></tr>
+    <tr><td>links</td><td class="type">Object</td><td><code>whatsapp / telegram / discord / googleMeet</code> URLs</td></tr>
+    <tr><td>customLinks</td><td class="type">[Subdoc]</td><td><code>{label, url}</code></td></tr>
+    <tr><td>nextSession</td><td class="type">Object</td><td><code>{at: Date, mode: online|offline, location, meetingLink}</code></td></tr>
+    <tr><td>university <span class="req">*</span></td><td class="type">ObjectId→University</td><td>indexed</td></tr>
+    <tr><td>isActive</td><td class="type">Boolean</td><td>default true, indexed</td></tr>
+    <tr><td>notifications.sessionReminderSent</td><td class="type">Boolean</td><td>default false, indexed — one reminder per scheduled session</td></tr>
+  </tbody>
+</table>
+<div class="extras">
+  <b>Indexes:</b> text <code>{name, description, subject, tags}</code> · <code>{university:1, isActive:1}</code> · <code>{university:1, isActive:1, nextSession.at:1}</code><br>
+  <b>Hooks &amp; virtuals:</b> pre-save ensures creator ∈ members and dedupes members · virtual <code>memberCount</code>
+</div>
+
+<h3 class="collection">AcademicRecord <span class="coll-name">academicrecords</span></h3>
+<p class="purpose">One document per user per semester — subjects with credits and grades, used for SGPA/CGPA.</p>
+<table>
+  <thead><tr><th style="width:24%">Field</th><th style="width:20%">Type</th><th>Constraints / Notes</th></tr></thead>
+  <tbody>
+    <tr><td>user <span class="req">*</span></td><td class="type">ObjectId→User</td><td>indexed</td></tr>
+    <tr><td>university <span class="req">*</span></td><td class="type">ObjectId→University</td><td>indexed</td></tr>
+    <tr><td>semester <span class="req">*</span></td><td class="type">Number</td><td>1–12</td></tr>
+    <tr><td>subjects</td><td class="type">[Subdoc]</td><td><code>{name*, credits* (0.5–30), grade* ∈ A+ A B+ B C+ C D F}</code> (no _id)</td></tr>
+  </tbody>
+</table>
+<div class="extras"><b>Indexes:</b> <code>{user:1, semester:1} unique</code> — one record per user per semester</div>
+
+<h3 class="collection">AttendanceSubject <span class="coll-name">attendancesubjects</span></h3>
+<p class="purpose">Per-subject attendance tracker ("can I bunk?" calculator).</p>
+<table>
+  <thead><tr><th style="width:24%">Field</th><th style="width:20%">Type</th><th>Constraints / Notes</th></tr></thead>
+  <tbody>
+    <tr><td>user <span class="req">*</span></td><td class="type">ObjectId→User</td><td>indexed</td></tr>
+    <tr><td>university <span class="req">*</span></td><td class="type">ObjectId→University</td><td>indexed</td></tr>
+    <tr><td>name <span class="req">*</span></td><td class="type">String</td><td>subject name</td></tr>
+    <tr><td>attended</td><td class="type">Number</td><td>default 0, min 0 — classes attended</td></tr>
+    <tr><td>held</td><td class="type">Number</td><td>default 0, min 0 — classes held so far</td></tr>
+    <tr><td>target</td><td class="type">Number</td><td>default 75 (1–100) — minimum % to stay above</td></tr>
+  </tbody>
+</table>
+<div class="extras"><b>Indexes:</b> <code>{user:1, createdAt:1}</code></div>
+
+<h3 class="collection">TimetableEntry <span class="coll-name">timetableentries</span></h3>
+<p class="purpose">Weekly class schedule slots; drives class reminders.</p>
+<table>
+  <thead><tr><th style="width:24%">Field</th><th style="width:20%">Type</th><th>Constraints / Notes</th></tr></thead>
+  <tbody>
+    <tr><td>user <span class="req">*</span></td><td class="type">ObjectId→User</td><td>indexed</td></tr>
+    <tr><td>university <span class="req">*</span></td><td class="type">ObjectId→University</td><td>indexed</td></tr>
+    <tr><td>subject <span class="req">*</span></td><td class="type">String</td><td>max 80</td></tr>
+    <tr><td>dayOfWeek <span class="req">*</span></td><td class="type">Number</td><td>0 (Sunday) – 6 (Saturday), JS Date convention</td></tr>
+    <tr><td>startTime <span class="req">*</span> / endTime <span class="req">*</span></td><td class="type">String</td><td>24h <code>"HH:mm"</code> (regex-validated), local campus time (IST)</td></tr>
+    <tr><td>room / professor</td><td class="type">String</td><td>max 60 each</td></tr>
+    <tr><td>lastReminderDay</td><td class="type">String</td><td><code>"YYYY-MM-DD"</code> of the last reminder sent — prevents duplicates</td></tr>
+  </tbody>
+</table>
+<div class="extras"><b>Indexes:</b> <code>{user:1, dayOfWeek:1, startTime:1}</code></div>
+
+<!-- ================= CAMPUS LIFE ================= -->
+<h2 class="section">5 · Campus Life</h2>
+
+<h3 class="collection">Confession <span class="coll-name">confessions</span></h3>
+<p class="purpose">Anonymous confessions feed. Author is stored for moderation but never exposed via the API.</p>
+<table>
+  <thead><tr><th style="width:24%">Field</th><th style="width:20%">Type</th><th>Constraints / Notes</th></tr></thead>
+  <tbody>
+    <tr><td>author <span class="req">*</span></td><td class="type">ObjectId→User</td><td>indexed; private — never serialized</td></tr>
+    <tr><td>university <span class="req">*</span></td><td class="type">ObjectId→University</td><td>indexed</td></tr>
+    <tr><td>content <span class="req">*</span></td><td class="type">String</td><td>max 1000</td></tr>
+    <tr><td>reactions</td><td class="type">[Subdoc]</td><td><code>{user* → User, type* ∈ heart | laugh | wow | sad}</code></td></tr>
+    <tr><td>reactionsCount</td><td class="type">Number</td><td>default 0, indexed — denormalized for "Top" sort</td></tr>
+    <tr><td>comments</td><td class="type">[Subdoc]</td><td><code>{author* → User (hidden), content* (max 500)}</code> + timestamps</td></tr>
+    <tr><td>reports</td><td class="type">[Subdoc]</td><td><code>{user* → User, reason (max 300), createdAt}</code></td></tr>
+    <tr><td>isHidden</td><td class="type">Boolean</td><td>default false — auto-hidden once reports cross the threshold</td></tr>
+    <tr><td>isActive</td><td class="type">Boolean</td><td>default true</td></tr>
+  </tbody>
+</table>
+<div class="extras"><b>Indexes:</b> <code>{university:1, isActive:1, isHidden:1, createdAt:-1}</code></div>
+
+<h3 class="collection">Event <span class="coll-name">events</span></h3>
+<p class="purpose">Campus events (fests, workshops, talks) with attendance and pre-start reminders.</p>
+<table>
+  <thead><tr><th style="width:24%">Field</th><th style="width:20%">Type</th><th>Constraints / Notes</th></tr></thead>
+  <tbody>
+    <tr><td>organizer <span class="req">*</span></td><td class="type">ObjectId→User</td><td>indexed</td></tr>
+    <tr><td>university <span class="req">*</span></td><td class="type">ObjectId→University</td><td>indexed</td></tr>
+    <tr><td>title <span class="req">*</span></td><td class="type">String</td><td>max 120; text index</td></tr>
+    <tr><td>description</td><td class="type">String</td><td>max 2000; text index</td></tr>
+    <tr><td>club</td><td class="type">String</td><td>max 80 — organizing club/society; text index</td></tr>
+    <tr><td>category <span class="req">*</span></td><td class="type">String enum</td><td><code>Cultural | Technical | Sports | Workshop | Talk | Other</code></td></tr>
+    <tr><td>venue</td><td class="type">String</td><td>max 120</td></tr>
+    <tr><td>startAt <span class="req">*</span></td><td class="type">Date</td><td>indexed</td></tr>
+    <tr><td>endAt</td><td class="type">Date</td><td>optional</td></tr>
+    <tr><td>attendees</td><td class="type">[ObjectId→User]</td><td>RSVP list</td></tr>
+    <tr><td>reminderSent</td><td class="type">Boolean</td><td>default false — one reminder ~1h before start</td></tr>
+    <tr><td>isActive</td><td class="type">Boolean</td><td>default true</td></tr>
+  </tbody>
+</table>
+<div class="extras"><b>Indexes:</b> text <code>{title, description, club}</code> · <code>{university:1, isActive:1, startAt:1}</code></div>
+
+<h3 class="collection">LostFoundItem <span class="coll-name">lostfounditems</span></h3>
+<p class="purpose">Lost &amp; found posts — reunite students with their stuff.</p>
+<table>
+  <thead><tr><th style="width:24%">Field</th><th style="width:20%">Type</th><th>Constraints / Notes</th></tr></thead>
+  <tbody>
+    <tr><td>title <span class="req">*</span></td><td class="type">String</td><td>text index</td></tr>
+    <tr><td>description</td><td class="type">String</td><td>text index</td></tr>
+    <tr><td>kind <span class="req">*</span></td><td class="type">String enum</td><td><code>lost | found</code> — did the poster lose it or find it</td></tr>
+    <tr><td>category <span class="req">*</span></td><td class="type">String enum</td><td><code>Electronics | ID &amp; Cards | Books &amp; Notes | Clothing | Keys | Accessories | Other</code></td></tr>
+    <tr><td>location</td><td class="type">String</td><td>where lost/found</td></tr>
+    <tr><td>images</td><td class="type">[String]</td><td>photo URLs</td></tr>
+    <tr><td>reporter <span class="req">*</span></td><td class="type">ObjectId→User</td><td></td></tr>
+    <tr><td>university <span class="req">*</span></td><td class="type">ObjectId→University</td><td>indexed</td></tr>
+    <tr><td>status</td><td class="type">String enum</td><td><code>open | returned</code> (default open, indexed)</td></tr>
+    <tr><td>isActive</td><td class="type">Boolean</td><td>default true</td></tr>
+  </tbody>
+</table>
+<div class="extras"><b>Indexes:</b> text <code>{title, description}</code> · <code>{university:1, isActive:1}</code></div>
+
+<h3 class="collection">Ride <span class="coll-name">rides</span></h3>
+<p class="purpose">Ride-sharing posts — split cabs to the station/airport/home.</p>
+<table>
+  <thead><tr><th style="width:24%">Field</th><th style="width:20%">Type</th><th>Constraints / Notes</th></tr></thead>
+  <tbody>
+    <tr><td>poster <span class="req">*</span></td><td class="type">ObjectId→User</td><td>indexed</td></tr>
+    <tr><td>university <span class="req">*</span></td><td class="type">ObjectId→University</td><td>indexed</td></tr>
+    <tr><td>from <span class="req">*</span> / to <span class="req">*</span></td><td class="type">String</td><td>max 80 each</td></tr>
+    <tr><td>departureAt <span class="req">*</span></td><td class="type">Date</td><td>indexed</td></tr>
+    <tr><td>seatsTotal <span class="req">*</span></td><td class="type">Number</td><td>1–8 — seats for co-passengers (poster's own seat excluded)</td></tr>
+    <tr><td>passengers</td><td class="type">[ObjectId→User]</td><td>users who joined</td></tr>
+    <tr><td>note</td><td class="type">String</td><td>max 300</td></tr>
+    <tr><td>isActive</td><td class="type">Boolean</td><td>default true</td></tr>
+  </tbody>
+</table>
+<div class="extras">
+  <b>Indexes:</b> <code>{university:1, isActive:1, departureAt:1}</code>
+  &nbsp;&nbsp;<b>Virtuals:</b> <code>title</code> = <code>"from → to"</code> (used by the shared conversation loader)
+</div>
+
+<!-- ================= INFRA ================= -->
+<h2 class="section">6 · Notifications, Devices &amp; Moderation</h2>
+
+<h3 class="collection">Notification <span class="coll-name">notifications</span></h3>
+<p class="purpose">In-app notification feed with a polymorphic pointer to the related entity.</p>
+<table>
+  <thead><tr><th style="width:24%">Field</th><th style="width:20%">Type</th><th>Constraints / Notes</th></tr></thead>
+  <tbody>
+    <tr><td>user <span class="req">*</span></td><td class="type">ObjectId→User</td><td>indexed — the recipient</td></tr>
+    <tr><td>type <span class="req">*</span></td><td class="type">String enum</td><td><code>message | study-group | marketplace | system | friend</code></td></tr>
+    <tr><td>title <span class="req">*</span> / description <span class="req">*</span></td><td class="type">String</td><td>display text</td></tr>
+    <tr><td>read</td><td class="type">Boolean</td><td>default false</td></tr>
+    <tr><td>relatedId</td><td class="type">ObjectId (refPath)</td><td>dynamic ref via <code>relatedModel</code></td></tr>
+    <tr><td>relatedModel</td><td class="type">String enum</td><td><code>Listing | StudyGroup | Message | User | Conversation</code></td></tr>
+  </tbody>
+</table>
+<div class="extras"><b>Indexes:</b> <code>{user:1, createdAt:-1}</code> · <code>{user:1, read:1}</code></div>
+
+<h3 class="collection">DeviceToken <span class="coll-name">devicetokens</span></h3>
+<p class="purpose">Push-notification registration tokens per device.</p>
+<table>
+  <thead><tr><th style="width:24%">Field</th><th style="width:20%">Type</th><th>Constraints / Notes</th></tr></thead>
+  <tbody>
+    <tr><td>user <span class="req">*</span></td><td class="type">ObjectId→User</td><td>indexed</td></tr>
+    <tr><td>university <span class="req">*</span></td><td class="type">ObjectId→University</td><td>indexed</td></tr>
+    <tr><td>token <span class="req">*</span></td><td class="type">String</td><td><b>unique</b> — the push token itself</td></tr>
+    <tr><td>platform</td><td class="type">String enum</td><td><code>web | android | ios</code> (default web)</td></tr>
+  </tbody>
+</table>
+
+<h3 class="collection">Report <span class="coll-name">reports</span></h3>
+<p class="purpose">User reports on any content type; feeds the admin moderation queue.</p>
+<table>
+  <thead><tr><th style="width:24%">Field</th><th style="width:20%">Type</th><th>Constraints / Notes</th></tr></thead>
+  <tbody>
+    <tr><td>reporter <span class="req">*</span></td><td class="type">ObjectId→User</td><td>indexed</td></tr>
+    <tr><td>university <span class="req">*</span></td><td class="type">ObjectId→University</td><td>indexed</td></tr>
+    <tr><td>targetType <span class="req">*</span></td><td class="type">String enum</td><td><code>listing | document | confession | question | answer | lostfound | ride | event</code></td></tr>
+    <tr><td>targetId <span class="req">*</span></td><td class="type">ObjectId</td><td>indexed — id of the reported content (polymorphic)</td></tr>
+    <tr><td>reason <span class="req">*</span></td><td class="type">String</td><td>max 300</td></tr>
+    <tr><td>snapshot</td><td class="type">Object</td><td><code>{title, content (max 500)}</code> — copy of the reported content so the queue stays reviewable after deletion</td></tr>
+    <tr><td>status</td><td class="type">String enum</td><td><code>open | resolved | dismissed</code> (default open, indexed)</td></tr>
+    <tr><td>handledBy / handledAt</td><td class="type">ObjectId→User / Date</td><td>which admin resolved it, and when</td></tr>
+  </tbody>
+</table>
+<div class="extras">
+  <b>Indexes:</b> <code>{university:1, status:1, createdAt:-1}</code> · <code>{reporter:1, targetType:1, targetId:1} unique</code> — one report per user per item
+</div>
+
+<!-- ================= RELATIONSHIPS ================= -->
+<h2 class="section">7 · Relationship Map</h2>
+<div class="extras" style="page-break-inside:auto;">
+  <b>University</b> is the tenant root — referenced (required + indexed) by every collection except Notification.<br><br>
+  <b>User</b> is referenced by: Listing.seller, Offer.buyer/seller, Conversation.participants, Message.sender,
+  Document.uploader/upvotes/comments.author, Question.author/upvotes, Answer.author/upvotes, StudyGroup.creator/members,
+  AcademicRecord.user, AttendanceSubject.user, TimetableEntry.user, Confession.author/reactions/comments/reports,
+  Event.organizer/attendees, LostFoundItem.reporter, Ride.poster/passengers, Friendship.requester/recipient/users,
+  Notification.user, DeviceToken.user, Report.reporter/handledBy, and User.savedListings → Listing.<br><br>
+  <b>Polymorphic links:</b> Conversation.listingId points at a Listing, LostFoundItem or Ride depending on
+  <code>contextType</code>; Notification.relatedId uses <code>refPath</code> (Listing/StudyGroup/Message/User/Conversation);
+  Report.targetId is typed by <code>targetType</code> (8 content types).<br><br>
+  <b>Denormalized counters</b> (kept in sync by controllers): Question.upvoteCount/answersCount, Answer.upvoteCount,
+  Document.upvoteCount/downloadCount, Confession.reactionsCount, Conversation.lastMessage/lastMessageAt, Offer.seller.
+</div>
+
+</body>
+</html>

@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Link, Navigate } from "react-router-dom";
+import { Link, Navigate, useSearchParams } from "react-router-dom";
 import { AnimatePresence, motion as Motion } from "framer-motion";
 import { useAuthContext } from "../context/useAuthContext";
-import { ShoppingBag, Users, MessageCircle, Map, ArrowLeft } from "lucide-react";
+import { ShoppingBag, Users, MessageCircle, Map, ArrowLeft, ShieldAlert, X } from "lucide-react";
 import Logo, { Crest } from "../components/brand/Logo";
 import ThemeToggle from "../components/ui/ThemeToggle";
 import AuthCard from "../components/auth/AuthCard";
@@ -72,9 +72,13 @@ function BrandPanel() {
 
 export default function Auth() {
   const { user } = useAuthContext();
+  const [searchParams] = useSearchParams();
   const [mode, setMode] = useState("login");
   const [resetToken, setResetToken] = useState("");
   const [pendingEmail, setPendingEmail] = useState("");
+  const [showSuspended, setShowSuspended] = useState(
+    searchParams.get("suspended") === "1"
+  );
 
   const goToVerify = (email) => {
     setPendingEmail(email);
@@ -112,6 +116,23 @@ export default function Auth() {
               exit={{ opacity: 0, y: -16 }}
               transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
             >
+              {showSuspended && (
+                <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-danger-500/30 bg-danger-500/10 px-3.5 py-3 text-sm text-danger-600">
+                  <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span className="flex-1">
+                    This account has been suspended. If you think this is a
+                    mistake, please contact support.
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowSuspended(false)}
+                    className="ring-focus -mr-1 rounded-md p-0.5 text-danger-600/70 transition hover:text-danger-600"
+                    aria-label="Dismiss"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
               <AuthCard mode={mode} setMode={setMode}>
                 {mode === "login" && (
                   <LoginForm

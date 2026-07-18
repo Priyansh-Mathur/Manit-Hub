@@ -9,6 +9,8 @@ import {
   Sparkles,
   ShieldCheck,
   UserPlus,
+  LayoutDashboard,
+  Users,
 } from "lucide-react";
 
 /**
@@ -102,6 +104,15 @@ export const navItems = [
 
 // Rendered only for users with isAdmin (see SideNav / MobileDrawer).
 export const adminNavItems = [
+  {
+    name: "Admin Overview",
+    short: "Admin",
+    to: "/admin",
+    icon: LayoutDashboard,
+    // Exact match so it isn't highlighted on /admin/users, /admin/moderation…
+    end: true,
+  },
+  { name: "Accounts", short: "Users", to: "/admin/users", icon: Users },
   { name: "Moderation", short: "Mod", to: "/admin/moderation", icon: ShieldCheck },
 ];
 

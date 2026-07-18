@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Manit Hub — The Build Story</title>
+<style>
+  :root{
+    --navy:#1e4f92; --crimson:#bb2735; --gold:#bd8a1e; --ink:#1c2330;
+    --muted:#5b6472; --line:#d9dee6; --bg-soft:#f4f6fa; --green:#157a42;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    font-family:Georgia,"Times New Roman",serif;
+    color:var(--ink); font-size:11.5pt; line-height:1.62;
+    counter-reset: h2c;
+  }
+  .page{ max-width:186mm; margin:0 auto; padding:10mm 0 14mm; }
+
+  /* ---------- print ---------- */
+  @page{ size:A4; margin:16mm 14mm 18mm; }
+  @media print{
+    .page{ max-width:none; padding:0; }
+    h1,h2{ page-break-after:avoid; }
+    h3,h4{ page-break-after:avoid; }
+    .box,pre,table,.tl-item{ page-break-inside:avoid; }
+    .pagebreak{ page-break-before:always; }
+  }
+
+  /* ---------- typography ---------- */
+  h1,h2,h3,h4,.sans{ font-family:"Segoe UI",Arial,Helvetica,sans-serif; }
+  h1{ font-size:26pt; margin:0 0 4pt; color:var(--navy); letter-spacing:-.5pt; }
+  h2{
+    counter-increment:h2c; counter-reset:h3c;
+    font-size:16pt; color:var(--navy); margin:26pt 0 8pt;
+    padding-bottom:5pt; border-bottom:2.5px solid var(--navy);
+  }
+  h2::before{ content: counter(h2c) " · "; color:var(--crimson); }
+  h3{ counter-increment:h3c; font-size:12.5pt; color:var(--ink); margin:16pt 0 5pt; }
+  h3::before{ content: counter(h2c) "." counter(h3c) "  "; color:var(--crimson); }
+  h4{ font-size:11pt; margin:12pt 0 4pt; color:var(--navy); }
+  p{ margin:0 0 8pt; text-align:justify; }
+  ul,ol{ margin:0 0 9pt 0; padding-left:20pt; }
+  li{ margin-bottom:3.5pt; }
+  b{ color:inherit; }
+  .part{
+    font-family:"Segoe UI",Arial,sans-serif; font-size:10pt; font-weight:700;
+    letter-spacing:2.5pt; text-transform:uppercase; color:var(--gold);
+    margin:30pt 0 -18pt;
+  }
+  .lead{ font-size:12pt; color:var(--muted); }
+  .small{ font-size:9.5pt; color:var(--muted); }
+
+  code{
+    font-family:Consolas,"Courier New",monospace; font-size:9.5pt;
+    background:var(--bg-soft); border:1px solid var(--line);
+    border-radius:3px; padding:.5pt 3.5pt; color:#243040;
+  }
+  pre{
+    font-family:Consolas,"Courier New",monospace; font-size:9pt; line-height:1.5;
+    background:#f7f8fb; border:1px solid var(--line); border-left:3px solid var(--navy);
+    border-radius:4px; padding:8pt 10pt; overflow-x:auto; margin:6pt 0 10pt;
+    white-space:pre-wrap; word-break:break-word;
+  }
+  pre code{ background:none; border:none; padding:0; }
+
+  /* ---------- boxes ---------- */
+  .box{ border-radius:6px; padding:9pt 12pt; margin:9pt 0 11pt; border:1px solid var(--line); }
+  .box .tag{
+    display:block; font-family:"Segoe UI",Arial,sans-serif; font-weight:700;
+    font-size:8.5pt; letter-spacing:1.6pt; text-transform:uppercase; margin-bottom:3.5pt;
+  }
+  .problem{ background:#fdf1f1; border-left:4px solid var(--crimson); }
+  .problem .tag{ color:var(--crimson); }
+  .fix{ background:#eff8f2; border-left:4px solid var(--green); }
+  .fix .tag{ color:var(--green); }
+  .why{ background:#f1f5fb; border-left:4px solid var(--navy); }
+  .why .tag{ color:var(--navy); }
+  .lesson{ background:#fbf6ea; border-left:4px solid var(--gold); }
+  .lesson .tag{ color:var(--gold); }
+  .box p:last-child{ margin-bottom:0; }
+  .box ul{ margin-bottom:0; }
+
+  /* ---------- tables ---------- */
+  table{ width:100%; border-collapse:collapse; margin:8pt 0 12pt; font-size:9.8pt;
+         font-family:"Segoe UI",Arial,sans-serif; }
+  th{ background:var(--navy); color:#fff; text-align:left; padding:5pt 7pt;
+      font-size:9pt; letter-spacing:.4pt; }
+  td{ border:1px solid var(--line); padding:4.5pt 7pt; vertical-align:top; }
+  tr:nth-child(even) td{ background:var(--bg-soft); }
+
+  /* ---------- timeline ---------- */
+  .tl-item{ display:flex; margin-bottom:7pt; }
+  .tl-date{
+    flex:0 0 78pt; font-family:"Segoe UI",Arial,sans-serif; font-weight:700;
+    font-size:9.5pt; color:var(--crimson); padding-top:1pt;
+  }
+  .tl-body{ flex:1; border-left:2.5px solid var(--line); padding-left:10pt; }
+  .tl-body b{ color:var(--navy); }
+
+  /* ---------- cover ---------- */
+  .cover{ text-align:center; padding:60pt 0 30pt; }
+  .cover .crest{ font-size:34pt; }
+  .cover h1{ font-size:30pt; margin-top:10pt; }
+  .cover .sub{ font-family:"Segoe UI",Arial,sans-serif; font-size:13pt; color:var(--muted); margin:6pt auto 0; max-width:150mm; }
+  .cover .rule{ width:60mm; height:3px; background:linear-gradient(90deg,var(--navy),var(--crimson),var(--gold)); margin:18pt auto; border-radius:2px; }
+  .cover .meta{ font-family:"Segoe UI",Arial,sans-serif; font-size:10pt; color:var(--muted); }
+  .toc{ background:var(--bg-soft); border:1px solid var(--line); border-radius:8px; padding:12pt 16pt; margin-top:24pt; text-align:left; }
+  .toc h4{ margin-top:0; letter-spacing:1.5pt; text-transform:uppercase; font-size:9pt; color:var(--gold); }
+  .toc ol{ margin:0; padding-left:16pt; font-family:"Segoe UI",Arial,sans-serif; font-size:10pt; column-count:2; column-gap:24pt; }
+  .toc li{ margin-bottom:2.5pt; }
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- ================= COVER ================= -->
+<div class="cover">
+  <div class="crest">🎓</div>
+  <h1>Manit Hub — The Build Story</h1>
+  <p class="sub">How a campus super-app for MANIT Bhopal was actually built — in order, decision by decision, mistake by mistake. What was planned, what was chosen and why, what broke, and how every problem was fixed.</p>
+  <div class="rule"></div>
+  <p class="meta">Covers the full development window: <b>19 May 2026 → 14 July 2026</b> · 78 commits<br/>
+  Web: manithub-samayjainbm.vercel.app · API: manit-hub.onrender.com · Android APK via Capacitor</p>
+
+  <div class="toc">
+    <h4>Read in one sitting — the chapters</h4>
+    <ol>
+      <li>The idea — why build this at all</li>
+      <li>Deciding the process before the code</li>
+      <li>Choosing the stack (and what was rejected)</li>
+      <li>Designing the database</li>
+      <li>Writing the backend</li>
+      <li>Day one in production — the deployment war</li>
+      <li>Maps, a name, and a routing lesson</li>
+      <li>Making it feel alive — seed data &amp; notifications</li>
+      <li>The feature blitz</li>
+      <li>Real-time chat — the three hardest bugs</li>
+      <li>Leaving serverless — the move to Render</li>
+      <li>The database design mistake (E11000)</li>
+      <li>Production rewrites the storage plan</li>
+      <li>The login that would not stay</li>
+      <li>Going native — the Android app</li>
+      <li>The restructures</li>
+      <li>Security hardening &amp; email verification</li>
+      <li>The frontend, as it ended up</li>
+      <li>Lessons learned</li>
+      <li>Appendix — the full timeline</li>
+    </ol>
+  </div>
+</div>
+
+<div class="pagebreak"></div>
+
+<!-- ================= PART I ================= -->
+<p class="part">Part I — Before any code</p>
+
+<h2>The idea — why build this at all</h2>
+<p class="lead">Every project should start from an irritation, not a technology. Manit Hub started from campus life at MANIT Bhopal being scattered across fifty WhatsApp groups.</p>
+
+<p>Selling a used textbook meant posting in five groups and hoping. Finding notes before an exam meant begging seniors. Losing an ID card meant a broadcast message nobody read. Checking whether you could safely bunk one more class meant manual arithmetic on the back of a notebook. None of these problems is hard individually — the pain is that each one lives in a different, unsearchable, unmoderated place.</p>
+
+<p>So the idea was a <b>student super-app</b>: one verified, students-only space for the whole campus loop — a marketplace, a study-material vault, CGPA and attendance trackers, a timetable, anonymous confessions, lost &amp; found, events, ride-sharing, a course Q&amp;A forum, and real-time chat tying it all together. Two constraints were set on day one and never relaxed:</p>
+<ul>
+  <li><b>Verified community only.</b> Sign-up restricted to <code>@stu.manit.ac.in</code> emails, so every account maps to a real student. This single rule is what makes a marketplace, confessions and chat safe enough to run.</li>
+  <li><b>Multi-tenant from the start.</b> Even though only MANIT would use it initially, every record would be scoped to a <code>university</code>, so expanding to other NITs later would be a data question, not a rewrite.</li>
+</ul>
+
+<h2>Deciding the process before the code</h2>
+<p class="lead">Before writing anything, the order of work was decided. The plan was deliberately boring — and it mostly survived contact with reality.</p>
+
+<p>The process decided up front:</p>
+<ol>
+  <li><b>List the features, then cut.</b> Write down everything campus life needs, then pick the smallest set that is already useful: auth, marketplace, chat, study groups. Everything else (CGPA, attendance, confessions, rides, forum…) would be layered on after the skeleton worked.</li>
+  <li><b>Design the database first.</b> Get the entities and their relationships on paper before any endpoint exists, because in a document database the schema <i>is</i> the architecture. (This is also where the one real design mistake was made — Chapter 12.)</li>
+  <li><b>Backend before frontend, per feature.</b> For each feature: Mongoose model → API endpoints → then the React screen. The frontend was never blocked guessing what the API would return.</li>
+  <li><b>Deploy on day one.</b> Don't build for months and then discover production. Get the empty skeleton live immediately, and keep it live after every change. This decision paid for itself within hours (Chapter 6).</li>
+  <li><b>One person, so one convention everywhere.</b> A single response envelope, a single middleware chain, one file per endpoint — so that six weeks in, every corner of the codebase still looks the same.</li>
+</ol>
+
+<div class="lesson"><span class="tag">Why this order and not "frontend first"?</span>
+<p>A UI-first build produces beautiful screens wired to imaginary data, and the rework lands later at the worst time. Data-model-first means the hard questions (who owns a listing? what makes two chats "the same"? what is private vs campus-visible?) get answered when changing the answer costs nothing. The trade-off accepted: the app looks ugly for longer. That was fine — there were no users yet.</p></div>
+
+<h2>Choosing the stack (and what was rejected)</h2>
+<p class="lead">Every technology was chosen against a named alternative. "Popular" was not a reason; "fits a solo student building a real-time campus app for free" was.</p>
+
+<table>
+  <tr><th>Layer</th><th>Chosen</th><th>Rejected</th><th>The actual reason</th></tr>
+  <tr><td>Language</td><td>JavaScript everywhere</td><td>Python/Django, Java/Spring</td><td>One language for API, web and socket code. No context-switching, one npm ecosystem, and Socket.IO's best support is Node.</td></tr>
+  <tr><td>Database</td><td>MongoDB Atlas + Mongoose</td><td>PostgreSQL / MySQL</td><td>Campus features have wildly different shapes (a confession vs. a timetable entry vs. an offer). Document schemas iterate fastest when requirements change weekly; array fields (participants, images, RSVPs) fit naturally; Atlas has a free tier with zero ops work. The cost — fewer integrity guarantees — showed up exactly once (Chapter 12).</td></tr>
+  <tr><td>API framework</td><td>Express 5</td><td>NestJS, Fastify</td><td>Express is small enough to understand completely. Nest's module/decorator machinery adds structure a team needs but a solo dev pays for. Structure was instead imposed by a strict folder convention (Chapter 5).</td></tr>
+  <tr><td>Auth</td><td>JWT (bearer token)</td><td>Server sessions/cookies</td><td>The API serves a Vercel web app <i>and</i> a native Android app from a different origin — cookie sessions across two origins plus a WebView are painful. A stateless bearer token works identically in axios, Socket.IO auth, and native HTTP. Revocation was solved later with a <code>tokenVersion</code> claim (Chapter 17).</td></tr>
+  <tr><td>Real-time</td><td>Socket.IO</td><td>Raw WebSocket, polling</td><td>Rooms (one per conversation), automatic reconnection, and graceful fallbacks — all needed, none worth hand-writing. Polling was rejected because chat is the flagship "the app is alive" feature.</td></tr>
+  <tr><td>Frontend</td><td>React 19 + Vite 7</td><td>Next.js, CRA</td><td>The app lives behind a login — there is nothing to SEO except the landing page, so SSR buys nothing and complicates the Capacitor wrap. Vite's dev server and proxy made local dev instant. CRA was effectively deprecated.</td></tr>
+  <tr><td>Styling</td><td>Tailwind CSS 3</td><td>CSS modules, MUI</td><td>A custom design system (MANIT navy/crimson/gold, dark mode) was a goal — component libraries fight custom identity. Tailwind tokens made the theme consistent without a CSS architecture to maintain.</td></tr>
+  <tr><td>Mobile</td><td>Capacitor 8</td><td>React Native, Flutter</td><td>One codebase was non-negotiable for one developer. Capacitor ships the <i>same built web app</i> in a native shell — every web fix is instantly an Android fix. React Native would fork the UI layer; Flutter would fork the whole app. Trade-off accepted: WebView performance, mitigated by keeping the app light.</td></tr>
+  <tr><td>Media</td><td>Cloudinary (documents)</td><td>S3, local disk</td><td>Free tier, zero-config transforms, and streaming upload via one SDK call. Local disk dies on redeploy of a PaaS host. (Images later moved <i>out</i> of Cloudinary entirely — Chapter 13 tells that story.)</td></tr>
+  <tr><td>Hosting</td><td>Vercel (web) + Render (API)</td><td>Everything on Vercel</td><td>This was <i>not</i> the day-one plan. The API began on Vercel serverless and was forced off it by WebSockets — Chapter 11.</td></tr>
+</table>
+
+<div class="lesson"><span class="tag">The honest summary</span>
+<p>MERN was chosen not because it is fashionable but because every piece is free, JavaScript-only, and forgiving of changing requirements. Two of these choices later had to be corrected in public (serverless hosting for the API, Cloudinary for images) — and both corrections are documented in this story rather than hidden, because the corrections taught more than the choices did.</p></div>
+
+<div class="pagebreak"></div>
+
+<!-- ================= PART II ================= -->
+<p class="part">Part II — Foundations</p>
+
+<h2>Designing the database</h2>
+<p class="lead">The schema was drawn before the first endpoint. It ended up as 22 Mongoose models — and its two central decisions shaped everything downstream.</p>
+
+<h3>Decision 1 — every campus record carries a <code>university</code> field</h3>
+<p>Rather than assuming "this is a MANIT app," every shared collection — listings, study groups, documents, confessions, events, rides, questions, lost-&amp;-found items, conversations — carries a required, indexed <code>university</code> reference. The user's university is embedded in their JWT at login, and middleware injects it into every query. No handler ever "remembers" to filter by campus; the filter is structural.</p>
+<div class="why"><span class="tag">Why bake in multi-tenancy for a single-campus launch?</span>
+<p>Because retrofitting tenancy is a rewrite: every query, every index, every socket room would need auditing. Adding it on day one cost one schema field and one middleware. It also doubles as a security boundary — even a buggy handler cannot leak another campus's data if the scope is applied before the handler runs.</p></div>
+
+<h3>Decision 2 — references between collections, embedding within them</h3>
+<p>Things that are queried independently and have their own lifecycle became collections joined by <code>ObjectId</code> references (User, Listing, Conversation, Message, Question, Answer…). Things that only ever live inside their parent were embedded as arrays or subdocuments — a listing's images, a ride's passenger list, a study group's member array, a confession's reactions. Personal academic data (CGPA records, attendance subjects, timetable entries) got private per-user collections that are never campus-visible.</p>
+
+<h3>The entity map, in one paragraph</h3>
+<p>A <b>University</b> has many <b>Users</b>. A User sells <b>Listings</b>, which receive <b>Offers</b> and spawn <b>Conversations</b> containing <b>Messages</b>. Users create and join <b>StudyGroups</b>, upload <b>Documents</b> to the vault, ask <b>Questions</b> that get <b>Answers</b>, post <b>Confessions</b> anonymously, report lost items as <b>LostFoundItems</b>, organise <b>Events</b> with RSVP lists, and post <b>Rides</b> with passenger arrays. <b>Reports</b> can point at any content type; <b>Notifications</b> and <b>DeviceTokens</b> hang off users; <b>AcademicRecord</b>, <b>AttendanceSubject</b>, and <b>TimetableEntry</b> are private academic data; <b>Friendship</b> models the social graph.</p>
+
+<div class="problem"><span class="tag">The mistake planted here</span>
+<p>To guarantee "one conversation per buyer per listing," the Conversation model was given a compound <b>unique index on <code>{ listingId, participants }</code></b> — where <code>participants</code> is an <i>array</i>. It looked like an obvious integrity constraint. It was actually a time bomb that would detonate five weeks later, in production, on the second chat any user ever opened. The full detonation and repair is Chapter 12 — it is the single best lesson in this document.</p></div>
+
+<h2>Writing the backend</h2>
+<p class="lead">The backend is Express, but the real architecture is a filing convention: one folder per feature, one file per endpoint.</p>
+
+<h3>The one-file-per-endpoint pattern</h3>
+<p>Instead of fat controllers, the backend has 23 feature folders (<code>auth/</code>, <code>listings/</code>, <code>conversations/</code>, <code>forum/</code>, <code>offers/</code>…) and inside each, one small file per endpoint — <code>createListing.js</code>, <code>getListings.js</code>, <code>updateListing.js</code> — plus a <code>helpers.js</code> for shared bits. <code>app.js</code> just mounts one router per feature.</p>
+<div class="why"><span class="tag">Why split it this small?</span>
+<p>Three reasons. <b>Findability:</b> a bug report names a behaviour, and the behaviour names the file. <b>Blast radius:</b> editing "accept offer" cannot break "create offer" by accident. <b>Reviewability:</b> each file reads top-to-bottom in under a minute. The cost is more files — which matters to nobody with a fuzzy file finder.</p></div>
+
+<h3>The middleware gauntlet</h3>
+<p>Every authenticated request passes the same chain before any handler runs: <code>helmet</code> and CORS → JSON parsing → <code>auth</code> (verify JWT, load the user, reject banned accounts) → <code>universityScope</code> (pin the tenant filter, guard <code>:id</code> routes against cross-campus access) → the endpoint file → a shared error handler that returns a generic message in production so internals never leak. Responses always use one envelope — <code>{ success, message, data, meta }</code> — so the frontend has exactly one shape to parse.</p>
+
+<h3>Write-path discipline: field whitelists</h3>
+<p>Create/update handlers copy an explicit list of allowed fields from <code>req.body</code> instead of spreading the body into the model. That is what makes mass assignment impossible: no request can ever set <code>seller</code>, <code>university</code>, <code>isActive</code> or karma fields, because no code path reads them from user input.</p>
+
+<h2>Day one in production — the deployment war</h2>
+<p class="lead">19 May 2026: the very first day produced fourteen commits, and most of them are deployment fixes. This was "deploy on day one" doing exactly its job — surfacing every environment assumption immediately.</p>
+
+<p>The commit log of that single day reads like a diary of everything that differs between localhost and the cloud: <i>"fixed dependencies" → "added root route" → "update cors origin and frontend API URL" → "align vite api env name" → "fix mern deployment connection" → "mongodb atlas update" → "fix mongodb startup on vercel" → "fix vercel mongodb request gate" → "harden mongodb production config."</i></p>
+
+<div class="problem"><span class="tag">Problem — MongoDB × serverless cold starts</span>
+<p>Locally, you connect to Mongo once at boot and forget it. On Vercel, every serverless invocation may be a fresh process — naive code either reconnects on every request (slow, exhausts Atlas connections) or, worse, handles a request <i>before</i> the connection is ready and throws.</p></div>
+<div class="fix"><span class="tag">Fix — a connection gate</span>
+<p>The DB module caches the connection promise and every request awaits that gate before touching a model: first request on a cold instance pays the connect cost once, all others reuse it. This "serverless-safe connection gate" survived even after the API later moved to a persistent host — it is harmless there and still guards restart races.</p></div>
+
+<div class="problem"><span class="tag">Problem — CORS and environment-variable naming</span>
+<p>The deployed frontend called the deployed API and got CORS-blocked; separately, the frontend was reading an env var name that didn't match what was configured in the host (Vite only exposes variables prefixed <code>VITE_</code>). Both are invisible locally, where the dev proxy makes everything same-origin.</p></div>
+<div class="fix"><span class="tag">Fix</span>
+<p>An explicit CORS allow-list driven by a <code>CLIENT_URL</code> env var, and one agreed name — <code>VITE_API_URL</code> — used everywhere. Locally, the Vite proxy forwards <code>/api</code> to the backend so development stays CORS-free entirely.</p></div>
+
+<div class="lesson"><span class="tag">Lesson</span>
+<p>Fourteen scrappy commits on day one were the cheapest education of the whole project. Every one of these failures would have happened anyway — the only choice was whether they happened against an empty app in hour six, or against real users in week six.</p></div>
+
+<div class="pagebreak"></div>
+
+<!-- ================= PART III ================= -->
+<p class="part">Part III — Building the product</p>
+
+<h2>Maps, a name, and a routing lesson</h2>
+<p class="lead">20 May 2026: the second day went to something visibly campus-specific — an accurate MANIT map — plus the project getting its real name.</p>
+
+<p>The campus-maps feature went through four iterations in a day: an exact MANIT boundary polygon, then a KML-based boundary, then an embedded Google custom map, then a redesigned dashboard around it. The end state is 41 real locations — all 12 hostels, canteens, sports grounds, departments — each opening an embedded live map pin. The same day, the project was renamed to <b>Manit Hub</b>.</p>
+
+<div class="problem"><span class="tag">Problem — the classic SPA 404</span>
+<p>On Netlify (the frontend's first home), refreshing any deep route like <code>/dashboard</code> returned a 404. A single-page app has exactly one real file — <code>index.html</code> — and the host doesn't know that <code>/dashboard</code> is a client-side route, not a file.</p></div>
+<div class="fix"><span class="tag">Fix</span>
+<p>A catch-all rewrite rule sending every path to <code>/index.html</code> so React Router can take over. The same lesson had to be re-learned in Vercel's dialect (<code>vercel.json</code> rewrites) when the frontend later moved there. Every SPA developer hits this exactly once per hosting provider.</p></div>
+
+<h2>Making it feel alive — seed data &amp; notifications</h2>
+<p class="lead">Early June: before adding more features, the app got realistic demo data and its notification backbone — two unglamorous investments that paid off daily.</p>
+
+<p>A seeding script (<code>backend/scripts/seed.js</code>) creates demo students, a dozen MANIT-flavoured listings, seven study groups, conversations and notifications — and is safe to re-run because it only resets its own data. This transformed development: every feature from here on was built and demoed against a campus that looked inhabited, and bugs like "the list looks wrong with 12 items" surfaced immediately instead of at launch.</p>
+<p>Notifications were built as an <b>event-driven</b> system from the start: things that happen (a message, a group join, interest in your listing, an accepted offer) create notification documents, which the bell icon queries — rather than screens polling for "what changed?". This one abstraction later plugged straight into Firebase push (Chapter 17) without touching the features that emit events.</p>
+
+<h2>The feature blitz</h2>
+<p class="lead">9–11 June 2026: with the skeleton proven, features landed at a rate of several per day — because the pattern was fixed and every feature was the same recipe.</p>
+
+<p>The commits tell it plainly: <i>UI view → Study Vault → CGPA calculator → Attendance tracker → Lost &amp; Found → "some more new features"</i> (confessions, events, rides, the Q&amp;A forum, offers, gamification followed in the same wave). Each one was the identical loop:</p>
+<ol>
+  <li>Mongoose model (with the <code>university</code> field where campus-shared);</li>
+  <li>a feature folder of endpoint files behind the same middleware chain;</li>
+  <li>a React screen talking to it through the shared axios client;</li>
+  <li>notification events where other users are affected;</li>
+  <li>seed data so it demos well.</li>
+</ol>
+<p>Two features are worth singling out because they contain actual domain logic rather than CRUD: the <b>CGPA tracker</b> computes live SGPA/CGPA and answers "what SGPA do I need next semester to hit my target CGPA?" — an inverse calculation students otherwise do by trial and error; and the <b>attendance tracker</b> answers "can I skip the next class?" against the 75% detention line, which is the single most-asked question on any Indian campus.</p>
+
+<div class="lesson"><span class="tag">Why the blitz worked</span>
+<p>The speed was not heroics; it was the payoff of Part II. When the model→endpoints→screen recipe is settled and deployment is already continuous, a feature is mostly typing. The expensive part of every feature — deciding where data lives and how requests flow — had been paid once, up front.</p></div>
+
+<div class="pagebreak"></div>
+
+<!-- ================= PART IV ================= -->
+<p class="part">Part IV — Real-time and reality</p>
+
+<h2>Real-time chat — the three hardest bugs</h2>
+<p class="lead">15–17 June 2026: "introducing chat with friends," followed immediately by three commits titled "socket fixes." Real-time code produced the subtlest bugs of the entire project — all three are worth understanding deeply.</p>
+
+<h3>Bug 1 — the silent join: an async handler race</h3>
+<div class="problem"><span class="tag">Problem</span>
+<p>Messages sometimes never arrived — no error, nothing in logs, the room was simply empty. The connection handler was declared <code>async</code> and did presence work first: it <code>await</code>ed the friend list and looped over friends <i>before</i> registering <code>socket.on("join_conversation")</code> and the other listeners. Socket.IO does <b>not</b> buffer events for listeners that aren't attached yet — so a client that emitted <code>join_conversation</code> immediately on connect had its join silently dropped, never entered the room, and <code>io.to(convId).emit(...)</code> broadcast to nobody. The cruel part: the browser UI usually "worked," because a human selects a conversation seconds after connecting — after the awaits had finished. Only a fast client (a fresh chat window, a test script) hit the gap.</p></div>
+<div class="fix"><span class="tag">Fix</span>
+<p>Register <b>every</b> <code>socket.on(...)</code> handler synchronously, first thing in the connection callback; run the awaited presence work after. Verified with a test that joins in the same tick as connecting and asserts the room size reaches 2 and messages deliver both directions.</p></div>
+<div class="lesson"><span class="tag">Lesson</span>
+<p>In event-driven code, <i>when you subscribe</i> is part of correctness. Any <code>await</code> before a subscription is a race window, and races don't appear in casual manual testing — they appear for exactly the users you can't watch.</p></div>
+
+<h3>Bug 2 — the reconnect amnesia</h3>
+<div class="problem"><span class="tag">Problem</span>
+<p>After a network blip or server restart, Socket.IO dutifully reconnected — and chat silently went dead until the user re-selected the conversation. The reason: the client emitted <code>join_conversation</code> only once, when the chat was opened. A reconnect creates a <i>new server-side socket</i> that is in no rooms at all; the client believed it was still joined.</p></div>
+<div class="fix"><span class="tag">Fix</span>
+<p>The socket service now tracks a set of joined conversations and re-emits <code>join_conversation</code> for all of them on every <code>connect</code> event (which fires on the initial connection <i>and</i> every reconnect), with a matching <code>leaveConversation()</code> on chat-window cleanup. Verified by killing the backend mid-chat, restarting it, and watching a peer's message appear live without any user action.</p></div>
+<div class="lesson"><span class="tag">Lesson</span>
+<p>Reconnection restores the <i>transport</i>, never the <i>state</i>. Any state the server holds about a socket — rooms, subscriptions, presence — must be re-established by the client on every connect.</p></div>
+
+<h3>Bug 3 — the platform itself was wrong (see next chapter)</h3>
+<p>The third "socket fix" wasn't a code bug at all — it was the discovery that the hosting platform could not run this feature, ever. It deserves its own chapter.</p>
+
+<h2>Leaving serverless — the move to Render</h2>
+<p class="lead">17 June 2026: "backend changed to render." The biggest infrastructure decision of the project, forced by physics rather than preference.</p>
+
+<div class="problem"><span class="tag">Problem — serverless cannot hold a WebSocket</span>
+<p>Vercel runs functions: a request comes in, a function runs, the function dies. A WebSocket is the opposite — one connection held open for hours. Worse, the Vercel deployment was only ever serving the REST <code>app.js</code>; the Socket.IO server (<code>server.js</code>, which wraps the HTTP server) never ran there at all. Real-time chat worked locally and could <b>never</b> work in that production setup — no amount of client-side fixing would change it.</p></div>
+<div class="fix"><span class="tag">Fix — split the hosting by workload</span>
+<p>The API moved to <b>Render</b> as a long-lived Node web service that runs the full <code>server.js</code> — Express and Socket.IO on one port, plus the node-cron reminder jobs (which also need a persistent process; serverless has nowhere to keep a schedule). The static frontend stayed on a CDN-style host, where serverless is exactly right. The trade-off knowingly accepted: Render's free tier <b>spins down when idle</b>, so the first request after a quiet period eats a cold start. That quirk later became a co-conspirator in the database bug of Chapter 12.</p></div>
+<div class="lesson"><span class="tag">Lesson</span>
+<p>Match the platform to the workload's <i>shape</i>, not its language. Stateless request/response → serverless. Long-lived connections and schedulers → a persistent process. The same app legitimately needs both at once.</p></div>
+
+<h2>The database design mistake (E11000)</h2>
+<p class="lead">24 June 2026: the day-one schema decision detonates. Opening a <i>second</i> chat throws <code>E11000 duplicate key</code>. This chapter is the "realised the DB design was wrong, and fixed it properly" story — including the twist where the first fix didn't stick.</p>
+
+<h3>The detonation</h3>
+<div class="problem"><span class="tag">Problem</span>
+<p>The first conversation always worked. The second — a different buyer on the same listing, or a second friend DM — failed with <code>E11000 dup key { listingId: null, participants: &lt;userId&gt; }</code>. Even the seed script quietly skipped creating a second friend DM for the demo user.</p></div>
+
+<h3>The root cause — a unique index on an array is multikey</h3>
+<p>The schema declared:</p>
+<pre><code>conversationSchema.index(
+  { listingId: 1, participants: 1 },
+  { unique: true }   // participants is an ARRAY → multikey index
+);</code></pre>
+<p>The intent was "one conversation per (listing, pair of participants)." But when an indexed field is an array, MongoDB builds a <b>multikey</b> index: one index entry per array <i>element</i>. Uniqueness is therefore enforced per <i>(listingId, single participant)</i> — meaning each user may appear in at most <b>one</b> conversation per <code>listingId</code> value. For friend DMs, where <code>listingId</code> is <code>null</code>, that caps every user at <i>one friend DM in total</i>. For the marketplace, only the first buyer per listing can ever open a chat. The constraint didn't just fail to express the intent — it enforced a different, catastrophic rule.</p>
+
+<h3>The first fix — and why it didn't stick</h3>
+<div class="problem"><span class="tag">The twist</span>
+<p>The obvious repair — drop the bad index on the Atlas cluster — worked for a few minutes, then the error <i>came back</i>. Mongoose's <code>autoIndex</code> (on by default) re-creates every index the schema declares, on every boot. Render's free tier spins down when idle, so the next login triggered a cold start, the boot re-ran <code>autoIndex</code>, and the deployed schema — which still declared the unique index — quietly rebuilt the time bomb.</p></div>
+<div class="fix"><span class="tag">The durable fix — two steps, in the right order</span>
+<p><b>Step 1: change the schema</b> and deploy it. The unique index declaration was removed and replaced with a plain, non-unique lookup index (<code>{ participants: 1 }</code>) — needed anyway for the "my conversations" query. Duplicate prevention moved to the application layer, where it already existed: <code>createConversation</code> does find-then-create per (pair + context), so the DB constraint had been redundant as well as wrong. <b>Step 2: drop the index once more, <i>after</i> the new code was live</b> — because <code>autoIndex</code> only <i>creates</i> declared indexes; it never <i>drops</i> undeclared ones. A schema change alone stops the resurrection but does not remove the corpse.</p></div>
+<p>The model now carries the tombstone in a comment, so the mistake cannot be silently reintroduced by a future refactor:</p>
+<pre><code>// NOT unique: a unique index on the participants array is multikey,
+// which wrongly caps each user at one conversation per listingId value
+// — e.g. one friend DM total, or only the first buyer per listing.
+// Duplicates are prevented at the application layer instead
+// (createConversation does findOne-then-create per pair + context).
+conversationSchema.index({ participants: 1 });</code></pre>
+
+<div class="lesson"><span class="tag">Lessons — the most valuable in the project</span>
+<ul>
+<li><b>Never put a unique index on an array field</b> unless per-<i>element</i> uniqueness is literally what you want. Multikey semantics are documented, surprising, and silent until the second row.</li>
+<li><b>An index lives in two places</b> — the schema (intent) and the database (reality) — and they heal in one direction only: declared indexes get created; undeclared ones are never dropped. Fixing one side is half a fix.</li>
+<li><b>Infrastructure quirks compound with data bugs.</b> Free-tier spin-down turned "I dropped the index" into "the index resurrects on the next login." Debugging required holding both layers in mind at once.</li>
+<li><b>Uniqueness that involves business meaning</b> ("same pair + same context") often belongs in application logic, where the rule can actually be expressed — with the DB index kept for lookup speed.</li>
+</ul></div>
+
+<h2>Production rewrites the storage plan</h2>
+<p class="lead">22 June 2026: "profile pic fixed," "uploads fixes." The original storage plan — everything to Cloudinary — met a production environment that had no Cloudinary credentials, and the plan was redesigned rather than patched.</p>
+
+<div class="problem"><span class="tag">Problem</span>
+<p>Listing photos, lost-&amp;-found images, avatars and UPI QR uploads worked locally but failed on the deployed backend: every image route streamed to Cloudinary, and production had no API key configured. A new profile picture also never appeared even when the save "succeeded," because the UI kept rendering the cached user object.</p></div>
+<div class="fix"><span class="tag">Fix — images move inline into MongoDB; documents keep Cloudinary</span>
+<p>A custom Multer storage engine (<code>dataUrlStorage.js</code>) buffers the upload in memory and exposes it as a base64 <b>data URL</b> on <code>file.path</code> — a drop-in replacement, since handlers read <code>file.path</code> either way. Images now live inline in the documents they belong to (<code>listings.images[]</code>, <code>users.avatarUrl</code>, group covers, QR codes). Three guards keep documents far under MongoDB's 16&nbsp;MB ceiling: client-side resize before upload, tight per-file size caps (2&nbsp;MB, down from 10), and per-listing image-count caps. The avatar screen additionally refreshes the auth context after saving, so the new picture appears everywhere immediately. <b>Study Vault documents (PDFs) deliberately kept the Cloudinary streaming pipeline</b> — they are far too large to inline, which is precisely the case Cloudinary is for.</p></div>
+<div class="why"><span class="tag">Why inline-in-Mongo is the right call here (and when it isn't)</span>
+<p>For small, resized images, inlining removes an entire external dependency: uploads survive redeploys, work with zero credentials, and arrive with the document in one query. The textbook objection — document bloat — is real but bounded by the caps. The moment the payload is a multi-megabyte PDF, the calculus flips, which is why the vault kept the streaming pipeline. Storage decisions are per-payload, not per-app.</p></div>
+
+<h2>The login that would not stay</h2>
+<p class="lead">22–25 June 2026: "session time increases," "login fixes," "stays login fixes," "phone login fixed." Users were logged out every time they closed the app — and the investigation found two completely independent causes, one per platform.</p>
+
+<div class="problem"><span class="tag">Cause 1 — web: the app never looked</span>
+<p>On the web, the session was never actually lost. The JWT sat safely in <code>localStorage</code> — but the start route <code>/</code> rendered the marketing landing page, which never consulted the auth context, so every visit showed "Sign in / Get started." The user <i>appeared</i> logged out because the entry point didn't check.</p></div>
+<div class="problem"><span class="tag">Cause 2 — Android: the storage genuinely vanished</span>
+<p>On the native app, the token lived only in the WebView's <code>localStorage</code> — which Android flushes lazily and wipes when it kills the app process (swipe-close, low memory). There, the session truly disappeared.</p></div>
+<div class="fix"><span class="tag">Fix — durable storage + session-aware entry</span>
+<p>Two shipped changes. First, an <code>authStorage</code> utility write-throughs the session to <b>Capacitor Preferences</b> (native <code>SharedPreferences</code>) alongside <code>localStorage</code>; on launch, a bootstrap step — awaited <i>before React renders</i> — copies the durable values back into <code>localStorage</code>, so the synchronous axios interceptor and socket auth never have to go async. Second, the landing and auth pages now redirect an already-authenticated user straight into the app. JWT lifetime was also set to 365 days — sessions end at logout, not on a timer, with revocation handled separately (Chapter 17).</p></div>
+<div class="lesson"><span class="tag">Lesson</span>
+<p>"Users get logged out" felt like one bug and was actually two, with different owners: a UX oversight on web and a platform storage semantics issue on Android. Debugging symptom-first ("the session is gone") would have chased the wrong layer half the time; the fix required asking, per platform, <i>is the token actually gone, or just unread?</i></p></div>
+
+<div class="pagebreak"></div>
+
+<!-- ================= PART V ================= -->
+<p class="part">Part V — Native, structure, security</p>
+
+<h2>Going native — the Android app</h2>
+<p class="lead">22–26 June 2026: the same codebase became an installable Android app. Almost every "mobile bug" turned out to be a web bug with better camouflage.</p>
+
+<p>Capacitor 8 wraps the built web app (<code>frontend/dist</code>) in a native shell with a Gradle project under <code>frontend/android/</code>. Native HTTP means the app calls the API without any CORS involvement at all. The build chain is scripted (<code>npm run android</code> → build web → sync → open Android Studio); launcher icons and splash screens are generated from the MANIT crest by a script.</p>
+<p>Practical potholes, as encountered: Capacitor 8 requires <b>JDK 21</b> — a machine whose <code>PATH</code> points at JDK 17 fails with confusing Gradle errors, and the working answer was Android Studio's bundled JBR. Release signing reads <code>keystore.properties</code> with a git-ignored keystore. And an early convenience — committing the built APK into the repo — was reversed within days (<i>"Delete ManitHub.apk"</i>): binaries bloat every future clone forever, and releases belong in release channels, not history. One real limitation was accepted with eyes open: with no over-the-air update layer, every JS change reaching APK users requires a rebuild — fine at this scale, and the web app is always current.</p>
+
+<h2>The restructures</h2>
+<p class="lead">Twice — 17 June and 13 July — the project stopped adding features and reorganised itself. Both were done as proper branch-and-merge work (the June one is the repo's PR #1), not loose commits.</p>
+
+<p>The June restructure lifted the backend out of a nested <code>src/</code> into the flat layout this document has been describing: <code>server.js</code> and <code>app.js</code> at the backend root, with <code>config/</code>, <code>middleware/</code>, <code>models/</code>, <code>socket/</code>, <code>jobs/</code>, <code>utils/</code>, and the 23 feature folders beside them. The frontend was restructured in the same sweep, and the dead Vercel-backend configuration was removed once Render was live. The July restructure was a smaller tidy-up in the same spirit.</p>
+<div class="why"><span class="tag">Why restructure mid-project instead of pushing on?</span>
+<p>Because the nested layout was actively lying: the entry point Vercel deployed and the entry point that ran locally were different files (Chapter 11's discovery), and paths no longer matched what the docs and configs implied. A structure that misleads is worse than churn. Doing it as an isolated PR kept the risky, everything-moves change reviewable and revertible — worth it even solo.</p></div>
+
+<h2>Security hardening &amp; email verification</h2>
+<p class="lead">4 July ("Security Increases") and 14 July 2026 ("email authentication"): with the feature set stable, a dedicated pass took the app from "works" to "defensible." The philosophy: defence in depth — no single control trusted alone.</p>
+
+<h3>Accounts and sessions</h3>
+<ul>
+  <li><b>Passwords:</b> bcrypt with salt, stored with <code>select:false</code> so no query can leak the hash by accident; minimum 8 characters enforced.</li>
+  <li><b>Revocable long sessions:</b> the 365-day JWT (Chapter 14) gets a <code>tokenVersion</code> claim; a password reset increments the user's version, instantly invalidating <i>every</i> previously issued token. Long, friction-free sessions and revoke-on-compromise — usually presented as a trade-off — coexist with one integer.</li>
+  <li><b>Password reset:</b> a random token whose <b>SHA-256 hash</b> alone is stored (30-minute expiry) and emailed via Nodemailer; the raw token appears in an API response only in development with no SMTP configured.</li>
+  <li><b>Email verification (the 14 July finale):</b> signup issues a 6-digit code — stored hashed, 30-minute expiry — and login returns 403 until it is confirmed, proving the <code>@stu.manit.ac.in</code> address is genuinely owned. Deliberately <b>config-gated</b>: with no SMTP configured (local dev), signup falls back to the old flow instead of breaking.</li>
+  <li><b>Rate limiting:</b> 600 requests/15 min per IP across the API; on auth routes, 20 <i>failed</i> attempts per 15 minutes (successful logins don't count) — brute force, signup spam and code-guessing all hit the same wall.</li>
+</ul>
+
+<h3>Boundaries</h3>
+<ul>
+  <li><b>Tenancy re-checked everywhere:</b> the socket layer re-verifies university membership before any join or send — REST middleware alone isn't enough when a second transport exists.</li>
+  <li><b>CORS matched precisely:</b> preview deployments are matched on the <i>full project slug as a subdomain label</i>, closing the hole where any attacker-registered <code>manithub-*.vercel.app</code> would have passed a loose substring check.</li>
+  <li><b>Uploads:</b> raster-only MIME allow-list — <b>SVG rejected outright</b>, since SVG is a script container that can carry XSS into any page that renders it.</li>
+</ul>
+
+<h3>Content moderation — three layers</h3>
+<ol>
+  <li><b>Text filter at the gate:</b> a self-contained English + Hindi/Hinglish profanity filter that de-obfuscates leetspeak, spacing and character repeats, with whole-word matching to avoid false positives, applied to public content (confessions, forum, listings). Private DMs are deliberately <i>not</i> filtered — private conversation is not the app's to police; reporting covers abuse there. Extensible at runtime via an env var, so new slang never needs a deploy.</li>
+  <li><b>Reports → auto-hide → strikes → ban:</b> content auto-hides after 3 distinct reports and the author takes a strike; 3 strikes auto-suspends the account, enforced at login, API <i>and</i> socket. Admins keep a manual review queue that overrides the automation in both directions.</li>
+  <li><b>Image moderation, env-gated and fail-open:</b> an optional hook (Google Vision SafeSearch or Sightengine) rejects explicit images <i>before storage</i>. Off by default; on a provider outage it fails open, because blocking every campus upload over a third-party blip is worse than letting the report queue backstop a rare miss.</li>
+</ol>
+<div class="lesson"><span class="tag">Why "config-gated" recurs so often</span>
+<p>Email verification, push notifications, and image moderation all switch on only when their credentials exist — and degrade gracefully when they don't. That is what lets one codebase serve local dev (no SMTP, no Firebase, no Vision key) and production without forks or mocks. Every external dependency is an upgrade, never a requirement.</p></div>
+
+<div class="pagebreak"></div>
+
+<!-- ================= PART VI ================= -->
+<p class="part">Part VI — Reflection</p>
+
+<h2>The frontend, as it ended up</h2>
+<p class="lead">The frontend was never "written last" — it grew screen-by-screen behind each feature. But it was <i>polished</i> last, deliberately, once the product underneath had stopped moving.</p>
+
+<p>The structure mirrors the backend's discipline: <code>api/</code> holds one axios client per feature (all sharing an interceptor that attaches the JWT and unwraps the response envelope); <code>screens/</code> has one route-level component per page; <code>components/</code> holds the UI kit; <code>context/</code> carries Auth and Theme providers; <code>utils/</code> contains the socket service (with the reconnect-re-join logic of Chapter 10) and the durable auth storage of Chapter 14.</p>
+<p>The design system is the MANIT identity — navy, crimson and gold tokens over Tailwind — with full dark mode, a ⌘K command palette, and navigation reorganised from a flat screen-list into four hubs (Academics · Study · Marketplace · Campus Life) with in-page tabs. That reorganisation happened for an honest reason: at 20+ features, the original sidebar had become a wall; the information architecture had to grow up along with the feature count.</p>
+<div class="why"><span class="tag">Why invest in "premium feel" for a student project?</span>
+<p>Because adoption is the product's only metric. A campus app competes with WhatsApp's zero-friction inertia; students only switch to something that feels <i>better</i>, not merely functional. Dark mode, motion, and a command palette are not decoration here — they are the argument for switching.</p></div>
+
+<h2>Lessons learned</h2>
+<p class="lead">If the whole story compresses to ten lines, these are the lines.</p>
+<ol>
+  <li><b>Deploy on day one.</b> Fourteen deployment-fix commits against an empty app cost nothing; the same lessons against live users would have been incidents.</li>
+  <li><b>Design the data first;</b> screens are cheap to change, collections are not.</li>
+  <li><b>Never put a unique index on an array field.</b> Multikey semantics enforce per-element uniqueness — a different rule than intended, silent until the second row.</li>
+  <li><b>Indexes live in the schema <i>and</i> the database,</b> and they heal in one direction only. A durable index fix = schema change, deploy, <i>then</i> a one-time drop.</li>
+  <li><b>Match hosting to workload shape:</b> serverless for request/response, a persistent process for WebSockets and cron. One app can — and here does — need both.</li>
+  <li><b>Register event handlers before any <code>await</code>.</b> Subscription timing is correctness; races hide from manual testing by design.</li>
+  <li><b>Reconnection restores the transport, not the state.</b> The client must re-assert rooms and subscriptions on every connect.</li>
+  <li><b>When production lacks a dependency, redesign rather than patch</b> — inlining images removed a whole external service; the PDF pipeline kept it where it earned its place.</li>
+  <li><b>One symptom can be two bugs.</b> "Users get logged out" was a web UX oversight <i>and</i> an Android storage semantics issue; per-platform diagnosis found both.</li>
+  <li><b>Gate every external service on config and degrade gracefully.</b> That is what keeps one codebase honest across dev and production — and what let security land in layers instead of one big bang.</li>
+</ol>
+
+<h2>Appendix — the full timeline</h2>
+<p class="lead">The whole story again, at commit-log resolution. Dates are commit dates on <code>main</code>.</p>
+
+<div class="tl-item"><div class="tl-date">19 May</div><div class="tl-body"><b>Day one.</b> Initial commit — and 13 more the same day: dependency fixes, root route, CORS origin, Vite env-var naming, Atlas connection, the serverless Mongo connection gate, hardened production config. The deployment war (Ch. 6).</div></div>
+<div class="tl-item"><div class="tl-date">20 May</div><div class="tl-body"><b>Campus maps &amp; the name.</b> Exact MANIT boundary (KML), embedded custom map, map dashboard redesign; Netlify SPA routing fixed; project renamed <b>Manit Hub</b> (Ch. 7).</div></div>
+<div class="tl-item"><div class="tl-date">4 Jun</div><div class="tl-body"><b>Feeling alive.</b> Frontend iteration, <code>vercel.json</code>, seed data, notification fixes, all 41 campus locations integrated (Ch. 8).</div></div>
+<div class="tl-item"><div class="tl-date">9–11 Jun</div><div class="tl-body"><b>The feature blitz.</b> App integration, UI view, Study Vault, CGPA calculator, Attendance tracker, Lost &amp; Found, "some more new features" — confessions, events, rides, forum, offers, gamification (Ch. 9).</div></div>
+<div class="tl-item"><div class="tl-date">15–17 Jun</div><div class="tl-body"><b>Chat, and the socket wars.</b> Chat with friends ships; three rounds of socket fixes — the async-handler join race and reconnect re-join (Ch. 10); the discovery that serverless can't hold WebSockets → <b>backend moves to Render</b>; the big backend/frontend restructure lands as PR #1 (Ch. 11, 16).</div></div>
+<div class="tl-item"><div class="tl-date">22 Jun</div><div class="tl-body"><b>Production teaches storage &amp; sessions.</b> APK fixes; frontend moves Netlify → Vercel; session lifetime to 365 days; login fixes; profile pictures and uploads move to inline data-URL storage (Ch. 13, 14).</div></div>
+<div class="tl-item"><div class="tl-date">24–25 Jun</div><div class="tl-body"><b>The E11000 day.</b> The multikey unique-index bug is diagnosed, the schema fixed (<code>Conversation.js</code>), the autoIndex-resurrection twist understood, the durable fix deployed; stay-logged-in and phone login finished (Ch. 12, 14).</div></div>
+<div class="tl-item"><div class="tl-date">26 Jun</div><div class="tl-body"><b>Repo hygiene.</b> The committed APK is deleted from the repository; distribution moves to a release link (Ch. 15).</div></div>
+<div class="tl-item"><div class="tl-date">3 Jul</div><div class="tl-body"><b>Telling the story.</b> A full video tour is produced and linked from the landing page and README.</div></div>
+<div class="tl-item"><div class="tl-date">4 Jul</div><div class="tl-body"><b>"Security Increases."</b> Rate limiting, tokenVersion revocation, precise CORS slug-matching, mass-assignment whitelists, SVG rejection, the EN+Hinglish profanity filter, report→auto-hide→strike→ban pipeline, env-gated image moderation (Ch. 17).</div></div>
+<div class="tl-item"><div class="tl-date">13 Jul</div><div class="tl-body"><b>Second restructure.</b> A final layout tidy-up (Ch. 16).</div></div>
+<div class="tl-item"><div class="tl-date">14 Jul</div><div class="tl-body"><b>"Email authentication."</b> The 6-digit signup OTP flow ships — hashed codes, 30-minute expiry, 403-until-verified, config-gated on SMTP (Ch. 17). The story, for now, is up to date.</div></div>
+
+<hr style="border:none; border-top:1px solid var(--line); margin:18pt 0 10pt;"/>
+<p class="small" style="text-align:center;">
+<b>End of the Build Story.</b> Companion documents: <i>Manit-Hub-Developer-Notes.pdf</i> (the function-by-function study guide) and the README (setup &amp; API reference).<br/>
+Built by students, for students. 🎓 — Not an official institute portal.
+</p>
+
+</div>
+</body>
+</html>

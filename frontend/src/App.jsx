@@ -22,6 +22,9 @@ const Forum = lazy(() => import("./screens/Forum"));
 const QuestionDetail = lazy(() => import("./screens/QuestionDetail"));
 const Offers = lazy(() => import("./screens/Offers"));
 const AdminModeration = lazy(() => import("./screens/AdminModeration"));
+const AdminDashboard = lazy(() => import("./screens/AdminDashboard"));
+const AdminUsers = lazy(() => import("./screens/AdminUsers"));
+const AdminUserDetail = lazy(() => import("./screens/AdminUserDetail"));
 const Leaderboard = lazy(() => import("./screens/Leaderboard"));
 const Friends = lazy(() => import("./screens/Friends"));
 const StudyGroupDetails = lazy(() => import("./screens/StudyGroupDetails"));
@@ -29,6 +32,7 @@ const CampusMaps = lazy(() => import("./screens/CampusMaps"));
 const Notifications = lazy(() => import("./screens/Notifications"));
 const Settings = lazy(() => import("./screens/Settings"));
 const Auth = lazy(() => import("./screens/Auth"));
+const AdminLogin = lazy(() => import("./screens/AdminLogin"));
 const LandingPage = lazy(() => import("./screens/LandingPage"));
 const NotFound = lazy(() => import("./screens/NotFound"));
 const SellerProfile = lazy(() => import("./screens/SellerProfile"));
@@ -61,6 +65,8 @@ export default function App() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/auth" element={<Auth />} />
+          {/* Secret CEO/owner login — no link points here. */}
+          <Route path="/admin/login" element={<AdminLogin />} />
 
           {/* Protected app layout */}
           <Route element={<ProtectedRoute />}>
@@ -80,6 +86,9 @@ export default function App() {
               <Route path="/forum" element={<Forum />} />
               <Route path="/forum/:id" element={<QuestionDetail />} />
               <Route path="/offers" element={<Offers />} />
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin/users" element={<AdminUsers />} />
+              <Route path="/admin/users/:id" element={<AdminUserDetail />} />
               <Route path="/admin/moderation" element={<AdminModeration />} />
               <Route path="/leaderboard" element={<Leaderboard />} />
               <Route path="/friends" element={<Friends />} />

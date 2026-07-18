@@ -23,7 +23,7 @@ const auth = async (req, res, next) => {
 
     // Suspended accounts are locked out of the entire API.
     if (user.isBanned) {
-      return error(res, "Your account has been suspended", 403);
+      return error(res, "Your account has been suspended", 403, null, "ACCOUNT_SUSPENDED");
     }
 
     // Reject tokens issued before the last password reset. Legacy tokens

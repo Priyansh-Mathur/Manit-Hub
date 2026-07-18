@@ -137,6 +137,7 @@ app.use(async (req, res, next) => {
 // Auth
 app.use("/api/auth", require("./apis/auth/signup"));
 app.use("/api/auth", require("./apis/auth/login"));
+app.use("/api/auth", require("./apis/auth/adminLogin"));
 app.use("/api/auth", require("./apis/auth/forgotPassword"));
 app.use("/api/auth", require("./apis/auth/resetPassword"));
 app.use("/api/auth", require("./apis/auth/verifyEmail"));
@@ -275,6 +276,16 @@ app.use("/api/offers", require("./apis/offers/updateOffer"));
 app.use("/api/reports", require("./apis/reports/createReport"));
 app.use("/api/reports", require("./apis/reports/getReports"));
 app.use("/api/reports", require("./apis/reports/handleReport"));
+
+// Admin / CEO console — analytics + account management (auth + isAdmin gated).
+// Specific /users action routes before the generic /users/:id detail route.
+app.use("/api/admin", require("./apis/admin/getOverview"));
+app.use("/api/admin", require("./apis/admin/getGrowth"));
+app.use("/api/admin", require("./apis/admin/getBreakdown"));
+app.use("/api/admin", require("./apis/admin/suspendUser"));
+app.use("/api/admin", require("./apis/admin/unsuspendUser"));
+app.use("/api/admin", require("./apis/admin/getUsers"));
+app.use("/api/admin", require("./apis/admin/getUserDetail"));
 
 // Leaderboard
 app.use("/api/leaderboard", require("./apis/leaderboard/getLeaderboard"));

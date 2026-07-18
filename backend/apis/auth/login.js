@@ -42,13 +42,13 @@ router.post("/login", async (req, res, next) => {
 
     // Suspended accounts can't sign in.
     if (user.isBanned) {
-      return error(res, "Your account has been suspended", 403);
+      return error(res, "Your account has been suspended", 403, null, "ACCOUNT_SUSPENDED");
     }
 
     // Accounts created under the email-verification regime must verify
     // first. Legacy accounts (field missing → default true) are unaffected.
     if (user.emailVerified === false) {
-      return error(res, "Please verify your email to sign in", 403);
+      return error(res, "Please verify your email to sign in", 403, null, "EMAIL_UNVERIFIED");
     }
 
     // Backfill a handle for legacy accounts created before handles existed.

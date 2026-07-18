@@ -101,7 +101,7 @@
   <li>Backend architecture — the one-file-per-endpoint pattern</li>
   <li>Authentication &amp; authorization, end-to-end</li>
   <li>Multi-tenancy — university scoping</li>
-  <li>The data layer — Mongoose, the connection cache, every model</li>
+  <li>The data layer — Mongoose, the connection cache, every model<br/><span class="small">+ the <b>complete data dictionary</b> — all 21 collections, field-by-field with types, defaults, enums &amp; indexes — and the <b>end-to-end data-flow map</b>: exactly which data leaves the device, what path it travels, and where it finally comes to rest.</span></li>
   <li>File &amp; media storage — the "how are PDFs stored?" question, answered properly</li>
   <li>Real-time chat &amp; presence — Socket.IO deep dive</li>
   <li>Notifications &amp; push — in-app + Firebase Cloud Messaging</li>
@@ -550,14 +550,498 @@ userSchema.methods.comparePassword = function (candidate) {
 </div>
 </div>
 
+<!-- ============================ PART 8B — DATA DICTIONARY ============================ -->
+<div class="part">
+<h2>8 · Data layer (continued) — the complete data dictionary</h2>
+
+<p class="lead">This is the full schema reference: <b>every collection, every field, every type, every default, every enum, every index</b> — enough to rebuild the database from this chapter alone. Collection names are what Mongoose derives from the model name (lowercased + pluralised): <code>User → users</code>, <code>LostFoundItem → lostfounditems</code>, and so on.</p>
+
+<div class="note box"><b>Applies to every table below:</b> all schemas set <code>timestamps: true</code>, so every document also carries <code>createdAt</code> and <code>updatedAt</code> (Date, auto-managed) plus Mongo's automatic <code>_id: ObjectId</code>. Those three are omitted from the tables. "→" in the Type column means an ObjectId <i>reference</i> to that collection.</div>
+
+<h3>How the collections relate</h3>
+<pre><code>universities  (tenant root — every row below carries a `university` stamp)
+     │
+   users ──────────────────────────────────────────────────────────────
+     ├─ sells ────→ listings ←── receives ── offers (buyer + seller → users)
+     ├─ uploads ──→ documents            (embedded comments[].author → users)
+     ├─ creates/joins → studygroups      (members[] → users)
+     ├─ writes ───→ confessions (author hidden) · questions ←── answers
+     ├─ chats ────→ conversations (exactly 2 participants) ←── messages
+     ├─ posts ────→ events (attendees[]) · rides (passengers[]) · lostfounditems
+     ├─ owns ─────→ academicrecords · attendancesubjects · timetableentries   (private, per-user)
+     ├─ receives ─→ notifications  ·  registers → devicetokens (FCM)
+     ├─ befriends → friendships (users[2] + pairKey)
+     └─ flags ────→ reports (targetType + targetId → any content collection)</code></pre>
+
+<h3>Identity &amp; tenancy</h3>
+
+<h4>1 · <code>users</code> <span class="pill">models/User.js</span></h4>
+<table>
+<tr><th>Field</th><th>Type</th><th>Required / default</th><th>Constraints &amp; notes</th></tr>
+<tr><td><code>email</code></td><td>String</td><td>required</td><td>unique · lowercase · must match <code>^\d{10}@stu\.manit\.ac\.in$</code> — the scholar-number email is what makes every account a verified student</td></tr>
+<tr><td><code>password</code></td><td>String</td><td>required</td><td>min 8 · <code>select:false</code> (never returned by queries) · bcrypt-hashed (cost 10) by a pre-save hook — plaintext never persists</td></tr>
+<tr><td><code>displayName</code></td><td>String</td><td>required</td><td>trimmed</td></tr>
+<tr><td><code>handle</code></td><td>String</td><td>—</td><td>unique + sparse · lowercase · <code>^[a-z0-9_.]{3,20}$</code> — Instagram-style @handle; sparse so legacy users without one don't collide on null</td></tr>
+<tr><td><code>phone</code> / <code>bio</code> / <code>location</code></td><td>String</td><td><code>""</code></td><td>free text, trimmed</td></tr>
+<tr><td><code>avatarUrl</code></td><td>String</td><td><code>""</code></td><td>holds the profile photo <b>as a base64 data URL</b> — the image bytes live in this field (see §9.5)</td></tr>
+<tr><td><code>university</code></td><td>→ universities</td><td>required</td><td>indexed — the tenant stamp on every account</td></tr>
+<tr><td><code>isAdmin</code></td><td>Boolean</td><td><code>false</code></td><td>unlocks the moderation queue (<code>/api/reports</code>)</td></tr>
+<tr><td><code>points</code></td><td>Number</td><td><code>0</code></td><td>indexed — the leaderboard sort key</td></tr>
+<tr><td><code>badges</code></td><td>[String]</td><td><code>[]</code></td><td>earned badge names ("Note Sharer", "Campus Hero"…)</td></tr>
+<tr><td><code>savedListings</code></td><td>[→ listings]</td><td><code>[]</code></td><td>wishlist / "interested" listings</td></tr>
+<tr><td><code>paymentInfo</code></td><td>{ upiId, upiQrUrl }</td><td>—</td><td><code>upiId</code> matches a UPI regex; <code>upiQrUrl</code> is a data-URL image of the seller's QR code</td></tr>
+<tr><td><code>notificationPreferences</code></td><td>{ messages, studyGroups, marketplace }</td><td>all <code>true</code></td><td>per-category Boolean opt-outs</td></tr>
+<tr><td><code>privacySettings</code></td><td>{ profileVisibility, showOnlineStatus, allowDirectMessages }</td><td><code>everyone</code> / <code>true</code> / <code>true</code></td><td><code>profileVisibility</code> enum: <code>everyone · students · private</code></td></tr>
+<tr><td><code>isActive</code></td><td>Boolean</td><td><code>true</code></td><td>soft delete</td></tr>
+<tr><td><code>isBanned</code> · <code>strikes</code> · <code>banReason</code> · <code>bannedAt</code></td><td>Boolean · Number · String · Date</td><td><code>false</code> · <code>0</code> · <code>""</code> · <code>null</code></td><td>moderation state — strikes accumulate when the user's content is auto-hidden/removed; a banned account is rejected by both the API and the socket</td></tr>
+<tr><td><code>passwordResetToken</code> · <code>passwordResetExpires</code></td><td>String · Date</td><td><code>null</code></td><td><code>select:false</code> — SHA-256 hash of the emailed reset token, never the raw token</td></tr>
+<tr><td><code>tokenVersion</code></td><td>Number</td><td><code>0</code></td><td><code>select:false</code> — bumped on password reset; JWTs carry it as the <code>tv</code> claim, so all older tokens die instantly</td></tr>
+<tr><td><code>emailVerified</code></td><td>Boolean</td><td><code>true</code></td><td>default <b>true</b> on purpose — legacy accounts (pre-verification) keep working; only accounts explicitly created with <code>false</code> are gated at login</td></tr>
+<tr><td><code>emailVerificationToken</code> · <code>emailVerificationExpires</code></td><td>String · Date</td><td><code>null</code></td><td><code>select:false</code> — SHA-256 of the 6-digit OTP · 30-minute expiry</td></tr>
+<tr><td class="small" colspan="4"><b>Indexes:</b> <code>email</code> unique · <code>handle</code> unique-sparse · <code>university</code> · <code>points</code></td></tr>
+</table>
+
+<h4>2 · <code>universities</code> <span class="pill">models/University.js</span></h4>
+<table>
+<tr><th>Field</th><th>Type</th><th>Required / default</th><th>Constraints &amp; notes</th></tr>
+<tr><td><code>name</code></td><td>String</td><td>—</td><td>display name ("MANIT Bhopal")</td></tr>
+<tr><td><code>domains</code></td><td>[String]</td><td>required</td><td>unique — email-domain → tenant mapping (<code>stu.manit.ac.in</code>); signup resolves the university from the email's domain</td></tr>
+<tr><td><code>isVerified</code></td><td>Boolean</td><td><code>false</code></td><td>—</td></tr>
+<tr><td><code>isActive</code></td><td>Boolean</td><td><code>true</code></td><td>—</td></tr>
+</table>
+
+<h3>Marketplace</h3>
+
+<h4>3 · <code>listings</code> <span class="pill">models/Listing.js</span></h4>
+<table>
+<tr><th>Field</th><th>Type</th><th>Required / default</th><th>Constraints &amp; notes</th></tr>
+<tr><td><code>title</code></td><td>String</td><td>required</td><td>text-indexed for search</td></tr>
+<tr><td><code>description</code></td><td>String</td><td>—</td><td>text-indexed</td></tr>
+<tr><td><code>price</code></td><td>Number</td><td>required</td><td>min 0 (₹)</td></tr>
+<tr><td><code>category</code></td><td>String</td><td>required</td><td>enum: <code>Textbooks · Electronics · Furniture · Clothing · Sports · Other</code></td></tr>
+<tr><td><code>images</code></td><td>[String]</td><td><code>[]</code></td><td>base64 <b>data URLs</b> — photo bytes live inline in this document</td></tr>
+<tr><td><code>seller</code></td><td>→ users</td><td>required</td><td>—</td></tr>
+<tr><td><code>university</code></td><td>→ universities</td><td>required</td><td>indexed</td></tr>
+<tr><td><code>condition</code></td><td>String</td><td><code>good</code></td><td>enum: <code>new · like-new · good · fair</code></td></tr>
+<tr><td><code>status</code></td><td>String</td><td><code>available</code></td><td>enum: <code>available · sold · reserved</code> · indexed</td></tr>
+<tr><td><code>isActive</code></td><td>Boolean</td><td><code>true</code></td><td>soft delete</td></tr>
+<tr><td class="small" colspan="4"><b>Indexes:</b> text(<code>title</code>, <code>description</code>) · <code>{ university, isActive }</code></td></tr>
+</table>
+
+<h4>4 · <code>offers</code> <span class="pill">models/Offer.js</span></h4>
+<table>
+<tr><th>Field</th><th>Type</th><th>Required / default</th><th>Constraints &amp; notes</th></tr>
+<tr><td><code>listing</code></td><td>→ listings</td><td>required</td><td>indexed</td></tr>
+<tr><td><code>buyer</code></td><td>→ users</td><td>required</td><td>indexed</td></tr>
+<tr><td><code>seller</code></td><td>→ users</td><td>required</td><td>indexed — <b>denormalized from the listing</b> so "offers received" is one query, no join</td></tr>
+<tr><td><code>university</code></td><td>→ universities</td><td>required</td><td>indexed</td></tr>
+<tr><td><code>amount</code></td><td>Number</td><td>required</td><td>min 1</td></tr>
+<tr><td><code>message</code></td><td>String</td><td>—</td><td>max 300</td></tr>
+<tr><td><code>counterAmount</code></td><td>Number</td><td>—</td><td>min 1 — the seller's counter (status becomes <code>countered</code>)</td></tr>
+<tr><td><code>status</code></td><td>String</td><td><code>pending</code></td><td>enum (the negotiation state machine): <code>pending · countered · accepted · declined · withdrawn</code> · indexed</td></tr>
+<tr><td class="small" colspan="4"><b>Indexes:</b> <code>{ listing, buyer, status }</code></td></tr>
+</table>
+
+<h3>Study Vault</h3>
+
+<h4>5 · <code>documents</code> <span class="pill">models/Document.js</span></h4>
+<table>
+<tr><th>Field</th><th>Type</th><th>Required / default</th><th>Constraints &amp; notes</th></tr>
+<tr><td><code>title</code></td><td>String</td><td>required</td><td>text-indexed</td></tr>
+<tr><td><code>description</code></td><td>String</td><td>—</td><td>—</td></tr>
+<tr><td><code>type</code></td><td>String</td><td>required</td><td>enum: <code>Notes · PYQ · Syllabus · Sem Schedule · Other</code></td></tr>
+<tr><td><code>branch</code> / <code>subject</code> / <code>semester</code></td><td>String</td><td>—</td><td><code>subject</code> is text-indexed</td></tr>
+<tr><td><code>year</code></td><td>Number</td><td>—</td><td>—</td></tr>
+<tr><td><code>fileUrl</code></td><td>String</td><td>required</td><td><b>Cloudinary <code>secure_url</code></b> — the only pointer to the binary; the file itself is NOT in Mongo</td></tr>
+<tr><td><code>fileName</code> / <code>fileFormat</code></td><td>String</td><td>—</td><td>original name · extension</td></tr>
+<tr><td><code>fileSize</code></td><td>Number</td><td>—</td><td>bytes (from Cloudinary)</td></tr>
+<tr><td><code>uploader</code></td><td>→ users</td><td>required</td><td>—</td></tr>
+<tr><td><code>university</code></td><td>→ universities</td><td>required</td><td>indexed</td></tr>
+<tr><td><code>downloadCount</code></td><td>Number</td><td><code>0</code></td><td><code>$inc</code>'d by <code>POST /:id/download</code> for analytics/sorting</td></tr>
+<tr><td><code>upvotes</code></td><td>[→ users]</td><td><code>[]</code></td><td>who upvoted (prevents double votes)</td></tr>
+<tr><td><code>upvoteCount</code></td><td>Number</td><td><code>0</code></td><td>indexed — denormalized for the "Top rated" sort</td></tr>
+<tr><td><code>comments</code></td><td>[embedded]</td><td><code>[]</code></td><td><code>{ author → users (required), content ≤500, createdAt }</code></td></tr>
+<tr><td><code>isActive</code></td><td>Boolean</td><td><code>true</code></td><td>soft delete</td></tr>
+<tr><td class="small" colspan="4"><b>Indexes:</b> text(<code>title</code>, <code>subject</code>) · <code>{ university, isActive }</code> · <code>upvoteCount</code></td></tr>
+</table>
+
+<h3>Community</h3>
+
+<h4>6 · <code>studygroups</code> <span class="pill">models/StudyGroup.js</span></h4>
+<table>
+<tr><th>Field</th><th>Type</th><th>Required / default</th><th>Constraints &amp; notes</th></tr>
+<tr><td><code>name</code></td><td>String</td><td>required</td><td>text-indexed</td></tr>
+<tr><td><code>description</code></td><td>String</td><td>—</td><td>text-indexed</td></tr>
+<tr><td><code>subject</code></td><td>String</td><td>required</td><td>text-indexed</td></tr>
+<tr><td><code>tags</code></td><td>[String]</td><td><code>[]</code></td><td>indexed + text-indexed</td></tr>
+<tr><td><code>image</code></td><td>String</td><td><code>""</code></td><td>cover image as a base64 data URL</td></tr>
+<tr><td><code>creator</code></td><td>→ users</td><td>required</td><td>a pre-save hook guarantees the creator is always in <code>members</code> and dedupes the array</td></tr>
+<tr><td><code>members</code></td><td>[→ users]</td><td>—</td><td>virtual <code>memberCount</code> = array length</td></tr>
+<tr><td><code>maxMembers</code></td><td>Number</td><td><code>10</code></td><td>min 2 — member cap enforced on join</td></tr>
+<tr><td><code>links</code></td><td>{ whatsapp, telegram, discord, googleMeet }</td><td>—</td><td>external collaboration links</td></tr>
+<tr><td><code>customLinks</code></td><td>[{ label, url }]</td><td>—</td><td>anything else</td></tr>
+<tr><td><code>nextSession</code></td><td>{ at: Date, mode, location, meetingLink }</td><td>—</td><td><code>mode</code> enum: <code>online · offline</code> — drives the session-reminder cron</td></tr>
+<tr><td><code>university</code></td><td>→ universities</td><td>required</td><td>indexed</td></tr>
+<tr><td><code>isActive</code></td><td>Boolean</td><td><code>true</code></td><td>indexed</td></tr>
+<tr><td><code>notifications.sessionReminderSent</code></td><td>Boolean</td><td><code>false</code></td><td>indexed — cron idempotency flag (reset when a new session is scheduled)</td></tr>
+<tr><td class="small" colspan="4"><b>Indexes:</b> text(<code>name</code>, <code>description</code>, <code>subject</code>, <code>tags</code>) · <code>{ university, isActive }</code> · <code>{ university, isActive, "nextSession.at" }</code></td></tr>
+</table>
+
+<h4>7 · <code>confessions</code> <span class="pill">models/Confession.js</span></h4>
+<table>
+<tr><th>Field</th><th>Type</th><th>Required / default</th><th>Constraints &amp; notes</th></tr>
+<tr><td><code>author</code></td><td>→ users</td><td>required</td><td>indexed — stored <b>privately for moderation only, never serialized to any client</b>; anonymity is a serialization rule, not missing data</td></tr>
+<tr><td><code>university</code></td><td>→ universities</td><td>required</td><td>indexed</td></tr>
+<tr><td><code>content</code></td><td>String</td><td>required</td><td>max 1000</td></tr>
+<tr><td><code>reactions</code></td><td>[{ user → users, type }]</td><td>—</td><td><code>type</code> enum: <code>heart · laugh · wow · sad</code> — one reaction per user, switchable</td></tr>
+<tr><td><code>reactionsCount</code></td><td>Number</td><td><code>0</code></td><td>indexed — denormalized for the "Top" sort</td></tr>
+<tr><td><code>comments</code></td><td>[embedded]</td><td>—</td><td><code>{ author → users (hidden too), content ≤500, timestamps }</code></td></tr>
+<tr><td><code>reports</code></td><td>[{ user, reason ≤300, createdAt }]</td><td>—</td><td>embedded (unlike other content types, which use the <code>reports</code> collection)</td></tr>
+<tr><td><code>isHidden</code></td><td>Boolean</td><td><code>false</code></td><td>flipped automatically when reports cross the threshold</td></tr>
+<tr><td><code>isActive</code></td><td>Boolean</td><td><code>true</code></td><td>soft delete</td></tr>
+<tr><td class="small" colspan="4"><b>Indexes:</b> <code>{ university, isActive, isHidden, createdAt: -1 }</code> — exactly the feed query + sort</td></tr>
+</table>
+
+<h4>8 · <code>questions</code> <span class="pill">models/Question.js</span></h4>
+<table>
+<tr><th>Field</th><th>Type</th><th>Required / default</th><th>Constraints &amp; notes</th></tr>
+<tr><td><code>author</code></td><td>→ users</td><td>required</td><td>indexed</td></tr>
+<tr><td><code>university</code></td><td>→ universities</td><td>required</td><td>indexed</td></tr>
+<tr><td><code>title</code></td><td>String</td><td>required</td><td>max 150 · text-indexed</td></tr>
+<tr><td><code>body</code></td><td>String</td><td>—</td><td>max 3000 · text-indexed</td></tr>
+<tr><td><code>branch</code> / <code>subject</code> / <code>semester</code></td><td>String</td><td>—</td><td><code>subject</code> text-indexed</td></tr>
+<tr><td><code>upvotes</code></td><td>[→ users]</td><td><code>[]</code></td><td>—</td></tr>
+<tr><td><code>upvoteCount</code></td><td>Number</td><td><code>0</code></td><td>indexed (denormalized)</td></tr>
+<tr><td><code>answersCount</code></td><td>Number</td><td><code>0</code></td><td>denormalized — list view never counts answers</td></tr>
+<tr><td><code>acceptedAnswer</code></td><td>→ answers</td><td><code>null</code></td><td>set by the question's author; awards +25 to the answerer</td></tr>
+<tr><td><code>isActive</code></td><td>Boolean</td><td><code>true</code></td><td>soft delete</td></tr>
+<tr><td class="small" colspan="4"><b>Indexes:</b> text(<code>title</code>, <code>body</code>, <code>subject</code>) · <code>{ university, isActive, createdAt: -1 }</code></td></tr>
+</table>
+
+<h4>9 · <code>answers</code> <span class="pill">models/Answer.js</span></h4>
+<table>
+<tr><th>Field</th><th>Type</th><th>Required / default</th><th>Constraints &amp; notes</th></tr>
+<tr><td><code>question</code></td><td>→ questions</td><td>required</td><td>indexed — answers are referenced, not embedded (unbounded count, paged separately)</td></tr>
+<tr><td><code>author</code></td><td>→ users</td><td>required</td><td>indexed</td></tr>
+<tr><td><code>university</code></td><td>→ universities</td><td>required</td><td>indexed</td></tr>
+<tr><td><code>body</code></td><td>String</td><td>required</td><td>max 3000</td></tr>
+<tr><td><code>upvotes</code> / <code>upvoteCount</code></td><td>[→ users] / Number</td><td><code>[]</code> / <code>0</code></td><td>same pattern as questions</td></tr>
+<tr><td><code>isActive</code></td><td>Boolean</td><td><code>true</code></td><td>soft delete</td></tr>
+<tr><td class="small" colspan="4"><b>Indexes:</b> <code>{ question, isActive }</code></td></tr>
+</table>
+
+<h3>Chat</h3>
+
+<h4>10 · <code>conversations</code> <span class="pill">models/Conversation.js</span></h4>
+<table>
+<tr><th>Field</th><th>Type</th><th>Required / default</th><th>Constraints &amp; notes</th></tr>
+<tr><td><code>listingId</code></td><td>ObjectId</td><td><code>null</code></td><td>polymorphic context id — a Listing, LostFoundItem or Ride depending on <code>contextType</code>; <code>null</code> for friend DMs</td></tr>
+<tr><td><code>contextType</code></td><td>String</td><td><code>listing</code></td><td>enum: <code>listing · lostfound · ride · friend</code></td></tr>
+<tr><td><code>listingTitle</code></td><td>String</td><td><code>""</code></td><td>denormalized display title; empty for friend DMs (UI shows the other participant instead)</td></tr>
+<tr><td><code>participants</code></td><td>[→ users]</td><td>required</td><td>validated to be <b>exactly 2</b> · pre-save hook sorts them so [A,B] ≡ [B,A]</td></tr>
+<tr><td><code>university</code></td><td>→ universities</td><td>required</td><td>indexed</td></tr>
+<tr><td><code>lastMessage</code> / <code>lastMessageAt</code></td><td>String / Date</td><td>— / now</td><td>denormalized preview + sort key for the inbox list (indexed)</td></tr>
+<tr><td class="small" colspan="4"><b>Indexes:</b> <code>{ participants: 1 }</code> — deliberately <b>NOT unique</b>: a unique index on an array is multikey and would cap each user at one conversation per listingId (the shipped E11000 bug). Duplicate-prevention lives in <code>createConversation</code>'s findOne-then-create.</td></tr>
+</table>
+
+<h4>11 · <code>messages</code> <span class="pill">models/Message.js</span></h4>
+<table>
+<tr><th>Field</th><th>Type</th><th>Required / default</th><th>Constraints &amp; notes</th></tr>
+<tr><td><code>conversation</code></td><td>→ conversations</td><td>required</td><td>indexed — referenced, not embedded: a chat can have thousands of messages, paged separately</td></tr>
+<tr><td><code>sender</code></td><td>→ users</td><td>required</td><td>indexed</td></tr>
+<tr><td><code>university</code></td><td>→ universities</td><td>required</td><td>indexed</td></tr>
+<tr><td><code>content</code></td><td>String</td><td>required</td><td>the message text</td></tr>
+<tr><td><code>readAt</code></td><td>Date</td><td><code>null</code></td><td>read receipt — set when the other participant opens the conversation</td></tr>
+<tr><td><code>type</code></td><td>String</td><td><code>text</code></td><td>enum: <code>text · system</code></td></tr>
+<tr><td><code>isDeleted</code></td><td>Boolean</td><td><code>false</code></td><td>soft delete</td></tr>
+<tr><td class="small" colspan="4"><b>Indexes:</b> <code>{ conversation, createdAt: 1 }</code> — chat-history paging</td></tr>
+</table>
+
+<h3>Campus life</h3>
+
+<h4>12 · <code>events</code> <span class="pill">models/Event.js</span></h4>
+<table>
+<tr><th>Field</th><th>Type</th><th>Required / default</th><th>Constraints &amp; notes</th></tr>
+<tr><td><code>organizer</code></td><td>→ users</td><td>required</td><td>indexed</td></tr>
+<tr><td><code>university</code></td><td>→ universities</td><td>required</td><td>indexed</td></tr>
+<tr><td><code>title</code></td><td>String</td><td>required</td><td>max 120 · text-indexed</td></tr>
+<tr><td><code>description</code></td><td>String</td><td>—</td><td>max 2000 · text-indexed</td></tr>
+<tr><td><code>club</code></td><td>String</td><td>—</td><td>max 80 · organizing club/society · text-indexed</td></tr>
+<tr><td><code>category</code></td><td>String</td><td>required</td><td>enum: <code>Cultural · Technical · Sports · Workshop · Talk · Other</code></td></tr>
+<tr><td><code>venue</code></td><td>String</td><td>—</td><td>max 120</td></tr>
+<tr><td><code>startAt</code> / <code>endAt</code></td><td>Date</td><td>required / —</td><td><code>startAt</code> indexed — drives "upcoming" queries and the reminder cron</td></tr>
+<tr><td><code>attendees</code></td><td>[→ users]</td><td><code>[]</code></td><td>RSVP list (toggle)</td></tr>
+<tr><td><code>reminderSent</code></td><td>Boolean</td><td><code>false</code></td><td>cron idempotency — one reminder per event, ~1 h before start</td></tr>
+<tr><td><code>isActive</code></td><td>Boolean</td><td><code>true</code></td><td>soft delete</td></tr>
+<tr><td class="small" colspan="4"><b>Indexes:</b> text(<code>title</code>, <code>description</code>, <code>club</code>) · <code>{ university, isActive, startAt }</code></td></tr>
+</table>
+
+<h4>13 · <code>rides</code> <span class="pill">models/Ride.js</span></h4>
+<table>
+<tr><th>Field</th><th>Type</th><th>Required / default</th><th>Constraints &amp; notes</th></tr>
+<tr><td><code>poster</code></td><td>→ users</td><td>required</td><td>indexed</td></tr>
+<tr><td><code>university</code></td><td>→ universities</td><td>required</td><td>indexed</td></tr>
+<tr><td><code>from</code> / <code>to</code></td><td>String</td><td>required</td><td>max 80 each · virtual <code>title</code> = <code>"from → to"</code> (used by the shared conversation loader)</td></tr>
+<tr><td><code>departureAt</code></td><td>Date</td><td>required</td><td>indexed</td></tr>
+<tr><td><code>seatsTotal</code></td><td>Number</td><td>required</td><td>1–8 — seats for co-passengers (poster's own seat not counted)</td></tr>
+<tr><td><code>passengers</code></td><td>[→ users]</td><td><code>[]</code></td><td>join/leave; capacity checked against <code>seatsTotal</code></td></tr>
+<tr><td><code>note</code></td><td>String</td><td>—</td><td>max 300</td></tr>
+<tr><td><code>isActive</code></td><td>Boolean</td><td><code>true</code></td><td>soft delete</td></tr>
+<tr><td class="small" colspan="4"><b>Indexes:</b> <code>{ university, isActive, departureAt }</code></td></tr>
+</table>
+
+<h4>14 · <code>lostfounditems</code> <span class="pill">models/LostFoundItem.js</span></h4>
+<table>
+<tr><th>Field</th><th>Type</th><th>Required / default</th><th>Constraints &amp; notes</th></tr>
+<tr><td><code>title</code></td><td>String</td><td>required</td><td>text-indexed</td></tr>
+<tr><td><code>description</code></td><td>String</td><td>—</td><td>text-indexed</td></tr>
+<tr><td><code>kind</code></td><td>String</td><td>required</td><td>enum: <code>lost · found</code> — did the poster lose it or find someone else's</td></tr>
+<tr><td><code>category</code></td><td>String</td><td>required</td><td>enum: <code>Electronics · ID &amp; Cards · Books &amp; Notes · Clothing · Keys · Accessories · Other</code></td></tr>
+<tr><td><code>location</code></td><td>String</td><td>—</td><td>where lost/found</td></tr>
+<tr><td><code>images</code></td><td>[String]</td><td><code>[]</code></td><td>base64 data URLs (inline in Mongo)</td></tr>
+<tr><td><code>reporter</code></td><td>→ users</td><td>required</td><td>—</td></tr>
+<tr><td><code>university</code></td><td>→ universities</td><td>required</td><td>indexed</td></tr>
+<tr><td><code>status</code></td><td>String</td><td><code>open</code></td><td>enum: <code>open · returned</code> · indexed</td></tr>
+<tr><td><code>isActive</code></td><td>Boolean</td><td><code>true</code></td><td>soft delete</td></tr>
+<tr><td class="small" colspan="4"><b>Indexes:</b> text(<code>title</code>, <code>description</code>) · <code>{ university, isActive }</code></td></tr>
+</table>
+
+<h3>Personal academics (private, per-user)</h3>
+
+<h4>15 · <code>academicrecords</code> <span class="pill">models/AcademicRecord.js</span></h4>
+<table>
+<tr><th>Field</th><th>Type</th><th>Required / default</th><th>Constraints &amp; notes</th></tr>
+<tr><td><code>user</code></td><td>→ users</td><td>required</td><td>indexed</td></tr>
+<tr><td><code>university</code></td><td>→ universities</td><td>required</td><td>indexed</td></tr>
+<tr><td><code>semester</code></td><td>Number</td><td>required</td><td>1–12</td></tr>
+<tr><td><code>subjects</code></td><td>[embedded, <code>_id:false</code>]</td><td><code>[]</code></td><td><code>{ name (required), credits 0.5–30, grade enum A+ · A · B+ · B · C+ · C · D · F }</code> — SGPA/CGPA math runs client-side on this data</td></tr>
+<tr><td class="small" colspan="4"><b>Indexes:</b> <code>{ user, semester }</code> <b>unique</b> — exactly one document per user per semester (upsert semantics)</td></tr>
+</table>
+
+<h4>16 · <code>attendancesubjects</code> <span class="pill">models/AttendanceSubject.js</span></h4>
+<table>
+<tr><th>Field</th><th>Type</th><th>Required / default</th><th>Constraints &amp; notes</th></tr>
+<tr><td><code>user</code></td><td>→ users</td><td>required</td><td>indexed</td></tr>
+<tr><td><code>university</code></td><td>→ universities</td><td>required</td><td>indexed</td></tr>
+<tr><td><code>name</code></td><td>String</td><td>required</td><td>subject name</td></tr>
+<tr><td><code>attended</code> / <code>held</code></td><td>Number</td><td><code>0</code></td><td>min 0 — classes attended out of classes held</td></tr>
+<tr><td><code>target</code></td><td>Number</td><td><code>75</code></td><td>1–100 — the % the student wants to stay above; the "skippable classes" formula runs on these three numbers</td></tr>
+<tr><td class="small" colspan="4"><b>Indexes:</b> <code>{ user, createdAt }</code></td></tr>
+</table>
+
+<h4>17 · <code>timetableentries</code> <span class="pill">models/TimetableEntry.js</span></h4>
+<table>
+<tr><th>Field</th><th>Type</th><th>Required / default</th><th>Constraints &amp; notes</th></tr>
+<tr><td><code>user</code></td><td>→ users</td><td>required</td><td>indexed</td></tr>
+<tr><td><code>university</code></td><td>→ universities</td><td>required</td><td>indexed</td></tr>
+<tr><td><code>subject</code></td><td>String</td><td>required</td><td>max 80</td></tr>
+<tr><td><code>dayOfWeek</code></td><td>Number</td><td>required</td><td>0–6, JS convention (0 = Sunday)</td></tr>
+<tr><td><code>startTime</code> / <code>endTime</code></td><td>String</td><td>required</td><td>24-h <code>"HH:mm"</code>, regex-validated, campus-local (IST)</td></tr>
+<tr><td><code>room</code> / <code>professor</code></td><td>String</td><td>—</td><td>max 60 each</td></tr>
+<tr><td><code>lastReminderDay</code></td><td>String</td><td><code>null</code></td><td><code>"YYYY-MM-DD"</code> of the last reminder sent — the cron's duplicate-stopper</td></tr>
+<tr><td class="small" colspan="4"><b>Indexes:</b> <code>{ user, dayOfWeek, startTime }</code></td></tr>
+</table>
+
+<h3>Infrastructure collections</h3>
+
+<h4>18 · <code>notifications</code> <span class="pill">models/Notification.js</span></h4>
+<table>
+<tr><th>Field</th><th>Type</th><th>Required / default</th><th>Constraints &amp; notes</th></tr>
+<tr><td><code>user</code></td><td>→ users</td><td>required</td><td>indexed — the recipient</td></tr>
+<tr><td><code>type</code></td><td>String</td><td>required</td><td>enum: <code>message · study-group · marketplace · system · friend</code> — drives the bell-icon grouping</td></tr>
+<tr><td><code>title</code> / <code>description</code></td><td>String</td><td>required</td><td>what the bell shows</td></tr>
+<tr><td><code>read</code></td><td>Boolean</td><td><code>false</code></td><td>unread badge count = <code>count({ user, read:false })</code></td></tr>
+<tr><td><code>relatedId</code></td><td>ObjectId</td><td>—</td><td><b>polymorphic</b> via <code>refPath: "relatedModel"</code> — tap-through target</td></tr>
+<tr><td><code>relatedModel</code></td><td>String</td><td>—</td><td>enum: <code>Listing · StudyGroup · Message · User · Conversation</code></td></tr>
+<tr><td class="small" colspan="4"><b>Indexes:</b> <code>{ user, createdAt: -1 }</code> · <code>{ user, read }</code></td></tr>
+</table>
+
+<h4>19 · <code>devicetokens</code> <span class="pill">models/DeviceToken.js</span></h4>
+<table>
+<tr><th>Field</th><th>Type</th><th>Required / default</th><th>Constraints &amp; notes</th></tr>
+<tr><td><code>user</code></td><td>→ users</td><td>required</td><td>indexed — one row per device per user</td></tr>
+<tr><td><code>university</code></td><td>→ universities</td><td>required</td><td>indexed</td></tr>
+<tr><td><code>token</code></td><td>String</td><td>required</td><td><b>unique</b> — the FCM registration token; dead tokens are pruned automatically after failed sends</td></tr>
+<tr><td><code>platform</code></td><td>String</td><td><code>web</code></td><td>enum: <code>web · android · ios</code></td></tr>
+</table>
+
+<h4>20 · <code>friendships</code> <span class="pill">models/Friendship.js</span></h4>
+<table>
+<tr><th>Field</th><th>Type</th><th>Required / default</th><th>Constraints &amp; notes</th></tr>
+<tr><td><code>requester</code> / <code>recipient</code></td><td>→ users</td><td>required</td><td>both indexed — who asked, who was asked</td></tr>
+<tr><td><code>users</code></td><td>[→ users]</td><td>—</td><td>validated to exactly 2 · pre-validate hook sorts them (mirrors the Conversation idiom)</td></tr>
+<tr><td><code>pairKey</code></td><td>String</td><td>—</td><td><b>unique</b> — canonical <code>"&lt;lowId&gt;_&lt;highId&gt;"</code>. Pair-uniqueness lives on this scalar because a unique index on the <code>users</code> ARRAY would be multikey (= one friendship per user, total)</td></tr>
+<tr><td><code>status</code></td><td>String</td><td><code>pending</code></td><td>enum: <code>pending · accepted</code> · indexed</td></tr>
+<tr><td><code>university</code></td><td>→ universities</td><td>required</td><td>indexed</td></tr>
+<tr><td class="small" colspan="4"><b>Indexes:</b> <code>pairKey</code> unique · <code>{ users, status }</code></td></tr>
+</table>
+
+<h4>21 · <code>reports</code> <span class="pill">models/Report.js</span></h4>
+<table>
+<tr><th>Field</th><th>Type</th><th>Required / default</th><th>Constraints &amp; notes</th></tr>
+<tr><td><code>reporter</code></td><td>→ users</td><td>required</td><td>indexed</td></tr>
+<tr><td><code>university</code></td><td>→ universities</td><td>required</td><td>indexed</td></tr>
+<tr><td><code>targetType</code></td><td>String</td><td>required</td><td>enum: <code>listing · document · confession · question · answer · lostfound · ride · event</code></td></tr>
+<tr><td><code>targetId</code></td><td>ObjectId</td><td>required</td><td>indexed — polymorphic, resolved through <code>targetType</code> (no <code>ref</code>)</td></tr>
+<tr><td><code>reason</code></td><td>String</td><td>required</td><td>max 300</td></tr>
+<tr><td><code>snapshot</code></td><td>{ title, content ≤500 }</td><td>—</td><td>a small <b>copy of the reported content</b> so the admin queue stays reviewable even after the target is deleted</td></tr>
+<tr><td><code>status</code></td><td>String</td><td><code>open</code></td><td>enum: <code>open · resolved · dismissed</code> · indexed</td></tr>
+<tr><td><code>handledBy</code> / <code>handledAt</code></td><td>→ users / Date</td><td>—</td><td>which admin closed it, when</td></tr>
+<tr><td class="small" colspan="4"><b>Indexes:</b> <code>{ university, status, createdAt: -1 }</code> · <code>{ reporter, targetType, targetId }</code> <b>unique</b> — one report per user per target (no spam-reporting)</td></tr>
+</table>
+
+<div class="qa box">
+<div class="q">Q: What's deliberately the same across all 21 collections?</div>
+<div class="a">A: Four conventions. (1) <b>Every content row carries <code>university</code></b> — tenant isolation is a schema property, not an afterthought. (2) <b>Soft delete via <code>isActive</code></b> — nothing user-facing is hard-deleted, so moderation and "undo" stay possible. (3) <b>Denormalized counters</b> (<code>upvoteCount</code>, <code>reactionsCount</code>, <code>answersCount</code>, <code>lastMessage</code>) wherever a list view sorts or previews. (4) <b>Timestamps everywhere</b> for free ordering and auditing.</div>
+</div>
+</div>
+
+<!-- ============================ PART 8C — DATA FLOW MAP ============================ -->
+<div class="part">
+<h2>8 · Data layer (continued) — where every piece of data travels</h2>
+
+<p class="lead">This chapter answers one question end-to-end: <b>when a user does something, which data leaves the device, what path does it take, and where does it finally come to rest?</b> Read it once and you can trace any byte in the system.</p>
+
+<h3>8-F.1 The only five places data can live</h3>
+<table>
+<tr><th>Store</th><th>What lives there</th><th>Lifetime</th></tr>
+<tr><td><b>MongoDB Atlas</b></td><td>All 21 collections — including every uploaded <i>image</i> (as base64 data URLs inside documents)</td><td>Permanent. The single source of truth.</td></tr>
+<tr><td><b>Cloudinary + its CDN</b></td><td>Study Vault file binaries (PDFs, docs, zips…). Mongo keeps only the <code>secure_url</code></td><td>Permanent until the document is deleted (<code>_removeFile</code> / destroy)</td></tr>
+<tr><td><b>The user's device</b></td><td>JWT + cached user JSON — in <code>localStorage</code> (sync mirror) AND Capacitor <code>Preferences</code> (durable native store)</td><td>Until logout or token expiry (~1 year)</td></tr>
+<tr><td><b>API-server RAM</b></td><td>Presence map (<code>userId → Set&lt;socketId&gt;</code>), rate-limit counters, the cached Mongoose connection</td><td>Until restart/redeploy — all three are rebuildable, so losing them is harmless</td></tr>
+<tr><td><b>In transit only</b></td><td>OTP / reset emails (SMTP → inbox), push payloads (firebase-admin → Google FCM → device tray)</td><td>Transient — the server keeps only hashes/flags, never the raw payloads</td></tr>
+</table>
+
+<h3>8-F.2 The master map — what goes where</h3>
+<table>
+<tr><th>Data</th><th>Leaves from</th><th>Travels via</th><th>Finally rests in</th></tr>
+<tr><td>Password</td><td>Signup / login form</td><td>HTTPS JSON body</td><td><code>users.password</code> as a bcrypt hash — plaintext is never stored and never returned (<code>select:false</code>)</td></tr>
+<tr><td>JWT (the session)</td><td>Issued by the API on login/signup</td><td>Response body → device</td><td>Device only: <code>localStorage</code> + Capacitor Preferences. Never in the DB — comes back on every request as <code>Authorization: Bearer</code> and in the socket handshake</td></tr>
+<tr><td>6-digit OTP / reset token</td><td>Generated server-side (<code>crypto</code>)</td><td>nodemailer → SMTP → student's inbox</td><td>Only its SHA-256 hash, in <code>users.emailVerificationToken</code> / <code>passwordResetToken</code> (30-min expiry). The raw code exists only in the email</td></tr>
+<tr><td>Profile fields (name, bio, phone, privacy…)</td><td>Settings forms</td><td><code>PUT /api/users/…</code></td><td><code>users</code> document</td></tr>
+<tr><td>Avatar photo</td><td>Camera / gallery</td><td>Client-side resize → multipart → Multer (memory)</td><td><code>users.avatarUrl</code> as an inline base64 data URL</td></tr>
+<tr><td>Listing / Lost-&amp;-Found photos, UPI QR, group covers</td><td>Gallery</td><td>Multipart → <code>dataUrlStorage</code></td><td>Inline base64 in <code>listings.images[]</code>, <code>lostfounditems.images[]</code>, <code>users.paymentInfo.upiQrUrl</code>, <code>studygroups.image</code></td></tr>
+<tr><td>Study Vault file (PDF/doc/zip)</td><td>File picker</td><td>Multipart → Multer → <b>streamed</b> to Cloudinary (never buffered on the server)</td><td>Binary on Cloudinary/CDN; <code>documents</code> keeps only URL + metadata</td></tr>
+<tr><td>Chat message text</td><td>Chat input</td><td>Socket.IO <code>sendMessage</code> event (or <code>POST /api/messages/:conversationId</code>)</td><td><code>messages</code>; a preview copy is denormalized into <code>conversations.lastMessage</code></td></tr>
+<tr><td>FCM device token</td><td>Firebase SDK on the device</td><td><code>POST /api/push/register</code></td><td><code>devicetokens</code> (unique per token; dead ones auto-pruned)</td></tr>
+<tr><td>Push notification</td><td>Server (<code>utils/push.js</code>)</td><td>firebase-admin → Google FCM</td><td>Transient — ends in the device's notification tray. The in-app copy persists as a <code>notifications</code> doc</td></tr>
+<tr><td>Confession</td><td>Compose box</td><td><code>POST /api/confessions</code></td><td><code>confessions</code> — <code>author</code> is saved for moderation but never serialized to any client</td></tr>
+<tr><td>Points &amp; badges</td><td>Side-effect of contributions</td><td><code>awardPoints()</code> — <code>$inc</code> / <code>$addToSet</code></td><td><code>users.points</code> / <code>users.badges</code>; the leaderboard just sorts on the indexed <code>points</code></td></tr>
+<tr><td>CGPA &amp; attendance numbers</td><td>The student's own input</td><td>REST</td><td><code>academicrecords</code> / <code>attendancesubjects</code> — per-user, never shown to anyone else</td></tr>
+<tr><td>Report of abusive content</td><td>Report dialog</td><td><code>POST /api/reports</code></td><td><code>reports</code>, with a <code>snapshot</code> copy of the offending title/content that survives deletion of the target</td></tr>
+<tr><td>Online/offline presence</td><td>Socket connect / disconnect</td><td>—</td><td>Nowhere durable — an in-memory <code>Map</code> on the server, gone on restart, by design</td></tr>
+</table>
+
+<div class="keyidea box"><b>The privacy invariant:</b> four things never leave the server in raw form — password hashes, confession/comment author ids, verification/reset token hashes, and <code>tokenVersion</code>. Everything a client receives passes through explicit field selection (<code>select:false</code> + hand-built response objects), so "anonymous" and "private" are enforced at serialization time, not by hoping the UI hides it.</div>
+
+<h3>8-F.3 Flow 1 — Signup &amp; email verification (OTP)</h3>
+<pre><code>Browser form { email, password, displayName }
+  │  POST /api/auth/signup                    (HTTPS JSON)
+  ▼
+Express: authLimiter (20/15min) → scholar-email regex → resolveUniversityByEmail(domains)
+  │  bcrypt pre-save hook hashes the password
+  ▼
+users doc { emailVerified:false,
+            emailVerificationToken: sha256(6-digit OTP),  expires: +30 min }
+  │  nodemailer → SMTP → student inbox  (the RAW code travels only here)
+  ▼
+POST /api/auth/verify-email { email, code }
+  → sha256(code) compared to the stored hash → emailVerified:true
+  → JWT issued → the user is in</code></pre>
+<p class="small">If SMTP env vars are absent (local dev), signup skips verification entirely and returns the JWT immediately — graceful degradation, invariant #4.</p>
+
+<h3>8-F.4 Flow 2 — Login &amp; where the session lives</h3>
+<pre><code>{ email, password } → POST /api/auth/login
+  → users.findOne(email).select("+password") → bcrypt.compare
+  → JWT signed { id, university, tv: tokenVersion }   expires 365d
+  ▼ response
+Device:  localStorage ("token","user")     ← synchronous mirror for axios + socket
+         Capacitor Preferences (same keys) ← durable native store (survives Android killing the WebView)
+  ▼ every later call
+REST:    Authorization: Bearer &lt;jwt&gt;       (axios request interceptor)
+Socket:  io(url, { auth: { token } })      (checked in io.use before any event)</code></pre>
+<p>The server keeps <b>no session state</b>. Revocation is the <code>tv</code> claim: a password reset does <code>$inc tokenVersion</code>, and <code>middleware/auth.js</code> rejects any JWT whose <code>tv</code> no longer matches — every old token dies at once.</p>
+
+<h3>8-F.5 Flow 3 — the middleware gauntlet every request runs</h3>
+<pre><code>request → helmet (headers) → CORS allow-list → express.json
+        → apiLimiter (600/15min/IP) → connectDB() (cached connection)
+        → route → auth (verify JWT, load user, reject banned/inactive, check tv)
+        → universityScope (forces  { university: req.user.university }  into the query)
+        → controller → { success, message, data }  →  errorHandler (if anything threw)</code></pre>
+
+<h3>8-F.6 Flow 4 — a Study Vault upload (the only bytes that go to Cloudinary)</h3>
+<pre><code>file picker → multipart/form-data POST /api/documents
+  → Multer fileFilter  (pdf / doc(x) / ppt(x) / xls(x) / txt / png / jpg / webp / zip)
+  → 20 MB cap
+  → cloudinaryStorage: file.stream.pipe(upload_stream)   ← bytes stream through, never buffered
+  → Cloudinary stores the binary, returns { secure_url, public_id, bytes }
+  → documents doc { fileUrl, fileName, fileFormat, fileSize, uploader, university }
+  → awardPoints(uploader, "document_upload")   (+15)
+
+Later download: client opens fileUrl directly (Cloudinary CDN edge) —
+our API only sees POST /:id/download, which $inc's downloadCount.</code></pre>
+
+<h3>8-F.7 Flow 5 — every image upload goes straight into MongoDB</h3>
+<pre><code>gallery/camera → client-side resizeImage() (shrinks before upload)
+  → multipart POST → multer (memoryStorage | dataUrlStorage)
+  → "data:image/jpeg;base64,…"  built in memory
+  → saved INLINE in the parent document:
+       users.avatarUrl · listings.images[] · lostfounditems.images[]
+       users.paymentInfo.upiQrUrl · studygroups.image
+  → rendering is just &lt;img src={dataUrl}&gt; — zero extra requests, zero external deps</code></pre>
+<div class="why box"><b>Why inline data URLs and not Cloudinary, for images?</b> Production has no Cloudinary credentials — and images stored inline in Mongo survive redeploys with zero external services. The cost is document size, which is contained three ways: the client resizes before upload, Multer enforces tight <code>fileSize</code> caps, and images stay far below Mongo's 16 MB per-document ceiling. Documents (PDFs etc.) can't take this route — they're too big — which is exactly why the Study Vault pipeline is the one that keeps Cloudinary.</div>
+
+<h3>8-F.8 Flow 6 — a chat message, sender to receiver</h3>
+<pre><code>sender types → socket.emit("sendMessage", { conversationId, content })
+  → server: socket.user was set from the JWT at handshake → membership check
+  → messages.create { conversation, sender, university, content }
+  → conversations.$set { lastMessage, lastMessageAt }      (inbox preview, denormalized)
+  → io.to(conversationRoom).emit("newMessage", …)          → receiver's screen updates live
+  → receiver offline?  notifications doc  +  FCM push via their devicetokens
+
+REST fallback:  POST /api/messages/:conversationId does the same writes,
+                then emits through req.app.get("io") — one behavior, two transports.
+Read receipt:   markConversationRead → messages.readAt = now → "seen" ticks.</code></pre>
+
+<h3>8-F.9 Flow 7 — push, from permission to tray</h3>
+<pre><code>device grants notification permission → Firebase SDK issues an FCM token
+  → POST /api/push/register { token, platform } → devicetokens (unique)
+  → any notification-worthy event calls sendPushToUser(userId, title, body)
+  → firebase-admin sendEachForMulticast(tokens…) → Google FCM → device tray
+  → FCM replies "token not registered"? → that token is deleted from devicetokens</code></pre>
+
+<h3>8-F.10 Flow 8 — the three cron jobs (all run every 10 minutes)</h3>
+<pre><code>node-cron "*/10 * * * *"
+ ├─ classReminder:      timetableentries where dayOfWeek = today &amp; startTime is near
+ │                        → notify + push → lastReminderDay = "YYYY-MM-DD"  (idempotent)
+ ├─ eventReminder:      events starting within ~1 h, reminderSent:false
+ │                        → notify all attendees → reminderSent:true
+ └─ studyGroupReminder: studygroups with nextSession.at near, sessionReminderSent:false
+                          → notify all members → flag true (reset when a new session is set)</code></pre>
+<p class="small">Each job writes its own idempotency flag back to the document — that flag <i>is</i> the reason reminders never fire twice even though the job wakes every 10 minutes.</p>
+
+<h3>8-F.11 Flow 9 — moderation, from post to ban</h3>
+<pre><code>content posted → utils/contentFilter (text) + imageModeration → allow / block at the door
+user hits "Report" → reports doc (with snapshot copy)   [confessions: embedded reports[]]
+  → threshold crossed → isHidden:true + $inc author strikes
+admin (isAdmin) → GET /api/reports → resolve / dismiss → handledBy + handledAt
+strikes pile up / manual ban → users.isBanned:true
+  → middleware/auth.js and the socket handshake both reject the account everywhere</code></pre>
+
+<div class="qa box">
+<div class="q">Q: Trace "the seller's photo of a cycle" and "the buyer's ₹1,200 offer" end to end.</div>
+<div class="a">A: <b>Photo:</b> gallery → client resize → multipart POST <code>/api/listings/:id/images</code> → <code>dataUrlStorage</code> turns the bytes into a base64 data URL → pushed into <code>listings.images[]</code> — the image now lives inside the listing document in Atlas, and every viewer gets it inline with the listing JSON. <b>Offer:</b> form → POST <code>/api/offers</code> → controller loads the listing, denormalizes its <code>seller</code>, writes an <code>offers</code> doc (<code>status:"pending"</code>) → a <code>notifications</code> doc + FCM push go to the seller → the seller's accept/counter mutates <code>offers.status</code> — the negotiation is pure state-machine transitions on that one document.</div>
+</div>
+</div>
+
 <!-- ============================ PART 9 ============================ -->
 <div class="part">
 <h2>9 · File &amp; media storage — "how are the PDFs stored?"</h2>
 
 <p class="lead">This is the question you specifically asked about ("a library that breaks files into chunks, stores them, then rebuilds them"). That description is <b>GridFS</b> — and Manit Hub deliberately does <b>not</b> use it. Here is what it actually does, and why.</p>
 
-<h3>9.1 What actually happens when you upload a PDF / image</h3>
-<p>The flow uses <b>Multer</b> (to parse the multipart upload) + a <b>custom streaming storage engine</b> that pipes the bytes straight to <b>Cloudinary</b> (cloud media host + CDN). The file's <i>bytes never touch the API server's disk or database</i> — only the resulting URL is stored in MongoDB.</p>
+<h3>9.1 What actually happens when you upload a PDF (Study Vault)</h3>
+<p>For <b>Study Vault documents</b> the flow uses <b>Multer</b> (to parse the multipart upload) + a <b>custom streaming storage engine</b> that pipes the bytes straight to <b>Cloudinary</b> (cloud media host + CDN). The file's <i>bytes never touch the API server's disk or database</i> — only the resulting URL is stored in MongoDB. <b>Images are different:</b> avatars, listing photos, lost-&amp;-found photos, UPI QR codes and group covers skip Cloudinary entirely and are stored <i>inline in MongoDB as base64 data URLs</i> — see §9.5 for the two engines and the why.</p>
 
 <pre><code>// middleware/cloudinaryStorage.js — a custom Multer StorageEngine
 _handleFile: async (req, file, cb) => {
@@ -607,24 +1091,28 @@ await awardPoints(req.user._id, "document_upload");  // +15 karma</code></pre>
 <b>Why not store the file as base64 in a Mongo field?</b> base64 inflates size by ~33%, you'd hit the 16 MB document limit fast, and you'd ship the whole blob through the API on every read. It's the worst of all worlds for anything but tiny thumbnails.
 </div>
 <div class="why box">
-<b>Why not local disk on the API server?</b> Hosts like Render/Vercel have ephemeral or read-only filesystems — files written on one deploy/instance vanish on the next or aren't visible to other instances. Disk storage breaks the moment you have more than one server. (The repo does keep a legacy <code>uploads/avatars/</code> folder served via <code>express.static</code>, but the document/listing pipeline is fully Cloudinary.)
+<b>Why not local disk on the API server?</b> Hosts like Render/Vercel have ephemeral or read-only filesystems — files written on one deploy/instance vanish on the next or aren't visible to other instances. Disk storage breaks the moment you have more than one server. (The repo still mounts a legacy <code>uploads/</code> folder via <code>express.static</code> so very old avatar URLs keep resolving, but <b>no upload pipeline writes to disk anymore</b> — documents stream to Cloudinary, and every image type is stored inline in MongoDB as a data URL.)
 </div>
 <div class="why box">
 <b>Why not S3 directly?</b> S3 is a fine choice, but you'd add your own CDN (CloudFront), your own image/PDF transformation pipeline, and signed-URL plumbing. Cloudinary bundles storage + CDN + on-the-fly transforms behind one SDK — less to operate for a small team.
 </div>
 
-<h3>9.5 The multiple upload pipelines</h3>
-<p>The same custom storage engine is reused with different params for each upload type (a great example of the factory pattern):</p>
+<h3>9.5 The upload pipelines — two storage engines, six middlewares</h3>
+<p>There are exactly <b>two</b> custom Multer storage engines, both exposing the result on <code>file.path</code> so route handlers don't care which one ran (a clean drop-in-replacement design):</p>
+<ul>
+<li><b><code>cloudinaryStorage</code></b> — streams bytes to Cloudinary, <code>file.path</code> = the CDN <code>secure_url</code>. Used <b>only</b> for Study Vault documents.</li>
+<li><b><code>dataUrlStorage</code></b> — buffers the bytes in memory and sets <code>file.path</code> = <code>"data:&lt;mime&gt;;base64,…"</code>, which the route saves <b>inline in the MongoDB document</b>. Used for every image type, because production has no Cloudinary credentials — inline images survive redeploys with zero external services. Kept safe by client-side resizing + tight <code>fileSize</code> caps (well under Mongo's 16 MB per-document limit).</li>
+</ul>
 <table>
-<tr><th>Middleware</th><th>Used by</th><th>Cloudinary folder / rules</th></tr>
-<tr><td><code>uploadDocument</code></td><td>Study Vault</td><td><code>manit-hub/documents</code>, <code>resource_type:auto</code>, 20 MB, doc/image/zip types</td></tr>
-<tr><td><code>uploadAvatar</code></td><td>Profile picture</td><td><b>The one exception</b> — uses Multer <i>disk</i> storage to <code>uploads/avatars/</code> (served by <code>express.static</code>), <b>not</b> Cloudinary; 5 MB, image-only. So avatars sit on the API server's disk while every other upload is on Cloudinary (a thing to flag honestly — it doesn't survive an ephemeral-FS redeploy).</td></tr>
-<tr><td><code>uploadListingImages</code></td><td>Marketplace photos</td><td>multiple images per listing</td></tr>
-<tr><td><code>uploadLostFoundImages</code></td><td>Lost &amp; Found photos</td><td>images</td></tr>
-<tr><td><code>uploadPaymentQr</code></td><td>Seller's UPI QR</td><td>single image</td></tr>
-<tr><td><code>uploadStudyGroupCover</code></td><td>Group cover image</td><td>single image</td></tr>
+<tr><th>Middleware</th><th>Used by</th><th>Engine → where the bytes end up</th></tr>
+<tr><td><code>uploadDocument</code></td><td>Study Vault</td><td><b>Cloudinary</b> — folder <code>manit-hub/documents</code>, <code>resource_type:auto</code>, 20 MB cap, pdf/office/text/image/zip allow-list → <code>documents.fileUrl</code></td></tr>
+<tr><td><code>uploadAvatar</code></td><td>Profile picture</td><td>Multer <b>memoryStorage</b> → route builds a base64 data URL → <code>users.avatarUrl</code>; 5 MB pre-resize cap, image-only, client resizes first</td></tr>
+<tr><td><code>uploadListingImages</code></td><td>Marketplace photos</td><td><b>dataUrlStorage</b> → <code>listings.images[]</code> (multiple per listing)</td></tr>
+<tr><td><code>uploadLostFoundImages</code></td><td>Lost &amp; Found photos</td><td><b>dataUrlStorage</b> → <code>lostfounditems.images[]</code></td></tr>
+<tr><td><code>uploadPaymentQr</code></td><td>Seller's UPI QR</td><td><b>dataUrlStorage</b> → <code>users.paymentInfo.upiQrUrl</code></td></tr>
+<tr><td><code>uploadStudyGroupCover</code></td><td>Group cover image</td><td><b>dataUrlStorage</b> → <code>studygroups.image</code></td></tr>
 </table>
-<p>The storage engine also implements <code>_removeFile</code> (calls <code>cloudinary.uploader.destroy(public_id)</code>) so Multer can roll back the upload if the request later fails validation — no orphaned files.</p>
+<p>The Cloudinary engine also implements <code>_removeFile</code> (calls <code>cloudinary.uploader.destroy(public_id)</code>) so Multer can roll back the upload if the request later fails validation — no orphaned files. The data-URL engine needs no rollback: if the request fails, nothing was stored anywhere.</p>
 
 <div class="qa box">
 <div class="q">Q: How does a user <i>download</i> a document later?</div>

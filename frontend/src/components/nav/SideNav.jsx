@@ -58,6 +58,8 @@ export default function SideNav() {
                 to={item.to}
                 icon={item.icon}
                 label={item.name}
+                match={item.match}
+                end={item.end}
               />
             ))}
           </>

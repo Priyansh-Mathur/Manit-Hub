@@ -1,4 +1,5 @@
 import axios from "axios";
+import { clearAuth } from "../utils/authStorage";
 
 // Priority:
 //  1. VITE_API_URL (explicit backend, e.g. http://localhost:5001) -> "<url>/api"
@@ -21,5 +22,26 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+// Global handling for a suspended account. The backend tags both the login
+// rejection and every authenticated-request rejection with
+// code === "ACCOUNT_SUSPENDED". If a logged-in user is suspended mid-session,
+// wipe the local session and send them straight to the login page. When the
+// user is already on /auth (a fresh login attempt), let LoginForm show the
+// inline message instead of reloading the page.
+api.interceptors.response.use(
+  (response) => response,
+  (err) => {
+    if (err.response?.data?.code === "ACCOUNT_SUSPENDED") {
+      const onAuthPage = window.location.pathname.startsWith("/auth");
+      if (!onAuthPage) {
+        // Fire-and-forget clear (localStorage part is synchronous) then bounce.
+        clearAuth();
+        window.location.assign("/auth?suspended=1");
+      }
+    }
+    return Promise.reject(err);
+  }
+);
 
 export default api;

@@ -33,11 +33,14 @@ export default function LoginForm({ onForgot, onNeedsVerification }) {
       login(res.data?.data);
       navigate("/dashboard");
     } catch (err) {
+      const code = err.response?.data?.code;
       // Unverified account — jump to the code-entry screen instead of a dead end.
-      if (err.response?.status === 403 && onNeedsVerification) {
+      if (code === "EMAIL_UNVERIFIED" && onNeedsVerification) {
         onNeedsVerification(email.trim().toLowerCase());
         return;
       }
+      // Suspended account — show the reason inline; do NOT route to verification.
+      // (The global axios interceptor leaves us here since we're on /auth.)
       setError(err.response?.data?.message || "Login failed");
     } finally {
       setLoading(false);

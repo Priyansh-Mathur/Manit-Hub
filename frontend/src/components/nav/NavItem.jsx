@@ -1,7 +1,7 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "../../lib/cn";
 
-export default function NavItem({ to, icon: Icon, label, badge = 0, onClick, match }) {
+export default function NavItem({ to, icon: Icon, label, badge = 0, onClick, match, end }) {
   const { pathname } = useLocation();
   // Hub entries pass `match`: highlight when ANY grouped route is active.
   const matchActive = match
@@ -11,6 +11,7 @@ export default function NavItem({ to, icon: Icon, label, badge = 0, onClick, mat
   return (
     <NavLink
       to={to}
+      end={end}
       onClick={onClick}
       className={({ isActive }) =>
         cn(

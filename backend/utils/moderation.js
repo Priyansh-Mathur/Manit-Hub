@@ -72,4 +72,10 @@ async function maybeAutoHide(targetType, targetId) {
   }
 }
 
-module.exports = { addStrike, maybeAutoHide, AUTO_HIDE_REPORTS, AUTO_BAN_STRIKES };
+module.exports = {
+  addStrike,
+  maybeAutoHide,
+  AUTHOR_FIELD,
+  AUTO_HIDE_REPORTS,
+  AUTO_BAN_STRIKES,
+};
