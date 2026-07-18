@@ -28,3 +28,6 @@ npm-debug.log*
 
 # Uploaded user content (runtime, not source)
 backend/uploads/
+
+# Account data snapshots — contain password hashes + personal data, never commit.
+backend/backups/

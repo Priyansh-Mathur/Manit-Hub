@@ -32,7 +32,6 @@ const CampusMaps = lazy(() => import("./screens/CampusMaps"));
 const Notifications = lazy(() => import("./screens/Notifications"));
 const Settings = lazy(() => import("./screens/Settings"));
 const Auth = lazy(() => import("./screens/Auth"));
-const AdminLogin = lazy(() => import("./screens/AdminLogin"));
 const LandingPage = lazy(() => import("./screens/LandingPage"));
 const NotFound = lazy(() => import("./screens/NotFound"));
 const SellerProfile = lazy(() => import("./screens/SellerProfile"));
@@ -65,8 +64,6 @@ export default function App() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/auth" element={<Auth />} />
-          {/* Secret CEO/owner login — no link points here. */}
-          <Route path="/admin/login" element={<AdminLogin />} />
 
           {/* Protected app layout */}
           <Route element={<ProtectedRoute />}>

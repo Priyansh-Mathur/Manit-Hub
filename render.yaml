@@ -65,13 +65,3 @@ services:
       # Optional — only read by the dashboard "campus locations" stat.
       - key: CAMPUS_LOCATIONS_COUNT
         sync: false
-      # Secret CEO/owner admin login (POST /api/auth/admin-login). These are the
-      # unique admin id + password — set strong values in the Render dashboard.
-      # Without both, the admin-login endpoint returns 503.
-      - key: ADMIN_ID
-        sync: false
-      - key: ADMIN_PASSWORD
-        sync: false
-      # Optional display name for the admin account.
-      - key: ADMIN_DISPLAY_NAME
-        sync: false

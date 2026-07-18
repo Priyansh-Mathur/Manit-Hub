@@ -1,21 +1,31 @@
 /**
- * Seed script — populates the marketplace, lost & found, study groups, the
- * friend graph and the primary user's conversations with realistic
- * MANIT-themed demo data, spread across the last 30 days.
+ * Seed script — simulates ~2.5 months (75 days) of a GROWING campus platform
+ * for MANIT / NIT Bhopal. It populates every feature (marketplace, offers,
+ * lost & found, study groups, confessions, rides, events, Q&A forum, study
+ * vault, friends, chats, academics, attendance, timetable, push tokens) plus
+ * moderation data (reports, strikes, suspensions), with a rising signup rate so
+ * the admin/CEO dashboard's growth charts trend upward.
  *
  * Usage:  cd backend && npm run seed
- * Env:    SEED_PRIMARY_EMAIL chooses whose Messages/notifications/friendships
- *         get the demo content (defaults to the project owner's account).
- * Reads MONGO_URI from backend/.env. Safe to re-run: it resets only the demo
- * data it owns (seed users' listings/groups/lost-&-found/friendships + the
- * seed-only conversations), never real users or their real data.
+ * Reads MONGO_URI from backend/.env.
+ *
+ * DETERMINISTIC + IDEMPOTENT: a seeded PRNG generates the same users/content
+ * every run, so it safely resets only the demo data it owns and regenerates it.
+ * Real (non-seed) users and their data are never touched. Two accounts are
+ * PROTECTED (updated in place, never deleted, password never changed):
+ *   - 2311401212 (Samay Jain)  → made the SOLE admin
+ *   - 2311401213 (Shanjhi Jain)
  */
 require("dotenv").config();
+const fs = require("fs");
+const path = require("path");
 const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
 
 const University = require("../models/University");
 const User = require("../models/User");
 const Listing = require("../models/Listing");
+const Offer = require("../models/Offer");
 const StudyGroup = require("../models/StudyGroup");
 const LostFoundItem = require("../models/LostFoundItem");
 const Friendship = require("../models/Friendship");
@@ -28,866 +38,794 @@ const Event = require("../models/Event");
 const Question = require("../models/Question");
 const Answer = require("../models/Answer");
 const Document = require("../models/Document");
+const Report = require("../models/Report");
+const AcademicRecord = require("../models/AcademicRecord");
+const AttendanceSubject = require("../models/AttendanceSubject");
+const TimetableEntry = require("../models/TimetableEntry");
+const DeviceToken = require("../models/DeviceToken");
+
+const { POINTS } = require("../utils/gamification");
 
 const STUDENT_DOMAIN = "stu.manit.ac.in";
 const DEMO_PASSWORD = "password123";
-const SEED_WINDOW_DAYS = 30;
+const WINDOW = 75; // 2.5 months
+const ADMIN_EMAIL = "2311401212@stu.manit.ac.in";
+const SHANJHI_EMAIL = "2311401213@stu.manit.ac.in";
+const CEO_GHOST_EMAIL = "0000000000@stu.manit.ac.in"; // old secret-admin account, removed
+const PROTECTED_EMAILS = [ADMIN_EMAIL, SHANJHI_EMAIL];
+// Durable record of the generated seed emails so re-runs replace (not
+// accumulate) them. Lives in the gitignored backups dir.
+const REGISTRY = path.join(__dirname, "..", "backups", ".seed-users.json");
 
-// ── Time helpers — everything is spread across the last 30 days ──────────────
+// Target volumes (scale ~300 users).
+const GEN_USERS = 276;
+const N = {
+  listings: 300, offers: 150, documents: 120, questions: 90,
+  confessions: 70, rides: 60, events: 45, lostfound: 70, groups: 45,
+  listingChats: 180, friendDMs: 30, reports: 120,
+  academics: 150, attendance: 150, timetable: 120, deviceTokens: 80,
+  strikes: 15, suspended: 7, notifUsers: 100,
+};
+
+// ── Seeded PRNG (mulberry32) — deterministic across runs ─────────────────────
+let _s = 0x9e3779b9;
+function rnd() {
+  _s |= 0; _s = (_s + 0x6d2b79f5) | 0;
+  let t = Math.imul(_s ^ (_s >>> 15), 1 | _s);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+}
+const rint = (min, max) => min + Math.floor(rnd() * (max - min + 1));
+const pick = (arr) => arr[Math.floor(rnd() * arr.length)];
+const chance = (p) => rnd() < p;
+function pickN(arr, n) {
+  const copy = arr.slice();
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy.slice(0, Math.min(n, copy.length));
+}
+
+// ── Time helpers ─────────────────────────────────────────────────────────────
 const DAY = 24 * 60 * 60 * 1000;
 const now = Date.now();
 const daysAgo = (d) => new Date(now - d * DAY);
 const inDays = (n) => new Date(now + n * DAY);
+const futureAt = (days, hour) => { const d = inDays(days); d.setHours(hour, 0, 0, 0); return d; };
+const ageOfDate = (d) => (now - new Date(d).getTime()) / DAY;
 
-// ── Image library — verified, topical, publicly-hosted photos ───────────────
-// Cloudinary is the real upload path; for seed data we point `images[]` at
-// stable public URLs so cards render real photos in the marketplace / L&F UI.
+// Rising signup curve: recent days weighted heavier (day weight (r+1)^1.6).
+const dayCum = [];
+{ let acc = 0; for (let r = 0; r < WINDOW; r++) { acc += Math.pow(r + 1, 1.6); dayCum.push(acc); } }
+const dayTotal = dayCum[WINDOW - 1];
+function sampleAgeDays() {
+  const x = rnd() * dayTotal;
+  let r = 0; while (r < WINDOW - 1 && dayCum[r] < x) r++;
+  return (WINDOW - 1 - r) + rnd(); // small ageDays (recent) most common
+}
+// A content date strictly after a user's signup, biased toward "now".
+const contentAgeAfter = (signupAge) => signupAge * Math.pow(rnd(), 1.8);
+
+// ── Assets ───────────────────────────────────────────────────────────────────
 const U = (id) => `https://images.unsplash.com/photo-${id}?w=600&q=80`;
 const IMG = {
-  books: U("1544716278-ca5e3f4abd8c"),
-  openBook: U("1532012197267-da84d127e765"),
-  laptop: U("1517336714731-489689fd1ca8"),
-  monitor: U("1527443224154-c4a3942d3acf"),
-  keyboard: U("1587829741301-dc798b83add3"),
-  headphones: U("1505740420928-5e560c06d30e"),
-  bicycle: U("1485965120184-e220f721d03e"),
-  phone: U("1511707171634-5f897ff02aa9"),
-  guitar: U("1510915361894-db8b60106cb1"),
-  sneakers: U("1542291026-7eec264c27ff"),
-  camera: U("1502920917128-1aa500764cbd"),
-  watch: U("1524805444758-089113d48a6d"),
-  backpack: U("1553062407-98eeb64c6a62"),
-  mug: U("1514228742587-6b1558fcca3d"),
-  sunglasses: U("1572635196237-14b3f281503f"),
-  notebook: U("1531346878377-a5be20888e57"),
-  chair: U("1505843513577-22bb7d21e455"),
-  fan: U("1565374395542-0ce18882c857"),
-  labcoat: U("1581595220892-b0739db3ba8c"),
-  racket: U("1626224583764-f87db24ac4ea"),
-  umbrella: U("1534551767192-78b8dd45b51b"),
-  keys: U("1582550945154-66ea8fff25e1"),
-  wallet: U("1627123424574-724758594e93"),
-  earbuds: U("1606220588913-b3aacb4d2f46"),
-  lamp: U("1507473885765-e6ed057f782c"),
-  bottle: U("1602143407151-7111542de6e8"),
-  calculator: U("1564466809058-bf4114d55352"),
-  tshirt: U("1521572163474-6864f9cf17ab"),
-  fridge: U("1571175443880-49e1d25b2bc5"),
-  cricketBat: U("1531415074968-036ba1b575da"),
-  charger: U("1583863788434-e58a36330cf0"),
-  idCard: U("1606166187734-a4cb74079037"),
-  glasses: U("1574258495973-f010dfbb5371"),
-  table: U("1611269154421-4e27233ac5c7"),
+  books: U("1544716278-ca5e3f4abd8c"), openBook: U("1532012197267-da84d127e765"),
+  laptop: U("1517336714731-489689fd1ca8"), monitor: U("1527443224154-c4a3942d3acf"),
+  keyboard: U("1587829741301-dc798b83add3"), headphones: U("1505740420928-5e560c06d30e"),
+  bicycle: U("1485965120184-e220f721d03e"), phone: U("1511707171634-5f897ff02aa9"),
+  guitar: U("1510915361894-db8b60106cb1"), sneakers: U("1542291026-7eec264c27ff"),
+  camera: U("1502920917128-1aa500764cbd"), watch: U("1524805444758-089113d48a6d"),
+  backpack: U("1553062407-98eeb64c6a62"), mug: U("1514228742587-6b1558fcca3d"),
+  sunglasses: U("1572635196237-14b3f281503f"), notebook: U("1531346878377-a5be20888e57"),
+  chair: U("1505843513577-22bb7d21e455"), fan: U("1565374395542-0ce18882c857"),
+  labcoat: U("1581595220892-b0739db3ba8c"), racket: U("1626224583764-f87db24ac4ea"),
+  umbrella: U("1534551767192-78b8dd45b51b"), keys: U("1582550945154-66ea8fff25e1"),
+  wallet: U("1627123424574-724758594e93"), earbuds: U("1606220588913-b3aacb4d2f46"),
+  lamp: U("1507473885765-e6ed057f782c"), bottle: U("1602143407151-7111542de6e8"),
+  calculator: U("1564466809058-bf4114d55352"), tshirt: U("1521572163474-6864f9cf17ab"),
+  fridge: U("1571175443880-49e1d25b2bc5"), cricketBat: U("1531415074968-036ba1b575da"),
+  charger: U("1583863788434-e58a36330cf0"), idCard: U("1606166187734-a4cb74079037"),
+  glasses: U("1574258495973-f010dfbb5371"), table: U("1611269154421-4e27233ac5c7"),
   cooler: U("1558618666-fcd25c85cd64"),
 };
 const pravatar = (n) => `https://i.pravatar.cc/200?img=${n}`;
-
-// Public, embeddable sample PDF for seeded Study-Vault documents (the real
-// upload path is Cloudinary; this just gives every doc a working file URL the
-// in-app preview iframe and download button can open).
 const SAMPLE_PDF = "https://pdfobject.com/pdf/sample.pdf";
+const slugify = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 
-// ── Seed users ──────────────────────────────────────────────────────────────
-// `key` is the short handle used to reference a user below. The first 4 are the
-// long-standing demo accounts; the rest are the ~20 new students. `ready: true`
-// marks the 5 accounts surfaced as ready-to-use logins at the end.
-const userDefs = [
-  // existing demo accounts (kept so older seeded references stay valid)
-  { key: "aarav", displayName: "Aarav Mehta", email: "2311401214@stu.manit.ac.in", handle: "aarav_mehta", avatar: 11, points: 120, badges: ["Top Seller"], bio: "Final-year CSE. Selling stuff before I graduate.", location: "Hostel H-9, MANIT" },
-  { key: "diya", displayName: "Diya Sharma", email: "2311401215@stu.manit.ac.in", handle: "diya_sharma", avatar: 5, points: 95, badges: ["Verified Student"], bio: "ECE '26. GATE aspirant, coffee addict.", location: "Hostel H-10, MANIT" },
-  { key: "rohan", displayName: "Rohan Verma", email: "2311401216@stu.manit.ac.in", handle: "rohan_verma", avatar: 13, points: 80, badges: [], bio: "Mechanical engg. Cycling + chess.", location: "Hostel H-7, MANIT" },
-  { key: "ananya", displayName: "Ananya Iyer", email: "2311401217@stu.manit.ac.in", handle: "ananya_iyer", avatar: 9, points: 110, badges: ["Helpful"], bio: "Maths nerd, badminton on weekends.", location: "Hostel H-12, MANIT" },
+// ── Pools ────────────────────────────────────────────────────────────────────
+const FIRST = ["Aarav","Vivaan","Aditya","Vihaan","Arjun","Sai","Reyansh","Krishna","Ishaan","Rohan","Kabir","Ansh","Dhruv","Yuvraj","Aryan","Kartik","Nikhil","Rudra","Dev","Harsh","Manav","Om","Parth","Ritvik","Shaurya","Tanish","Ved","Yash","Ayush","Rahul","Karan","Siddharth","Aman","Raj","Varun","Nishant","Pranav","Gaurav","Sanjay","Akash","Ananya","Diya","Isha","Sneha","Priya","Riya","Kavya","Meera","Pooja","Neha","Tanvi","Ayesha","Aditi","Anjali","Bhavya","Chirag","Divya","Gauri","Ira","Jhanvi","Khushi","Lavanya","Mahi","Nandini","Palak","Rachana","Saanvi","Shreya","Trisha","Vaishnavi","Yamini","Simran","Nikita","Radhika","Sakshi","Muskan"];
+const LAST = ["Sharma","Verma","Gupta","Iyer","Reddy","Nair","Menon","Patel","Shah","Jain","Singh","Kumar","Rao","Desai","Bhatt","Khanna","Pillai","Saxena","Malhotra","Agarwal","Joshi","Mehta","Chopra","Mishra","Tiwari","Pandey","Dubey","Chauhan","Yadav","Bansal","Goel","Kapoor","Sinha","Das","Ghosh","Bose","Mukherjee","Naidu","Chowdhury","Ahuja"];
+const BIOS = ["CSE '26. Placement grind mode.","ECE. Photography + chai breaks.","Loves clean code and audio gear.","GATE aspirant, coffee addict.","Runner. Always at the sports complex.","Guitar, OS assignments and football.","Night-owl studier.","Gym + gadgets.","Mechanical engg. Cycling + chess.","Maths nerd, badminton on weekends.","Hostel fridge dealer. Always trading.","Aptitude prep + sketching.","Debugging by day, gaming by night.","Design club. Makes posters.","DSA every single day.","Chem engg. Hydration evangelist.","Cricketer, captain of the hostel team.","Blue-light glasses gang.","Fresher, figuring it all out.","Final-year, selling stuff before I graduate."];
+const HOSTELS = ["H-3","H-4","H-5","H-6","H-7","H-8","H-9","H-10","H-11","H-12"];
+const BRANCHES = ["CSE","ECE","EEE","Mechanical","Civil","Chemical","Mathematics","IT","Architecture","MME"];
+const SUBJECTS = ["Data Structures","DBMS","Operating Systems","Computer Networks","Thermodynamics","Engineering Mathematics-I","Engineering Mathematics-II","Digital Electronics","Signals & Systems","Machine Learning","Fluid Mechanics","Structural Analysis","Microprocessors","Compiler Design","Theory of Computation","Discrete Mathematics","Probability & Statistics","Control Systems","Software Engineering","Analog Circuits"];
+const GRADES = ["A+","A","A","B+","B+","B","B","C+","C","D"];
 
-  // 5 ready-to-use logins (rich profiles + data)
-  { key: "priya", displayName: "Shanjhi Jain", email: "2311401213@stu.manit.ac.in", handle: "shanjhi_jain", avatar: 47, points: 140, badges: ["Top Seller", "Verified Student"], bio: "CSE '25. Loves audio gear and clean code.", location: "Hostel H-12, MANIT", ready: true },
-  { key: "arjun", displayName: "Arjun Reddy", email: "2311401218@stu.manit.ac.in", handle: "arjun.reddy", avatar: 12, points: 130, badges: ["Verified Student"], bio: "Placement grind mode. DSA every day.", location: "Hostel H-8, MANIT", ready: true },
-  { key: "sneha", displayName: "Sneha Gupta", email: "2311401219@stu.manit.ac.in", handle: "sneha_g", avatar: 45, points: 105, badges: ["Helpful"], bio: "EEE '26. Photography + chai breaks.", location: "Hostel H-11, MANIT", ready: true },
-  { key: "karan", displayName: "Karan Singh", email: "2311401220@stu.manit.ac.in", handle: "karan_singh", avatar: 33, points: 90, badges: [], bio: "Guitar, OS assignments and football.", location: "Hostel H-7, MANIT", ready: true },
-  { key: "isha", displayName: "Isha Patel", email: "2311401221@stu.manit.ac.in", handle: "isha.patel", avatar: 44, points: 100, badges: ["Verified Student"], bio: "Runner. Civil engg. Always at the sports complex.", location: "Hostel H-10, MANIT", ready: true },
+const LISTING_TEMPLATES = [
+  { cat: "Textbooks", titles: ["CLRS Introduction to Algorithms","GATE 2026 Made Easy Full Set","Engineering Physics Reference","Operating Systems (Galvin)","Signals & Systems Textbook","M-I / M-II Reference Bundle","Digital Design (Morris Mano)","Data Structures Notes Book"], imgs: ["books","openBook","notebook"], min: 150, max: 2000 },
+  { cat: "Electronics", titles: ["Casio FX-991EX Calculator","Dell Inspiron 15 Laptop","Sony WH-1000XM4 Headphones","boAt Airdopes Earbuds","HP 22\" Full-HD Monitor","Mechanical Keyboard + Mouse","65W Type-C Fast Charger","Mini Fridge 45L","Symphony Air Cooler","iPhone 11 (64GB)","Canon EOS 1500D DSLR","Table Fan","Power Bank 20000mAh"], imgs: ["laptop","monitor","keyboard","headphones","earbuds","charger","fridge","cooler","phone","camera","fan","calculator"], min: 300, max: 30000 },
+  { cat: "Furniture", titles: ["Wooden Study Table","Cushioned Study Chair","Foldable Study Table","Small Bookshelf","Study Table + Chair Combo"], imgs: ["table","chair"], min: 500, max: 4000 },
+  { cat: "Clothing", titles: ["White Lab Coat (M)","Nike Running Shoes (UK 9)","Cotton T-Shirts (Pack of 3)","Formal Blazer","Winter Hoodie","Ray-Ban Wayfarers"], imgs: ["labcoat","sneakers","tshirt","sunglasses"], min: 150, max: 3500 },
+  { cat: "Sports", titles: ["Yonex Badminton Racket + Shuttles","SS Cricket Bat","Hercules Roadeo 26T Cycle","Football (Size 5)","Gym Dumbbell Set"], imgs: ["racket","cricketBat","bicycle"], min: 300, max: 4000 },
+  { cat: "Other", titles: ["Yamaha F310 Acoustic Guitar","Ceramic Mug Set (x4)","LED Study Lamp","Milton Steel Bottle 1L","American Tourister 32L Backpack","Blue-Light Glasses","Folding Umbrella","Analog Wristwatch"], imgs: ["guitar","mug","lamp","bottle","backpack","glasses","umbrella","watch"], min: 150, max: 7000 },
+];
+const CONDITIONS = ["new", "like-new", "good", "good", "fair"];
 
-  // the rest of the ~20 new students
-  { key: "vikram", displayName: "Vikram Rao", email: "2311401222@stu.manit.ac.in", handle: "vikram_rao", avatar: 51, points: 70, badges: [], bio: "Photography club. Shoots campus events.", location: "Hostel H-8, MANIT" },
-  { key: "neha", displayName: "Neha Joshi", email: "2311401223@stu.manit.ac.in", handle: "neha_joshi", avatar: 32, points: 65, badges: [], bio: "Soft-skills circle organiser. Loves debates.", location: "Hostel H-11, MANIT" },
-  { key: "aditya", displayName: "Aditya Kumar", email: "2311401224@stu.manit.ac.in", handle: "aditya_k", avatar: 53, points: 60, badges: [], bio: "Gym + gadgets. IT branch.", location: "Hostel H-5, MANIT" },
-  { key: "riya", displayName: "Riya Desai", email: "2311401225@stu.manit.ac.in", handle: "riya_desai", avatar: 26, points: 85, badges: ["Helpful"], bio: "Night-owl studier. Sells study gear.", location: "Hostel H-12, MANIT" },
-  { key: "sid", displayName: "Siddharth Menon", email: "2311401226@stu.manit.ac.in", handle: "sid_menon", avatar: 60, points: 55, badges: [], bio: "Maths doubt-solver. Keeps finding lost notebooks.", location: "Hostel H-9, MANIT" },
-  { key: "tanvi", displayName: "Tanvi Shah", email: "2311401227@stu.manit.ac.in", handle: "tanvi_shah", avatar: 25, points: 75, badges: [], bio: "Cricketer. Captain of the hostel team.", location: "Hostel H-11, MANIT" },
-  { key: "harsh", displayName: "Harsh Agarwal", email: "2311401228@stu.manit.ac.in", handle: "harsh_a", avatar: 56, points: 50, badges: [], bio: "Hostel fridge dealer. Always trading.", location: "Hostel H-6, MANIT" },
-  { key: "pooja", displayName: "Pooja Bhatt", email: "2311401229@stu.manit.ac.in", handle: "pooja_bhatt", avatar: 31, points: 88, badges: ["Verified Student"], bio: "Aptitude prep + sketching.", location: "Hostel H-10, MANIT" },
-  { key: "rahul", displayName: "Rahul Khanna", email: "2311401230@stu.manit.ac.in", handle: "rahul_khanna", avatar: 58, points: 45, badges: [], bio: "Fresher. Selling spare clothes and gear.", location: "Hostel H-4, MANIT" },
-  { key: "meera", displayName: "Meera Pillai", email: "2311401231@stu.manit.ac.in", handle: "meera_pillai", avatar: 27, points: 92, badges: ["Helpful"], bio: "Hydration evangelist. Chem engg.", location: "Hostel H-12, MANIT" },
-  { key: "nikhil", displayName: "Nikhil Saxena", email: "2311401232@stu.manit.ac.in", handle: "nikhil_s", avatar: 59, points: 78, badges: [], bio: "Phone flipper. CSE '25.", location: "Hostel H-8, MANIT" },
-  { key: "ayesha", displayName: "Ayesha Khan", email: "2311401233@stu.manit.ac.in", handle: "ayesha_khan", avatar: 48, points: 82, badges: ["Verified Student"], bio: "English circle lead. Loves mock interviews.", location: "Hostel H-11, MANIT" },
-  { key: "dev", displayName: "Dev Malhotra", email: "2311401234@stu.manit.ac.in", handle: "dev_malhotra", avatar: 61, points: 67, badges: [], bio: "Coffee + cameras + code.", location: "Hostel H-7, MANIT" },
-  { key: "kavya", displayName: "Kavya Reddy", email: "2311401235@stu.manit.ac.in", handle: "kavya_reddy", avatar: 28, points: 73, badges: [], bio: "Blue-light glasses gang. Designs posters.", location: "Hostel H-10, MANIT" },
-  { key: "rohit", displayName: "Rohit Sharma", email: "2311401236@stu.manit.ac.in", handle: "rohit_sharma", avatar: 64, points: 58, badges: [], bio: "Furniture & hostel essentials reseller.", location: "Hostel H-3, MANIT" },
+const LF_TEMPLATES = [
+  { title: "Black Leather Wallet", kind: "lost", category: "Accessories", loc: "Central Library", img: "wallet" },
+  { title: "Bunch of Keys", kind: "found", category: "Keys", loc: "Hostel H-7 gate", img: "keys" },
+  { title: "Blue Folding Umbrella", kind: "lost", category: "Accessories", loc: "New Teaching Block", img: "umbrella" },
+  { title: "Student ID Card", kind: "found", category: "ID & Cards", loc: "Main Canteen", img: "idCard" },
+  { title: "boAt Earbuds Case", kind: "lost", category: "Electronics", loc: "Sports Complex", img: "earbuds" },
+  { title: "Casio Wristwatch", kind: "found", category: "Accessories", loc: "Lecture Hall Complex", img: "watch" },
+  { title: "Black-Frame Spectacles", kind: "lost", category: "Accessories", loc: "Main Gate Bus Stop", img: "glasses" },
+  { title: "Steel Water Bottle", kind: "found", category: "Other", loc: "Gymnasium", img: "bottle" },
+  { title: "Type-C Laptop Charger", kind: "lost", category: "Electronics", loc: "Library, 2nd Floor", img: "charger" },
+  { title: "Engineering Maths Notebook", kind: "found", category: "Books & Notes", loc: "NTB Room 204", img: "notebook" },
+  { title: "Hostel Room Keys", kind: "lost", category: "Keys", loc: "Hostel Mess", img: "keys" },
+  { title: "Scientific Calculator", kind: "found", category: "Electronics", loc: "Exam Hall", img: "calculator" },
+  { title: "Red Hoodie", kind: "found", category: "Clothing", loc: "Sports Ground", img: "tshirt" },
+  { title: "Black Backpack", kind: "lost", category: "Accessories", loc: "Academic Block", img: "backpack" },
+];
+
+const CONFESSIONS = [
+  "Whoever keeps stealing the good chairs from the reading hall — I will find you. 😤",
+  "Mess food today was actually edible. Marking this historic day in my calendar.",
+  "I have a crush on someone from the library 2nd floor but I'm too shy to say hi. 🙈",
+  "Spent the whole night debugging and the issue was a missing semicolon. I want to cry.",
+  "Can we please get more power sockets in the lecture halls? My laptop dies by 11am.",
+  "Shoutout to the senior who helped me with my DSA assignment — you're a legend. 🙏",
+  "I pretend to understand thermodynamics but honestly I'm just vibing at this point.",
+  "The H-7 night canteen Maggi is the only thing keeping my CGPA alive.",
+  "Joined 4 clubs in first week and ghosted all of them by month two.",
+  "Saw a cute dog near the academic block today and it made my entire week. 🐶",
+  "Why does the wifi die exactly when the assignment is due? Every. Single. Time.",
+  "To the person who returned my lost ID card — you restored my faith in humanity.",
+  "Attendance is 74.6% and my heart cannot take this stress anymore.",
+  "The library AC is colder than my ex's heart and I'm not complaining.",
+  "Someone please start a queue system for the washing machines, I'm begging.",
+  "Got a 9 SGPA and my parents asked why not 10. Indian parents undefeated.",
+  "The samosa at the canteen hit different during placement season.",
+  "I've walked past my crush 6 times today pretending I have somewhere to be.",
+  "Late-night group study sessions are just gossip with textbooks open.",
+  "Finally understood pointers and I feel like I unlocked a new dimension.",
+];
+const CONF_REACTS = ["heart", "laugh", "wow", "sad"];
+const CONF_COMMENTS = ["This is too real 😭","Justice for us fr","We're all rooting for you 🥹","Same energy honestly","Facts. No notes.","Couldn't have said it better","Bookmarking this","LMAO the accuracy"];
+
+const RIDE_FROM = ["MANIT Main Gate", "MANIT", "New Market", "DB City Mall"];
+const RIDE_TO = ["Rani Kamlapati Station", "Bhopal Junction", "Bhopal Airport", "DB City Mall", "ISBT Bhopal", "Indore", "Habibganj (RKMP)", "New Market"];
+const RIDE_NOTES = ["Splitting the cab fare, leaving sharp.","Auto share both ways.","Can drop you on the way.","Catching an early train.","Going home for the weekend.","Music guaranteed 🎶","Ping me to share the ride."];
+
+const EVENT_TEMPLATES = [
+  { title: "Spandan — Cultural Night", club: "Cultural Cell", category: "Cultural", venue: "Open Air Theatre" },
+  { title: "TechnoSearch Hackathon", club: "ACM MANIT", category: "Technical", venue: "NTB Computer Labs" },
+  { title: "Inter-Hostel Cricket Finals", club: "Sports Council", category: "Sports", venue: "Main Cricket Ground" },
+  { title: "Hands-on ML with PyTorch", club: "Coding Club", category: "Workshop", venue: "CSE Seminar Hall" },
+  { title: "Alumni Talk: Cracking Product Roles", club: "E-Cell", category: "Talk", venue: "Main Auditorium" },
+  { title: "Photography Walk & Exhibition", club: "Shutterbugs", category: "Other", venue: "Campus Lake" },
+  { title: "Robotics Expo", club: "Robotics Club", category: "Technical", venue: "Central Workshop" },
+  { title: "Open Mic Night", club: "Literary Society", category: "Cultural", venue: "OAT" },
+  { title: "Startup Pitch Fest", club: "E-Cell", category: "Talk", venue: "Seminar Hall, NTB" },
+  { title: "Fitness Bootcamp", club: "Sports Council", category: "Sports", venue: "Sports Complex" },
+];
+
+const QUESTIONS = [
+  { title: "How to prepare for GATE CSE alongside semester exams?", body: "The semester is heavy and I want to start GATE prep without tanking my CGPA. How did you balance both?", subject: "GATE" },
+  { title: "Best resources for Operating Systems (our syllabus)?", body: "Looking for notes/videos that actually match the MANIT OS syllabus. Galvin is too much.", subject: "Operating Systems" },
+  { title: "BFS vs DFS — when should I use which?", body: "I get how both work but always confused about which to pick in interview problems.", subject: "Data Structures" },
+  { title: "How is the placement season for ECE branch?", body: "Curious about core vs IT roles for ECE. What's the realistic picture this year?", subject: "Placements" },
+  { title: "Tips to improve CGPA after a rough first year?", body: "First year went badly. Is it possible to recover the CGPA meaningfully by final year?", subject: "General" },
+  { title: "Which 6th-sem CSE electives are scoring?", body: "Trying to pick electives. Which ones are interesting AND grade-friendly?", subject: "Electives" },
+  { title: "Anyone has notes for Engineering Mathematics-II?", body: "Specifically the linear algebra + complex analysis units. Exams are close 😅", subject: "Engineering Mathematics-II" },
+  { title: "How to get started with competitive programming?", body: "Complete beginner. Which judge and what topic order do you recommend?", subject: "CP" },
+  { title: "Is it worth doing a summer internship after 2nd year?", body: "Or should I focus on projects and DSA instead? Confused about priorities.", subject: "Internships" },
+  { title: "Best way to revise DBMS in 3 days?", body: "End-sem in 3 days and I've barely started DBMS. SOS strategy needed.", subject: "DBMS" },
+];
+const ANSWERS = [
+  "Start with the high-weight subjects that overlap your semester. 2 focused hours daily + PYQs on weekends is plenty early on.",
+  "NPTEL's course matches our syllabus well. Pair it with the last 3 years' question papers.",
+  "Rule of thumb: BFS for shortest path in unweighted graphs; DFS for connectivity, cycles and topological sort.",
+  "Totally recoverable. Later semesters carry more credits, so consistent 8+ SGPAs pull the overall up fast.",
+  "Check the Study Vault — someone uploaded unit-wise notes that are honestly gold.",
+  "Make a single revision notebook per subject from day one; it doubles as exam + GATE revision later.",
+  "Do projects AND some DSA. Balance beats going all-in on one thing this early.",
+  "Machine Learning and Information Security were both interesting and scored well for our batch.",
+];
+
+const DOC_TYPES = ["Notes", "PYQ", "Syllabus", "Sem Schedule", "Other"];
+const GROUP_TAGS = ["algorithms","leetcode","cp","gate","theory","mock-tests","dbms","os","sql","calculus","linear-algebra","react","node","mongodb","projects","mechanics","aptitude","placements","interviews","photography","system-design","communication"];
+const GROUP_ADJ = ["Weekly", "Grind", "Prep", "Squad", "Circle", "Club", "Sprints", "Doubt-Solving"];
+
+const NOTIF = [
+  { type: "system", title: "Welcome to Manit Hub 🎓", description: "Your campus hub for NIT Bhopal is ready — explore the marketplace, study groups and campus maps." },
+  { type: "marketplace", title: "New in Marketplace", description: "A listing you might like was just posted near your hostel." },
+  { type: "study-group", title: "New study group", description: "A Computer Science group is now open to join." },
+  { type: "friend", title: "Friend request accepted", description: "You have a new friend on Manit Hub." },
+  { type: "message", title: "New message", description: "You have an unread message about a listing." },
+  { type: "system", title: "Complete your profile", description: "Add a photo and a short bio so other students recognise you." },
+  { type: "study-group", title: "Session reminder", description: "One of your study groups has an upcoming session." },
+];
+const BAN_REASONS = ["Repeated spam listings after warnings","Harassment reported by multiple users","Posting prohibited content in confessions","Fraudulent marketplace behaviour","Multiple community-guideline violations"];
+const REPORT_REASONS = ["Spam or misleading","Inappropriate content","Harassment","Scam / fraud","Wrong category","Offensive language","Duplicate post"];
+
+// Featured accounts (rich profiles). Shanjhi (2311401213) is handled as protected.
+const featuredDefs = [
+  { displayName: "Aarav Mehta", email: "2311401214@stu.manit.ac.in", handle: "aarav_mehta", avatar: 11, bio: "Final-year CSE. Selling stuff before I graduate." },
+  { displayName: "Diya Sharma", email: "2311401215@stu.manit.ac.in", handle: "diya_sharma", avatar: 5, bio: "ECE '26. GATE aspirant, coffee addict." },
+  { displayName: "Rohan Verma", email: "2311401216@stu.manit.ac.in", handle: "rohan_verma", avatar: 13, bio: "Mechanical engg. Cycling + chess." },
+  { displayName: "Ananya Iyer", email: "2311401217@stu.manit.ac.in", handle: "ananya_iyer", avatar: 9, bio: "Maths nerd, badminton on weekends." },
+  { displayName: "Arjun Reddy", email: "2311401218@stu.manit.ac.in", handle: "arjun.reddy", avatar: 12, bio: "Placement grind mode. DSA every day." },
+  { displayName: "Sneha Gupta", email: "2311401219@stu.manit.ac.in", handle: "sneha_g", avatar: 45, bio: "EEE '26. Photography + chai breaks." },
+  { displayName: "Karan Singh", email: "2311401220@stu.manit.ac.in", handle: "karan_singh", avatar: 33, bio: "Guitar, OS assignments and football." },
+  { displayName: "Isha Patel", email: "2311401221@stu.manit.ac.in", handle: "isha.patel", avatar: 44, bio: "Runner. Civil engg." },
+  { displayName: "Vikram Rao", email: "2311401222@stu.manit.ac.in", handle: "vikram_rao", avatar: 51, bio: "Photography club. Shoots campus events." },
+  { displayName: "Neha Joshi", email: "2311401223@stu.manit.ac.in", handle: "neha_joshi", avatar: 32, bio: "Soft-skills circle organiser." },
+  { displayName: "Aditya Kumar", email: "2311401224@stu.manit.ac.in", handle: "aditya_k", avatar: 53, bio: "Gym + gadgets. IT branch." },
+  { displayName: "Riya Desai", email: "2311401225@stu.manit.ac.in", handle: "riya_desai", avatar: 26, bio: "Night-owl studier." },
+  { displayName: "Siddharth Menon", email: "2311401226@stu.manit.ac.in", handle: "sid_menon", avatar: 60, bio: "Maths doubt-solver." },
+  { displayName: "Tanvi Shah", email: "2311401227@stu.manit.ac.in", handle: "tanvi_shah", avatar: 25, bio: "Cricketer. Hostel team captain." },
+  { displayName: "Harsh Agarwal", email: "2311401228@stu.manit.ac.in", handle: "harsh_a", avatar: 56, bio: "Hostel fridge dealer." },
+  { displayName: "Pooja Bhatt", email: "2311401229@stu.manit.ac.in", handle: "pooja_bhatt", avatar: 31, bio: "Aptitude prep + sketching." },
+  { displayName: "Rahul Khanna", email: "2311401230@stu.manit.ac.in", handle: "rahul_khanna", avatar: 58, bio: "Fresher. Selling spare gear." },
+  { displayName: "Meera Pillai", email: "2311401231@stu.manit.ac.in", handle: "meera_pillai", avatar: 27, bio: "Chem engg. Hydration evangelist." },
+  { displayName: "Nikhil Saxena", email: "2311401232@stu.manit.ac.in", handle: "nikhil_s", avatar: 59, bio: "Phone flipper. CSE '25." },
+  { displayName: "Ayesha Khan", email: "2311401233@stu.manit.ac.in", handle: "ayesha_khan", avatar: 48, bio: "English circle lead." },
+  { displayName: "Dev Malhotra", email: "2311401234@stu.manit.ac.in", handle: "dev_malhotra", avatar: 61, bio: "Coffee + cameras + code." },
+  { displayName: "Kavya Reddy", email: "2311401235@stu.manit.ac.in", handle: "kavya_reddy", avatar: 28, bio: "Designs posters." },
+  { displayName: "Rohit Sharma", email: "2311401236@stu.manit.ac.in", handle: "rohit_sharma", avatar: 64, bio: "Furniture & hostel essentials reseller." },
 ];
 
 async function run() {
   const uri = process.env.MONGO_URI;
-  if (!uri) {
-    console.error("✗ MONGO_URI is not set. Add it to backend/.env first.");
-    process.exit(1);
-  }
-
+  if (!uri) { console.error("✗ MONGO_URI is not set. Add it to backend/.env first."); process.exit(1); }
   await mongoose.connect(uri);
   console.log("✓ Connected to MongoDB");
 
-  // 1) University — reuse the one real students belong to (by email domain)
-  //    so seeded data is in-scope for everyone on @stu.manit.ac.in.
+  // 1) University
   let university = await University.findOne({ domains: STUDENT_DOMAIN });
   if (!university) {
-    university = await University.create({
-      name: "Maulana Azad National Institute of Technology",
-      domains: [STUDENT_DOMAIN],
-      isVerified: true,
-    });
+    university = await University.create({ name: "Maulana Azad National Institute of Technology", domains: [STUDENT_DOMAIN], isVerified: true });
     console.log(`✓ Created university "${university.name}"`);
   } else {
     console.log(`✓ Using existing university "${university.name}"`);
   }
+  const uniId = university._id;
 
-  // 1b) One-time legacy cleanup — older seeds used name.demo@stu.manit.ac.in
-  //     emails (now disallowed by the scholar-email login rule). They share
-  //     handles with the new scholar-number accounts, so remove them and every
-  //     doc they own before re-seeding; otherwise the unique `handle` index
-  //     collides. Idempotent: a no-op once the legacy accounts are gone.
-  const legacyUsers = await User.find({
-    email: /\.demo@stu\.manit\.ac\.in$/i,
-  }).select("_id");
-  if (legacyUsers.length) {
-    const legacyIds = legacyUsers.map((u) => u._id);
+  // 2) Generate the managed user set deterministically (emails + handles unique).
+  const existing = await User.find({}, "email handle").lean();
+  const usedEmails = new Set(existing.map((u) => u.email));
+  const usedHandles = new Set(existing.map((u) => u.handle).filter(Boolean));
+  const reserved = new Set([...PROTECTED_EMAILS, CEO_GHOST_EMAIL]);
+
+  const uniqueHandle = (base) => {
+    let h = String(base).toLowerCase().replace(/[^a-z0-9_.]/g, "").replace(/^[._]+|[._]+$/g, "");
+    if (h.length < 3) h = `${h}xx`;
+    h = h.slice(0, 20);
+    let cand = h, i = 1;
+    while (usedHandles.has(cand)) { const suf = String(i++); cand = h.slice(0, 20 - suf.length) + suf; }
+    usedHandles.add(cand);
+    return cand;
+  };
+
+  // Reserve featured handles up front.
+  for (const f of featuredDefs) usedHandles.add(f.handle);
+
+  // Scholar-number prefixes (7 digits) + 3-digit serial = 10 digits.
+  const PREFIXES = ["2311401","2311402","2311403","2311301","2311302","2311501","2311601","2311701","2211401","2211402","2411401","2411402","2011401","2511401"];
+  const emailPool = [];
+  for (const p of PREFIXES) for (let s = 0; s < 1000; s++) emailPool.push(`${p}${String(s).padStart(3, "0")}@${STUDENT_DOMAIN}`);
+  for (let i = emailPool.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [emailPool[i], emailPool[j]] = [emailPool[j], emailPool[i]]; }
+
+  const managedDefs = [];
+  for (const f of featuredDefs) managedDefs.push({ ...f, avatarUrl: pravatar(f.avatar), featured: true });
+  let ei = 0;
+  for (let i = 0; i < GEN_USERS; i++) {
+    let email;
+    while (ei < emailPool.length) { const cand = emailPool[ei++]; if (!usedEmails.has(cand) && !reserved.has(cand)) { email = cand; break; } }
+    if (!email) break;
+    usedEmails.add(email);
+    const displayName = `${pick(FIRST)} ${pick(LAST)}`;
+    const handle = uniqueHandle(displayName.replace(/\s+/g, "_") + "_" + email.slice(6, 10));
+    managedDefs.push({ displayName, email, handle, avatarUrl: pravatar(rint(1, 70)), bio: pick(BIOS), location: `Hostel ${pick(HOSTELS)}, MANIT` });
+  }
+
+  // Assign signup ages: oldest go to featured (early adopters), rest to generated.
+  const ages = managedDefs.map(() => sampleAgeDays()).sort((a, b) => b - a); // desc (oldest first)
+  managedDefs.forEach((d, i) => { d.ageDays = ages[i]; });
+
+  // 3) Protected accounts
+  const samay = await User.findOne({ email: ADMIN_EMAIL });
+  const shanjhi = await User.findOne({ email: SHANJHI_EMAIL });
+  if (!samay) console.log(`! Protected account ${ADMIN_EMAIL} not found — admin will not be set.`);
+  if (!shanjhi) console.log(`! Protected account ${SHANJHI_EMAIL} not found — skipped.`);
+
+  // 4) RESET — delete prior seed data. The seed owns the fixed featured emails,
+  //    this run's generated emails, AND whatever generated emails a previous run
+  //    recorded in the registry — so re-runs replace instead of accumulate, and
+  //    real users (never in these sets) are untouched. Protected accounts' CONTENT
+  //    is cleared (they're re-woven in) but their user docs/passwords are kept.
+  const managedEmails = managedDefs.map((d) => d.email);
+  let priorGenerated = [];
+  try { priorGenerated = JSON.parse(fs.readFileSync(REGISTRY, "utf8")).generated || []; } catch { /* first run */ }
+  const resetEmails = [...new Set([...managedEmails, ...priorGenerated])].filter((e) => !PROTECTED_EMAILS.includes(e));
+  const priorManaged = await User.find({ email: { $in: resetEmails } }, "_id").lean();
+  const seedOwnerIds = [
+    ...priorManaged.map((u) => u._id),
+    ...(samay ? [samay._id] : []),
+    ...(shanjhi ? [shanjhi._id] : []),
+  ];
+  if (seedOwnerIds.length) {
+    const ownerIn = { $in: seedOwnerIds };
     await Promise.all([
-      Listing.deleteMany({ seller: { $in: legacyIds } }),
-      StudyGroup.deleteMany({ creator: { $in: legacyIds } }),
-      LostFoundItem.deleteMany({ reporter: { $in: legacyIds } }),
-      Friendship.deleteMany({ users: { $in: legacyIds } }),
-      Confession.deleteMany({ author: { $in: legacyIds } }),
-      Ride.deleteMany({ poster: { $in: legacyIds } }),
-      Event.deleteMany({ organizer: { $in: legacyIds } }),
-      Question.deleteMany({ author: { $in: legacyIds } }),
-      Answer.deleteMany({ author: { $in: legacyIds } }),
-      Document.deleteMany({ uploader: { $in: legacyIds } }),
-      Notification.deleteMany({ user: { $in: legacyIds } }),
+      Listing.deleteMany({ seller: ownerIn }),
+      Offer.deleteMany({ $or: [{ buyer: ownerIn }, { seller: ownerIn }] }),
+      StudyGroup.deleteMany({ creator: ownerIn }),
+      LostFoundItem.deleteMany({ reporter: ownerIn }),
+      Friendship.deleteMany({ users: ownerIn }),
+      Confession.deleteMany({ author: ownerIn }),
+      Ride.deleteMany({ poster: ownerIn }),
+      Event.deleteMany({ organizer: ownerIn }),
+      Question.deleteMany({ author: ownerIn }),
+      Answer.deleteMany({ author: ownerIn }),
+      Document.deleteMany({ uploader: ownerIn }),
+      Notification.deleteMany({ user: ownerIn }),
+      Report.deleteMany({ reporter: ownerIn }),
+      AcademicRecord.deleteMany({ user: ownerIn }),
+      AttendanceSubject.deleteMany({ user: ownerIn }),
+      TimetableEntry.deleteMany({ user: ownerIn }),
+      DeviceToken.deleteMany({ user: ownerIn }),
     ]);
-    const legacyConvos = await Conversation.find({
-      participants: { $in: legacyIds },
-    }).select("_id");
-    const legacyConvoIds = legacyConvos.map((c) => c._id);
-    await Message.deleteMany({ conversation: { $in: legacyConvoIds } });
-    await Conversation.deleteMany({ _id: { $in: legacyConvoIds } });
-    await User.deleteMany({ _id: { $in: legacyIds } });
-    console.log(
-      `✓ Removed ${legacyIds.length} legacy .demo accounts + the data they owned`
-    );
+    const scopeSet = new Set(seedOwnerIds.map(String));
+    const convos = await Conversation.find({ participants: { $in: seedOwnerIds } }, "_id participants").lean();
+    const seedConvoIds = convos.filter((c) => c.participants.every((p) => scopeSet.has(String(p)))).map((c) => c._id);
+    await Message.deleteMany({ conversation: { $in: seedConvoIds } });
+    await Conversation.deleteMany({ _id: { $in: seedConvoIds } });
+    // delete previously-managed user docs (never the protected accounts)
+    await User.deleteMany({ email: { $in: resetEmails } });
+    console.log(`✓ Reset previous seed data (${seedOwnerIds.length} owners)`);
   }
 
-  // 2) Seed users — create if missing (password hashed by the model hook),
-  //    otherwise refresh their demo profile fields (never the password).
-  const byKey = {};
-  let created = 0;
-  for (const u of userDefs) {
-    let user = await User.findOne({ email: u.email });
-    if (!user) {
-      user = await User.create({
-        email: u.email,
-        password: DEMO_PASSWORD,
-        displayName: u.displayName,
-        handle: u.handle,
-        university: university._id,
-        location: u.location,
-        bio: u.bio,
-        avatarUrl: pravatar(u.avatar),
-        points: u.points,
-        badges: u.badges,
-      });
-      created += 1;
-    } else {
-      user.displayName = u.displayName;
-      user.handle = u.handle;
-      user.location = u.location;
-      user.bio = u.bio;
-      user.avatarUrl = pravatar(u.avatar);
-      user.points = u.points;
-      user.badges = u.badges;
-      await user.save(); // password not modified → not re-hashed
-    }
-    byKey[u.key] = user;
-  }
-  const uid = (k) => byKey[k]._id;
-  const seedUserIds = Object.values(byKey).map((u) => u._id);
-  console.log(`✓ ${userDefs.length} seed users ready (${created} newly created)`);
-
-  // Primary user (you) — gets the conversations, notifications and a friend graph.
-  const primaryEmail = process.env.SEED_PRIMARY_EMAIL || "2311401212@stu.manit.ac.in";
-  const primary = await User.findOne({ email: primaryEmail });
-  const primaryOk = primary && String(primary.university) === String(university._id);
-  if (!primary) {
-    console.log(`! Primary user ${primaryEmail} not found — skipping their private demo data.`);
-  } else if (!primaryOk) {
-    console.log(`! ${primaryEmail} is in a different university — skipping their private demo data.`);
-  }
-
-  // 3) Reset previously-seeded data (idempotent — only seed-owned docs)
-  const delL = await Listing.deleteMany({ seller: { $in: seedUserIds } });
-  const delG = await StudyGroup.deleteMany({ creator: { $in: seedUserIds } });
-  const delF = await LostFoundItem.deleteMany({ reporter: { $in: seedUserIds } });
-  const delFr = await Friendship.deleteMany({ users: { $in: seedUserIds } });
-  const delC = await Confession.deleteMany({ author: { $in: seedUserIds } });
-  const delR = await Ride.deleteMany({ poster: { $in: seedUserIds } });
-  const delE = await Event.deleteMany({ organizer: { $in: seedUserIds } });
-  const delQ = await Question.deleteMany({ author: { $in: seedUserIds } });
-  const delA = await Answer.deleteMany({ author: { $in: seedUserIds } });
-  const delD = await Document.deleteMany({ uploader: { $in: seedUserIds } });
-  console.log(
-    `✓ Cleared ${delL.deletedCount} listings, ${delG.deletedCount} groups, ` +
-      `${delF.deletedCount} lost&found, ${delFr.deletedCount} friendships, ` +
-      `${delC.deletedCount} confessions, ${delR.deletedCount} rides, ` +
-      `${delE.deletedCount} events, ${delQ.deletedCount} questions, ` +
-      `${delA.deletedCount} answers, ${delD.deletedCount} documents`
-  );
-
-  // Reset seed-only conversations (every participant is a seed/primary account).
-  const convoScope = primaryOk ? [...seedUserIds, primary._id] : [...seedUserIds];
-  const scopeSet = new Set(convoScope.map(String));
-  const candidateConvos = await Conversation.find({ participants: { $in: convoScope } });
-  const seededConvoIds = candidateConvos
-    .filter((c) => c.participants.every((p) => scopeSet.has(String(p))))
-    .map((c) => c._id);
-  await Message.deleteMany({ conversation: { $in: seededConvoIds } });
-  await Conversation.deleteMany({ _id: { $in: seededConvoIds } });
-
-  // 4) Marketplace listings — every listing carries a real photo.
-  const listingDefs = [
-    // demo accounts
-    { title: "GATE 2026 CSE — Made Easy Full Set", description: "Complete Made Easy theory + practice book set for GATE CSE. Barely used, no markings.", price: 1800, category: "Textbooks", condition: "like-new", seller: "aarav", img: IMG.books, ageDays: 27 },
-    { title: "Introduction to Algorithms (CLRS, 3rd Ed.)", description: "The classic CLRS. Some highlighting in early chapters.", price: 450, category: "Textbooks", condition: "good", seller: "diya", img: IMG.openBook, ageDays: 25 },
-    { title: "Casio FX-991EX Scientific Calculator", description: "Allowed in exams. Works perfectly, includes cover.", price: 750, category: "Electronics", condition: "like-new", seller: "rohan", img: IMG.calculator, ageDays: 24 },
-    { title: "Symphony 27L Hostel Air Cooler", description: "Survived two Bhopal summers. Cools great, selling as I graduate.", price: 2200, category: "Electronics", condition: "good", seller: "ananya", img: IMG.cooler, ageDays: 22 },
-    { title: "Mini Drafter (Engineering Drawing)", description: "First-year Engineering Drawing drafter. All clamps intact.", price: 250, category: "Other", condition: "good", seller: "aarav", img: IMG.notebook, ageDays: 21 },
-    { title: "Hercules Roadeo 26T Cycle", description: "Gear cycle, perfect for getting around campus. New brakes.", price: 3500, category: "Sports", condition: "good", seller: "diya", img: IMG.bicycle, ageDays: 20 },
-    { title: "Wooden Study Table + Chair", description: "Sturdy study table with chair. Pickup from H-9.", price: 1500, category: "Furniture", condition: "good", status: "reserved", seller: "rohan", img: IMG.table, ageDays: 19 },
-    { title: "White Lab Coat (Size M)", description: "Chemistry/workshop lab coat, washed and clean.", price: 180, category: "Clothing", condition: "like-new", seller: "ananya", img: IMG.labcoat, ageDays: 18 },
-    { title: 'HP 22" Full-HD Monitor', description: "1080p IPS monitor, great for coding/projects. HDMI + VGA.", price: 5500, category: "Electronics", condition: "good", seller: "aarav", img: IMG.monitor, ageDays: 16 },
-    { title: "Mechanical Keyboard + Wireless Mouse Combo", description: "Blue switches + Logitech mouse. Loved during placements prep.", price: 1200, category: "Electronics", condition: "like-new", status: "sold", seller: "diya", img: IMG.keyboard, ageDays: 15 },
-    { title: "Engineering Physics + Maths Reference Bundle", description: "First-year PHY + M-I/M-II reference books. Some wear.", price: 600, category: "Textbooks", condition: "fair", seller: "rohan", img: IMG.books, ageDays: 14 },
-    { title: "Yonex Badminton Racket + Shuttles", description: "Lightweight racket with a tube of shuttles. Sports complex ready.", price: 900, category: "Sports", condition: "good", seller: "ananya", img: IMG.racket, ageDays: 12 },
-    // new students
-    { title: "Dell Inspiron 15 Laptop (i5, 8GB)", description: "Reliable coding laptop. Battery health good, charger included.", price: 24000, category: "Electronics", condition: "good", seller: "arjun", img: IMG.laptop, ageDays: 26 },
-    { title: "Sony WH-1000XM4 Headphones", description: "Noise-cancelling over-ear. Great for library focus. With case.", price: 9500, category: "Electronics", condition: "like-new", seller: "priya", img: IMG.headphones, ageDays: 23 },
-    { title: "boAt Airdopes 141 (TWS Earbuds)", description: "Wireless earbuds, solid battery. Selling — got a new pair.", price: 700, category: "Electronics", condition: "good", seller: "sneha", img: IMG.earbuds, ageDays: 21 },
-    { title: "Yamaha F310 Acoustic Guitar", description: "Beginner-friendly acoustic. Minor scratches, sounds great.", price: 6500, category: "Other", condition: "good", seller: "karan", img: IMG.guitar, ageDays: 20 },
-    { title: "Nike Revolution Running Shoes (UK 9)", description: "Lightly used running shoes. Perfect for morning runs.", price: 1600, category: "Clothing", condition: "like-new", seller: "isha", img: IMG.sneakers, ageDays: 19 },
-    { title: "Canon EOS 1500D DSLR", description: "Entry DSLR with 18-55mm kit lens. Great for the photography club.", price: 21000, category: "Electronics", condition: "good", seller: "vikram", img: IMG.camera, ageDays: 18 },
-    { title: "Titan Neo Analog Watch", description: "Classic analog watch, leather strap. Barely worn.", price: 1800, category: "Other", condition: "like-new", seller: "neha", img: IMG.watch, ageDays: 17 },
-    { title: "American Tourister 32L Backpack", description: "Spacious laptop backpack, all zips working. Pickup H-5.", price: 900, category: "Other", condition: "good", seller: "aditya", img: IMG.backpack, ageDays: 16 },
-    { title: "Rechargeable LED Study Lamp", description: "Eye-care desk lamp, 3 brightness modes. Great for night study.", price: 550, category: "Other", condition: "good", seller: "riya", img: IMG.lamp, ageDays: 15 },
-    { title: "Ray-Ban Wayfarer Sunglasses", description: "Original Wayfarers with case. Hardly used.", price: 3500, category: "Clothing", condition: "like-new", seller: "sid", img: IMG.sunglasses, ageDays: 14 },
-    { title: "SS English Willow Cricket Bat", description: "Lightly knocked-in bat, good for tennis & season ball.", price: 2200, category: "Sports", condition: "good", seller: "tanvi", img: IMG.cricketBat, ageDays: 13 },
-    { title: "Mini Fridge 45L", description: "Compact hostel fridge. Keeps drinks cold, low power.", price: 4500, category: "Electronics", condition: "good", status: "reserved", seller: "harsh", img: IMG.fridge, ageDays: 12 },
-    { title: "65W Type-C Fast Charger", description: "Brand-new spare charger, fast-charges most laptops/phones.", price: 1100, category: "Electronics", condition: "new", seller: "pooja", img: IMG.charger, ageDays: 10 },
-    { title: "Cotton Round-Neck T-Shirts (Pack of 3)", description: "Unworn plain tees, size M. Black/white/grey.", price: 600, category: "Clothing", condition: "new", seller: "rahul", img: IMG.tshirt, ageDays: 9 },
-    { title: "Milton Steel Water Bottle 1L", description: "Insulated steel bottle, keeps water cold for hours.", price: 350, category: "Other", condition: "good", seller: "meera", img: IMG.bottle, ageDays: 8 },
-    { title: "iPhone 11 (64GB, Black)", description: "Good condition iPhone 11. Battery 84%. No scratches on screen.", price: 18000, category: "Electronics", condition: "good", status: "sold", seller: "nikhil", img: IMG.phone, ageDays: 7 },
-    { title: "Engineering Drawing Sheets + Notebook Set", description: "First-year ED sheets, instruments and notebooks. Combo deal.", price: 300, category: "Textbooks", condition: "good", seller: "ayesha", img: IMG.notebook, ageDays: 6 },
-    { title: "Ceramic Coffee Mug Set (x4)", description: "Set of four mugs for the hostel room. No chips.", price: 400, category: "Other", condition: "like-new", seller: "dev", img: IMG.mug, ageDays: 5 },
-    { title: "Blue-Light Reading Glasses", description: "Zero-power computer glasses. Reduces eye strain. New.", price: 450, category: "Other", condition: "new", seller: "kavya", img: IMG.glasses, ageDays: 4 },
-    { title: "Hostel Study Chair (Cushioned)", description: "Comfortable study chair, good back support. Pickup H-3.", price: 1300, category: "Furniture", condition: "good", seller: "rohit", img: IMG.chair, ageDays: 3 },
-  ];
-  const listings = listingDefs.map((l) => ({
-    title: l.title,
-    description: l.description,
-    price: l.price,
-    category: l.category,
-    condition: l.condition,
-    status: l.status || "available",
-    seller: uid(l.seller),
-    university: university._id,
-    images: [l.img],
-    createdAt: daysAgo(l.ageDays),
-    updatedAt: daysAgo(l.ageDays),
+  // 5) Insert managed users (single shared bcrypt hash — fast, bypasses hook).
+  const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
+  const managedUserDocs = managedDefs.map((d) => ({
+    email: d.email, password: passwordHash, displayName: d.displayName, handle: d.handle,
+    university: uniId, location: d.location || `Hostel ${pick(HOSTELS)}, MANIT`, bio: d.bio || pick(BIOS),
+    avatarUrl: d.avatarUrl, emailVerified: chance(0.05) ? false : true,
+    createdAt: daysAgo(d.ageDays), updatedAt: daysAgo(d.ageDays),
   }));
-  await Listing.insertMany(listings, { timestamps: false });
-  console.log(`✓ Inserted ${listings.length} listings (all with photos)`);
+  const insertedUsers = await User.insertMany(managedUserDocs, { timestamps: false });
+  // Record this run's generated emails so the next run cleans them up.
+  try {
+    fs.mkdirSync(path.dirname(REGISTRY), { recursive: true });
+    fs.writeFileSync(REGISTRY, JSON.stringify({ generated: managedDefs.filter((d) => !d.featured).map((d) => d.email) }, null, 2));
+  } catch (e) { console.log(`! Could not write seed registry: ${e.message}`); }
+  console.log(`✓ Inserted ${insertedUsers.length} managed users (growth-curved)`);
 
-  // 5) Lost & Found — every item carries a real photo too.
-  const lfDefs = [
-    { title: "Lost: Black Leather Wallet", description: "Lost near Central Library — has some cash and a metro card. No questions asked.", kind: "lost", category: "Accessories", location: "Central Library", reporter: "priya", img: IMG.wallet, ageDays: 14 },
-    { title: "Found: Bunch of Keys", description: "Found a set of keys with a blue keychain outside H-7. Collect from the warden.", kind: "found", category: "Keys", location: "Hostel H-7 gate", reporter: "rohan", img: IMG.keys, ageDays: 13 },
-    { title: "Lost: Blue Folding Umbrella", description: "Left a blue umbrella in the NTB lecture hall after the morning class.", kind: "lost", category: "Accessories", location: "New Teaching Block", reporter: "sneha", img: IMG.umbrella, ageDays: 12 },
-    { title: "Found: Student ID Card", description: "Found an ID card near the canteen. DM to identify and collect.", kind: "found", category: "ID & Cards", location: "Main Canteen", reporter: "karan", img: IMG.idCard, ageDays: 11 },
-    { title: "Lost: boAt Earbuds Case", description: "Misplaced my earbuds case at the sports complex. Small reward if found.", kind: "lost", category: "Electronics", location: "Sports Complex", reporter: "isha", img: IMG.earbuds, ageDays: 10 },
-    { title: "Found: Casio Wristwatch", description: "Found a wristwatch on a bench in the Lecture Hall Complex.", kind: "found", category: "Accessories", location: "Lecture Hall Complex", reporter: "vikram", img: IMG.watch, ageDays: 9 },
-    { title: "Lost: Black-Frame Spectacles", description: "Lost my spectacles near the bus stop. Can't see well without them!", kind: "lost", category: "Accessories", location: "Main Gate Bus Stop", reporter: "neha", img: IMG.glasses, ageDays: 8, status: "returned" },
-    { title: "Found: Steel Water Bottle", description: "Someone left a steel bottle at the gym. Kept at the reception.", kind: "found", category: "Other", location: "Gymnasium", reporter: "aditya", img: IMG.bottle, ageDays: 7 },
-    { title: "Lost: Type-C Laptop Charger", description: "Lost my laptop charger on the 2nd floor of the library.", kind: "lost", category: "Electronics", location: "Central Library, 2nd Floor", reporter: "riya", img: IMG.charger, ageDays: 6 },
-    { title: "Found: Engineering Maths Notebook", description: "Found an M-II notebook in NTB Room 204. Name starts with 'S'.", kind: "found", category: "Books & Notes", location: "NTB, Room 204", reporter: "sid", img: IMG.notebook, ageDays: 5 },
-    { title: "Lost: Hostel Room Keys", description: "Dropped my room keys somewhere near the mess. Please help!", kind: "lost", category: "Keys", location: "Hostel Mess", reporter: "tanvi", img: IMG.keys, ageDays: 4 },
-    { title: "Found: Red Hoodie", description: "Found a red hoodie on the sports ground after practice.", kind: "found", category: "Clothing", location: "Sports Ground", reporter: "harsh", img: IMG.tshirt, ageDays: 3, status: "returned" },
-    { title: "Lost: Black Backpack", description: "Left my backpack in the academic block. Has notes and a calculator.", kind: "lost", category: "Accessories", location: "Academic Block", reporter: "pooja", img: IMG.backpack, ageDays: 2 },
-    { title: "Found: Scientific Calculator", description: "Found a Casio calculator in the exam hall. Collect with proof.", kind: "found", category: "Electronics", location: "Exam Hall", reporter: "meera", img: IMG.calculator, ageDays: 1 },
-  ];
-  const lostFound = lfDefs.map((i) => ({
-    title: i.title,
-    description: i.description,
-    kind: i.kind,
-    category: i.category,
-    location: i.location,
-    status: i.status || "open",
-    reporter: uid(i.reporter),
-    university: university._id,
-    images: [i.img],
-    createdAt: daysAgo(i.ageDays),
-    updatedAt: daysAgo(i.ageDays),
-  }));
-  await LostFoundItem.insertMany(lostFound, { timestamps: false });
-  console.log(`✓ Inserted ${lostFound.length} lost & found items (all with photos)`);
+  // Full participant pool: managed + protected (with signup ages).
+  const users = insertedUsers.map((u, i) => ({ _id: u._id, ageDays: managedDefs[i].ageDays, email: u.email }));
+  if (samay) users.push({ _id: samay._id, ageDays: Math.min(WINDOW - 1, Math.max(1, ageOfDate(samay.createdAt))), email: samay.email });
+  if (shanjhi) users.push({ _id: shanjhi._id, ageDays: Math.min(WINDOW - 1, Math.max(1, ageOfDate(shanjhi.createdAt))), email: shanjhi.email });
 
-  // 6) Study groups (use .create so the creator is auto-added to members)
-  const groups = [
-    {
-      name: "DSA & CP Grind (Weekly)", subject: "Computer Science",
-      description: "Weekly LeetCode + Codeforces solving sessions. All levels welcome.",
-      tags: ["algorithms", "leetcode", "cp"], maxMembers: 15,
-      creator: uid("aarav"), members: [uid("aarav"), uid("rohan"), uid("diya"), uid("arjun"), uid("karan"), uid("nikhil")],
-      links: { whatsapp: "https://chat.whatsapp.com/manit-dsa-grind" },
-      nextSession: { at: inDays(2), mode: "online", location: "Online", meetingLink: "https://meet.google.com/dsa-grind" },
-    },
-    {
-      name: "GATE CSE 2026 Prep", subject: "Computer Science",
-      description: "Subject-wise theory + weekly mock tests for GATE CSE 2026.",
-      tags: ["gate", "theory", "mock-tests"], maxMembers: 25,
-      creator: uid("diya"), members: [uid("diya"), uid("ananya"), uid("isha"), uid("neha")],
-      links: { telegram: "https://t.me/manit-gate-cse" },
-      nextSession: { at: inDays(3), mode: "offline", location: "Central Library, 2nd Floor" },
-    },
-    {
-      name: "DBMS + OS Revision", subject: "Computer Science",
-      description: "Pre-exam revision for DBMS and Operating Systems. SQL practice included.",
-      tags: ["dbms", "os", "sql"], maxMembers: 12,
-      creator: uid("rohan"), members: [uid("rohan"), uid("aarav"), uid("sid"), uid("harsh")],
-    },
-    {
-      name: "Engineering Mathematics Doubt-Solving", subject: "Mathematics",
-      description: "Bring your M-I / M-II doubts. Calculus, linear algebra, probability.",
-      tags: ["calculus", "linear-algebra", "probability"], maxMembers: 20,
-      creator: uid("ananya"), members: [uid("ananya"), uid("diya"), uid("riya"), uid("kavya")],
-      nextSession: { at: inDays(1), mode: "offline", location: "NTB, Room 204" },
-    },
-    {
-      name: "Web Dev Project Club (MERN)", subject: "Engineering",
-      description: "Build full-stack projects together — React, Node, Express, MongoDB.",
-      tags: ["react", "node", "mongodb", "projects"], maxMembers: 18,
-      creator: uid("aarav"), members: [uid("aarav"), uid("rohan"), uid("ananya"), uid("priya"), uid("dev"), uid("rohit")],
-      links: { discord: "https://discord.gg/manit-webdev" },
-      customLinks: [{ label: "GitHub", url: "https://github.com/manit-webdev-club" }],
-      nextSession: { at: inDays(5), mode: "online", location: "Online", meetingLink: "https://meet.google.com/manit-mern" },
-    },
-    {
-      name: "Physics for First-Years", subject: "Physics",
-      description: "Semester-1 mechanics and modern physics. Peer teaching welcome.",
-      tags: ["mechanics", "semester-1"], maxMembers: 30,
-      creator: uid("diya"), members: [uid("diya"), uid("ayesha"), uid("meera")],
-    },
-    {
-      name: "Aptitude & Placement Prep", subject: "Other",
-      description: "Quant, logical reasoning and interview prep for placements & internships.",
-      tags: ["aptitude", "placements", "interviews"], maxMembers: 40,
-      creator: uid("rohan"), members: [uid("rohan"), uid("aarav"), uid("diya"), uid("ananya"), uid("arjun"), uid("pooja"), uid("rahul")],
-      links: { whatsapp: "https://chat.whatsapp.com/manit-placements" },
-      nextSession: { at: inDays(4), mode: "offline", location: "Seminar Hall, NTB" },
-    },
-    // groups led by new students
-    {
-      name: "Photography Club Meetups", subject: "Other",
-      description: "Campus photo walks and editing basics. Bring any camera or phone.",
-      tags: ["photography", "editing"], maxMembers: 25,
-      creator: uid("vikram"), members: [uid("vikram"), uid("priya"), uid("dev")],
-      nextSession: { at: inDays(6), mode: "offline", location: "Main Gate (meet point)" },
-    },
-    {
-      name: "Placement Coding Sprints", subject: "Computer Science",
-      description: "Daily DSA + system design prep for upcoming placements.",
-      tags: ["dsa", "system-design", "placements"], maxMembers: 30,
-      creator: uid("arjun"), members: [uid("arjun"), uid("karan"), uid("nikhil"), uid("rohit")],
-      links: { telegram: "https://t.me/manit-placement-sprints" },
-      nextSession: { at: inDays(2), mode: "online", location: "Online", meetingLink: "https://meet.google.com/placement-sprint" },
-    },
-    {
-      name: "English & Soft Skills Circle", subject: "Other",
-      description: "Group discussions, mock interviews and presentation practice.",
-      tags: ["communication", "interviews"], maxMembers: 20,
-      creator: uid("ayesha"), members: [uid("ayesha"), uid("meera"), uid("neha"), uid("riya")],
-      nextSession: { at: inDays(7), mode: "offline", location: "Seminar Hall, NTB" },
-    },
-  ].map((g) => ({ ...g, university: university._id }));
+  const eligible = (contentAge, excludeId) =>
+    users.filter((u) => u.ageDays >= contentAge && (!excludeId || String(u._id) !== String(excludeId)));
+  const pickEligible = (contentAge, excludeId) => { const e = eligible(contentAge, excludeId); return e.length ? e[rint(0, e.length - 1)] : null; };
 
-  for (const g of groups) {
-    await StudyGroup.create(g);
-  }
-  console.log(`✓ Inserted ${groups.length} study groups`);
-
-  // Shared helpers for the community content below.
-  const usersFrom = (keys) => keys.map((k) => uid(k));
-  const futureAt = (days, hour) => {
-    const d = inDays(days);
-    d.setHours(hour, 0, 0, 0);
-    return d;
+  // Points/badges tally.
+  const pointsBy = new Map();
+  const badgesBy = new Map();
+  const addPts = (id, action, badge) => {
+    const k = String(id);
+    pointsBy.set(k, (pointsBy.get(k) || 0) + (POINTS[action] || 0));
+    if (badge) { if (!badgesBy.has(k)) badgesBy.set(k, new Set()); badgesBy.get(k).add(badge); }
   };
 
-  // 6b) Confessions — anonymous campus feed (author is private; the API
-  //     anonymises it). Reactions + a few replies, spread across 30 days.
-  const confessionDefs = [
-    { author: "diya", ageDays: 28, content: "Whoever keeps stealing the good chairs from the reading hall — I will find you. 😤", react: [["aarav", "laugh"], ["rohan", "laugh"], ["priya", "heart"], ["sneha", "wow"]], comments: [["rohan", "Justice for the comfy chairs 😂", 27]] },
-    { author: "arjun", ageDays: 25, content: "Mess food today was actually edible. Marking this historic day in my calendar.", react: [["karan", "laugh"], ["isha", "heart"], ["dev", "laugh"], ["nikhil", "wow"], ["pooja", "heart"]], comments: [["isha", "Which mess?? Asking for science.", 24]] },
-    { author: "priya", ageDays: 22, content: "I have a crush on someone from the library 2nd floor but I'm too shy to even say hi. 🙈", react: [["sneha", "heart"], ["riya", "heart"], ["kavya", "wow"], ["ayesha", "heart"], ["meera", "sad"]], comments: [["sneha", "Just say hi, worst case you make a friend!", 21], ["riya", "We're all rooting for you 🥹", 20]] },
-    { author: "nikhil", ageDays: 19, content: "Spent the whole night debugging and the issue was a missing semicolon. I want to cry.", react: [["arjun", "sad"], ["karan", "laugh"], ["dev", "sad"], ["aarav", "laugh"]], comments: [["arjun", "Every single time man 💀", 18]] },
-    { author: "aditya", ageDays: 16, content: "Can we please get more power sockets in the lecture halls? My laptop dies by 11am.", react: [["priya", "heart"], ["harsh", "heart"], ["rohit", "wow"], ["neha", "heart"]], comments: [] },
-    { author: "isha", ageDays: 13, content: "Shoutout to the senior who helped me with my DSA assignment — you're a legend. 🙏", react: [["karan", "heart"], ["arjun", "heart"], ["sneha", "heart"], ["dev", "wow"]], comments: [["karan", "Seniors carrying the whole branch fr", 12]] },
-    { author: "rohan", ageDays: 10, content: "I pretend to understand thermodynamics but honestly I'm just vibing at this point.", react: [["tanvi", "laugh"], ["harsh", "laugh"], ["aditya", "laugh"], ["meera", "laugh"], ["dev", "wow"]], comments: [["harsh", "Entropy is just vibes increasing 😌", 9]] },
-    { author: "harsh", ageDays: 7, content: "The H-7 night canteen Maggi is the only thing keeping my CGPA alive.", react: [["rohan", "heart"], ["vikram", "laugh"], ["rahul", "heart"], ["nikhil", "heart"]], comments: [["vikram", "Maggi + chai = study fuel", 6]] },
-    { author: "kavya", ageDays: 4, content: "Confession: I joined 4 clubs in first week and ghosted all of them by month two.", react: [["ayesha", "laugh"], ["pooja", "laugh"], ["riya", "laugh"], ["neha", "wow"]], comments: [["ayesha", "This is too real 😭", 3]] },
-    { author: "meera", ageDays: 2, content: "Saw a cute dog near the academic block today and it made my entire week. 🐶", react: [["priya", "heart"], ["sneha", "heart"], ["kavya", "heart"], ["isha", "heart"], ["riya", "wow"], ["tanvi", "heart"]], comments: [["sneha", "The campus dogs are the real MVPs ❤️", 1]] },
-  ];
-  const confessions = confessionDefs.map((c) => {
-    const reactions = c.react.map(([k, type]) => ({ user: uid(k), type }));
-    return {
-      author: uid(c.author),
-      university: university._id,
-      content: c.content,
-      reactions,
-      reactionsCount: reactions.length,
-      comments: (c.comments || []).map(([k, content, d]) => ({ author: uid(k), content, createdAt: daysAgo(d) })),
-      createdAt: daysAgo(c.ageDays),
-      updatedAt: daysAgo(c.ageDays),
+  // Reportable content registry: { type, id, ownerId, title, content, createdAt }.
+  const reportable = [];
+
+  // 6) Marketplace listings
+  const listingRecords = [];
+  const listingDocs = [];
+  for (let i = 0; i < N.listings; i++) {
+    const author = pick(users);
+    const age = contentAgeAfter(author.ageDays);
+    const tpl = pick(LISTING_TEMPLATES);
+    const title = pick(tpl.titles);
+    const price = rint(tpl.min, tpl.max);
+    const status = chance(0.15) ? "sold" : chance(0.08) ? "reserved" : "available";
+    const doc = {
+      title, description: `${title}. ${pick(["Barely used.", "Good condition.", "Selling as I graduate.", "Pickup from hostel.", "No damage.", "Comes with accessories."])}`,
+      price, category: tpl.cat, condition: pick(CONDITIONS), status,
+      seller: author._id, university: uniId, images: [IMG[pick(tpl.imgs)]],
+      createdAt: daysAgo(age), updatedAt: daysAgo(age),
     };
-  });
-  await Confession.insertMany(confessions, { timestamps: false });
-  console.log(`✓ Inserted ${confessions.length} confessions`);
-
-  // 6c) Rides — carpool board. departureAt is in the (near) future.
-  const rideDefs = [
-    { poster: "aarav", from: "MANIT Main Gate", to: "Rani Kamlapati Station", days: 1, hour: 7, seatsTotal: 3, passengers: ["rohan"], note: "Leaving sharp at 7, splitting the cab fare.", ageDays: 3 },
-    { poster: "diya", from: "MANIT", to: "DB City Mall", days: 1, hour: 17, seatsTotal: 3, passengers: ["sneha", "priya"], note: "Weekend movie plan — auto share both ways.", ageDays: 2 },
-    { poster: "arjun", from: "MANIT", to: "Bhopal Airport", days: 2, hour: 15, seatsTotal: 2, passengers: [], note: "Flight at 6pm, can drop you on the way.", ageDays: 4 },
-    { poster: "karan", from: "MANIT", to: "Bhopal Junction", days: 3, hour: 6, seatsTotal: 2, passengers: ["nikhil"], note: "Catching the early Shatabdi, leaving at 6 sharp.", ageDays: 2 },
-    { poster: "neha", from: "New Market", to: "MANIT", days: 1, hour: 19, seatsTotal: 2, passengers: [], note: "Returning after shopping, ping me to share the auto.", ageDays: 1 },
-    { poster: "rahul", from: "MANIT", to: "ISBT Bhopal", days: 4, hour: 16, seatsTotal: 3, passengers: ["harsh"], note: "Going home for the weekend, bus from ISBT.", ageDays: 5 },
-    { poster: "vikram", from: "MANIT", to: "Habibganj (RKMP)", days: 2, hour: 8, seatsTotal: 1, passengers: [], note: "One seat only — early class swap.", ageDays: 1 },
-    { poster: "isha", from: "MANIT", to: "Indore", days: 6, hour: 9, seatsTotal: 3, passengers: ["arjun", "tanvi"], note: "Long drive to Indore, sharing fuel cost. Music guaranteed 🎶", ageDays: 6 },
-  ];
-  const rides = rideDefs.map((r) => ({
-    poster: uid(r.poster),
-    university: university._id,
-    from: r.from,
-    to: r.to,
-    departureAt: futureAt(r.days, r.hour),
-    seatsTotal: r.seatsTotal,
-    passengers: usersFrom(r.passengers || []),
-    note: r.note,
-    createdAt: daysAgo(r.ageDays),
-    updatedAt: daysAgo(r.ageDays),
-  }));
-  await Ride.insertMany(rides, { timestamps: false });
-  console.log(`✓ Inserted ${rides.length} rides`);
-
-  // 6d) Events — campus happenings. startAt is in the future.
-  const eventDefs = [
-    { organizer: "priya", title: "Spandan — Cultural Night", club: "Cultural Cell", category: "Cultural", venue: "Open Air Theatre", days: 8, hour: 18, durHrs: 4, attendees: ["aarav", "diya", "sneha", "kavya", "ayesha", "meera"], ageDays: 20, description: "An evening of music, dance and drama by MANIT's clubs. Food stalls outside the OAT." },
-    { organizer: "arjun", title: "TechnoSearch Hackathon 2026", club: "ACM MANIT", category: "Technical", venue: "NTB Computer Labs", days: 5, hour: 9, durHrs: 24, attendees: ["karan", "nikhil", "rohit", "aarav", "dev"], ageDays: 18, description: "24-hour hackathon — build anything. Cash prizes + internship interviews for top teams." },
-    { organizer: "tanvi", title: "Inter-Hostel Cricket Finals", club: "Sports Council", category: "Sports", venue: "Main Cricket Ground", days: 3, hour: 15, durHrs: 4, attendees: ["rohan", "harsh", "rahul", "aditya"], ageDays: 10, description: "H-7 vs H-9 in the season finale. Come cheer for your hostel!" },
-    { organizer: "dev", title: "Hands-on ML with PyTorch", club: "Coding Club", category: "Workshop", venue: "CSE Seminar Hall", days: 4, hour: 14, durHrs: 3, attendees: ["arjun", "karan", "priya", "nikhil", "sneha"], ageDays: 12, description: "Beginner-friendly workshop: build and train your first neural network. Bring a laptop." },
-    { organizer: "ayesha", title: "Alumni Talk: Cracking Product Roles", club: "E-Cell", category: "Talk", venue: "Main Auditorium", days: 6, hour: 17, durHrs: 2, attendees: ["neha", "pooja", "meera", "riya", "rahul"], ageDays: 9, description: "MANIT alumni now at top product companies share how they made the jump." },
-    { organizer: "vikram", title: "Photography Walk & Exhibition", club: "Shutterbugs", category: "Other", venue: "Main Gate → Campus Lake", days: 7, hour: 16, durHrs: 3, attendees: ["dev", "priya", "kavya", "sneha"], ageDays: 7, description: "Golden-hour photo walk across campus, ending with a mini print exhibition. All cameras (and phones) welcome." },
-  ];
-  const events = eventDefs.map((e) => {
-    const startAt = futureAt(e.days, e.hour);
-    const endAt = new Date(startAt.getTime() + (e.durHrs || 2) * 60 * 60 * 1000);
-    return {
-      organizer: uid(e.organizer),
-      university: university._id,
-      title: e.title,
-      description: e.description,
-      club: e.club,
-      category: e.category,
-      venue: e.venue,
-      startAt,
-      endAt,
-      attendees: usersFrom(e.attendees || []),
-      createdAt: daysAgo(e.ageDays),
-      updatedAt: daysAgo(e.ageDays),
-    };
-  });
-  await Event.insertMany(events, { timestamps: false });
-  console.log(`✓ Inserted ${events.length} events`);
-
-  // 6e) Q&A forum — questions + answers, with upvotes and accepted answers.
-  const questionDefs = [
-    { author: "diya", title: "How to prepare for GATE CSE alongside semester exams?", body: "5th sem is heavy and I want to start GATE prep without tanking my CGPA. How did you balance both?", branch: "CSE", subject: "GATE", semester: "5", upvotes: ["aarav", "rohan", "arjun", "priya", "karan"], ageDays: 26 },
-    { author: "isha", title: "Best resources for Operating Systems (our syllabus)?", body: "Looking for notes/videos that actually match the MANIT OS syllabus. Galvin is too much.", branch: "CSE", subject: "OS", semester: "4", upvotes: ["karan", "nikhil", "dev"], ageDays: 21 },
-    { author: "nikhil", title: "BFS vs DFS — when should I use which?", body: "I get how both work but always confused about which to pick in interview problems.", branch: "CSE", subject: "DSA", semester: "3", upvotes: ["arjun", "aarav"], ageDays: 17 },
-    { author: "sneha", title: "How is the placement season for ECE branch?", body: "Curious about core vs IT roles for ECE. What's the realistic picture this year?", branch: "ECE", subject: "Placements", semester: "7", upvotes: ["aditya", "vikram", "rahul", "meera"], ageDays: 13 },
-    { author: "rahul", title: "Tips to improve CGPA after a rough first year?", body: "First year went badly. Is it possible to recover the CGPA meaningfully by final year?", branch: "Mechanical", subject: "General", semester: "3", upvotes: ["rohan", "harsh", "tanvi", "pooja", "aditya"], ageDays: 9 },
-    { author: "karan", title: "Which 6th-sem CSE electives are scoring?", body: "Trying to pick electives. Which ones are interesting AND grade-friendly?", branch: "CSE", subject: "Electives", semester: "6", upvotes: ["arjun", "priya"], ageDays: 5 },
-    { author: "kavya", title: "Anyone has notes for Engineering Mathematics-II?", body: "Specifically the linear algebra + complex analysis units. Exams are close 😅", branch: "Mathematics", subject: "M-II", semester: "2", upvotes: ["riya", "meera"], ageDays: 2 },
-  ];
-  const questions = questionDefs.map((q) => {
-    const upvotes = usersFrom(q.upvotes || []);
-    return {
-      author: uid(q.author),
-      university: university._id,
-      title: q.title,
-      body: q.body,
-      branch: q.branch,
-      subject: q.subject,
-      semester: q.semester,
-      upvotes,
-      upvoteCount: upvotes.length,
-      answersCount: 0,
-      acceptedAnswer: null,
-      createdAt: daysAgo(q.ageDays),
-      updatedAt: daysAgo(q.ageDays),
-    };
-  });
-  const insertedQ = await Question.insertMany(questions, { timestamps: false });
-
-  const answerDefs = [
-    { qIndex: 0, author: "aarav", body: "Start with the high-weight subjects that overlap your semester (DBMS, OS, CN). 2 focused hours daily + previous-year papers on weekends is enough early on.", upvotes: ["diya", "arjun", "priya"], ageDays: 25, accepted: true },
-    { qIndex: 0, author: "arjun", body: "Make a single revision notebook per subject from day one — it doubles as semester + GATE revision later. Saved me a ton of time.", upvotes: ["karan"], ageDays: 24 },
-    { qIndex: 1, author: "dev", body: "NPTEL's OS course matches our syllabus well, and the 'OS Easy' YouTube playlist for quick revision. Pair them with last 3 years' PYQs.", upvotes: ["isha", "karan", "nikhil"], ageDays: 20, accepted: true },
-    { qIndex: 1, author: "karan", body: "Also check the Study Vault — someone uploaded unit-wise OS notes that are gold.", upvotes: ["isha"], ageDays: 19 },
-    { qIndex: 2, author: "arjun", body: "Rule of thumb: BFS for shortest path in unweighted graphs / level-order; DFS for connectivity, cycles, topological sort and anything recursive.", upvotes: ["nikhil", "aarav", "karan"], ageDays: 16, accepted: true },
-    { qIndex: 3, author: "aditya", body: "Core ECE roles exist (PSUs, semiconductor firms) but most people sit for IT too. Brush up DSA + aptitude and you'll have both doors open.", upvotes: ["sneha", "vikram"], ageDays: 12, accepted: true },
-    { qIndex: 4, author: "rohan", body: "Totally recoverable. Later semesters have more credits, so consistent 8+ SGPAs pull the overall up fast. Focus on not backloging and you're golden.", upvotes: ["rahul", "harsh", "tanvi"], ageDays: 8, accepted: true },
-    { qIndex: 4, author: "pooja", body: "Re-appearing for one or two early-sem subjects to improve grades helped me. Talk to your faculty advisor about the options.", upvotes: ["rahul"], ageDays: 7 },
-    { qIndex: 5, author: "priya", body: "Machine Learning and Information Security were both interesting and scored well for our batch. Avoid the project-heavy ones if you want easy grades.", upvotes: ["karan", "arjun"], ageDays: 4, accepted: true },
-  ];
-  const answers = answerDefs.map((a) => {
-    const upvotes = usersFrom(a.upvotes || []);
-    return {
-      question: insertedQ[a.qIndex]._id,
-      author: uid(a.author),
-      university: university._id,
-      body: a.body,
-      upvotes,
-      upvoteCount: upvotes.length,
-      createdAt: daysAgo(a.ageDays),
-      updatedAt: daysAgo(a.ageDays),
-    };
-  });
-  const insertedA = await Answer.insertMany(answers, { timestamps: false });
-
-  // Sync each question's answersCount + acceptedAnswer.
-  const ansByQ = {};
-  insertedA.forEach((a, i) => {
-    const qi = answerDefs[i].qIndex;
-    (ansByQ[qi] = ansByQ[qi] || []).push({ id: a._id, accepted: answerDefs[i].accepted });
-  });
-  for (const [qi, list] of Object.entries(ansByQ)) {
-    const accepted = list.find((x) => x.accepted);
-    await Question.updateOne(
-      { _id: insertedQ[qi]._id },
-      { $set: { answersCount: list.length, acceptedAnswer: accepted ? accepted.id : null } },
-      { timestamps: false }
-    );
+    listingDocs.push(doc);
+    listingRecords.push({ title, price, seller: author._id, age });
+    addPts(author._id, "listing_created");
   }
-  console.log(`✓ Inserted ${questions.length} questions + ${answers.length} answers`);
-
-  // 6f) Study Vault documents — notes / PYQs / syllabi. Real, openable file URL.
-  const docDefs = [
-    { uploader: "aarav", title: "DSA Complete Handwritten Notes", description: "Full data structures notes — arrays to graphs, with diagrams and complexity tables.", type: "Notes", branch: "CSE", subject: "Data Structures", semester: "3", sizeKB: 4200, downloads: 210, upvotes: ["diya", "rohan", "arjun", "priya", "karan", "nikhil"], comments: [["nikhil", "These saved me before the exam, thank you!", 12]], ageDays: 27 },
-    { uploader: "diya", title: "Operating Systems PYQ (2021–2024)", description: "Last four years' mid + end-sem question papers, sorted unit-wise.", type: "PYQ", branch: "CSE", subject: "OS", semester: "4", year: 2024, sizeKB: 2600, downloads: 178, upvotes: ["isha", "karan", "dev"], comments: [], ageDays: 24 },
-    { uploader: "kavya", title: "Engineering Mathematics-II Full Notes", description: "Linear algebra, complex analysis and differential equations — clean typed notes.", type: "Notes", branch: "Mathematics", subject: "M-II", semester: "2", sizeKB: 3100, downloads: 142, upvotes: ["riya", "meera", "sneha"], comments: [["riya", "Lifesaver for the LA unit 🙌", 6]], ageDays: 20 },
-    { uploader: "dev", title: "DBMS Unit-wise Notes", description: "ER models, normalization, SQL and transactions with solved examples.", type: "Notes", branch: "CSE", subject: "DBMS", semester: "5", sizeKB: 3700, downloads: 96, upvotes: ["arjun", "aarav"], comments: [], ageDays: 17 },
-    { uploader: "priya", title: "MANIT CSE Syllabus (2024 Scheme)", description: "Official branch-wise syllabus PDF for all 8 semesters.", type: "Syllabus", branch: "CSE", sizeKB: 900, downloads: 320, upvotes: ["diya", "karan", "isha", "nikhil"], comments: [], ageDays: 14 },
-    { uploader: "sneha", title: "Digital Electronics PYQ 2023", description: "End-sem papers with rough solutions for the tricky ones.", type: "PYQ", branch: "ECE", subject: "Digital Electronics", semester: "3", year: 2023, sizeKB: 1800, downloads: 64, upvotes: ["vikram", "aditya"], comments: [], ageDays: 11 },
-    { uploader: "rohan", title: "Thermodynamics Notes", description: "Laws, cycles and entropy explained simply, with formula sheets.", type: "Notes", branch: "Mechanical", subject: "Thermodynamics", semester: "3", sizeKB: 2900, downloads: 73, upvotes: ["harsh", "tanvi", "rahul"], comments: [["harsh", "The formula sheet at the end is 🔥", 8]], ageDays: 9 },
-    { uploader: "ayesha", title: "Even Semester Exam Schedule 2026", description: "Datesheet for all branches — even semester 2025-26.", type: "Sem Schedule", sizeKB: 450, downloads: 410, upvotes: ["neha", "pooja", "meera"], comments: [], ageDays: 6 },
-    { uploader: "arjun", title: "Computer Networks Quick Revision", description: "OSI/TCP-IP, routing and the important protocols on 6 pages. Perfect for the night before.", type: "Notes", branch: "CSE", subject: "CN", semester: "6", sizeKB: 1500, downloads: 88, upvotes: ["karan", "priya", "dev"], comments: [], ageDays: 3 },
-    { uploader: "pooja", title: "Aptitude & Reasoning Cheat Sheet", description: "Shortcuts for quant + logical reasoning. Great for placements and CAT.", type: "Other", subject: "Aptitude", sizeKB: 1100, downloads: 155, upvotes: ["rahul", "neha", "aditya", "ayesha"], comments: [["rahul", "Bookmarking this for placement season.", 2]], ageDays: 1 },
-  ];
-  const slugify = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-  const documents = docDefs.map((d) => {
-    const upvotes = usersFrom(d.upvotes || []);
-    return {
-      title: d.title,
-      description: d.description,
-      type: d.type,
-      branch: d.branch,
-      subject: d.subject,
-      semester: d.semester,
-      year: d.year,
-      fileUrl: SAMPLE_PDF,
-      fileName: `${slugify(d.title)}.pdf`,
-      fileFormat: "pdf",
-      fileSize: (d.sizeKB || 1000) * 1024,
-      uploader: uid(d.uploader),
-      university: university._id,
-      downloadCount: d.downloads || 0,
-      upvotes,
-      upvoteCount: upvotes.length,
-      comments: (d.comments || []).map(([k, content, dd]) => ({ author: uid(k), content, createdAt: daysAgo(dd) })),
-      createdAt: daysAgo(d.ageDays),
-      updatedAt: daysAgo(d.ageDays),
-    };
+  const insertedListings = await Listing.insertMany(listingDocs, { timestamps: false });
+  insertedListings.forEach((l, i) => {
+    listingRecords[i]._id = l._id;
+    reportable.push({ type: "listing", id: l._id, ownerId: l.seller, title: l.title, content: l.description, createdAt: l.createdAt });
   });
-  await Document.insertMany(documents, { timestamps: false });
-  console.log(`✓ Inserted ${documents.length} study-vault documents`);
+  console.log(`✓ Inserted ${insertedListings.length} listings`);
 
-  // 7) Friend graph — accepted friendships + a few pending requests.
+  // 7) Offers
+  const offerDocs = [];
+  const soldByOffer = [];
+  for (let i = 0; i < N.offers; i++) {
+    const l = pick(listingRecords);
+    const buyer = pickEligible(l.age, l.seller);
+    if (!buyer) continue;
+    const oAge = l.age * Math.pow(rnd(), 1.3);
+    const st = pick(["pending", "pending", "countered", "accepted", "declined", "withdrawn"]);
+    const amount = Math.max(1, Math.round(l.price * (0.7 + rnd() * 0.25)));
+    const o = { listing: l._id, buyer: buyer._id, seller: l.seller, university: uniId, amount, message: pick(["Would you take this?", "Interested, can we meet?", "Final price?", "Is this negotiable?", ""]).slice(0, 300), status: st, createdAt: daysAgo(oAge), updatedAt: daysAgo(oAge) };
+    if (st === "countered") o.counterAmount = Math.round(amount * 1.1);
+    offerDocs.push(o);
+    if (st === "accepted") soldByOffer.push(l._id);
+  }
+  await Offer.insertMany(offerDocs, { timestamps: false });
+  if (soldByOffer.length) await Listing.updateMany({ _id: { $in: soldByOffer } }, { $set: { status: "sold" } }, { timestamps: false });
+  console.log(`✓ Inserted ${offerDocs.length} offers`);
+
+  // 8) Lost & Found
+  const lfDocs = [];
+  for (let i = 0; i < N.lostfound; i++) {
+    const author = pick(users);
+    const age = contentAgeAfter(author.ageDays);
+    const t = pick(LF_TEMPLATES);
+    lfDocs.push({
+      title: `${t.kind === "lost" ? "Lost" : "Found"}: ${t.title}`,
+      description: `${t.kind === "lost" ? "Lost" : "Found"} near ${t.loc}. ${t.kind === "lost" ? "Please reach out if you find it." : "DM to identify and collect."}`,
+      kind: t.kind, category: t.category, location: t.loc, status: chance(0.2) ? "returned" : "open",
+      reporter: author._id, university: uniId, images: [IMG[t.img]], createdAt: daysAgo(age), updatedAt: daysAgo(age),
+    });
+    addPts(author._id, "lostfound_posted");
+  }
+  const insertedLF = await LostFoundItem.insertMany(lfDocs, { timestamps: false });
+  insertedLF.forEach((d) => reportable.push({ type: "lostfound", id: d._id, ownerId: d.reporter, title: d.title, content: d.description, createdAt: d.createdAt }));
+  console.log(`✓ Inserted ${insertedLF.length} lost & found items`);
+
+  // 9) Study groups — insertMany (creator manually included in members) so
+  //    createdAt honours the growth curve.
+  const groupDocs = [];
+  for (let i = 0; i < N.groups; i++) {
+    const author = pick(users);
+    const age = contentAgeAfter(author.ageDays);
+    const subject = pick(SUBJECTS);
+    const members = pickN(eligible(age, author._id).map((u) => u._id), rint(2, 8));
+    const nearFuture = chance(0.4);
+    groupDocs.push({
+      name: `${subject.split(" ")[0]} ${pick(GROUP_ADJ)}`, subject, university: uniId,
+      description: `Group for ${subject}. All levels welcome.`, tags: pickN(GROUP_TAGS, rint(2, 4)),
+      creator: author._id, members: [author._id, ...members], maxMembers: rint(10, 40),
+      nextSession: chance(0.6) ? { at: nearFuture ? futureAt(rint(1, 6), rint(9, 19)) : daysAgo(age * rnd()), mode: pick(["online", "offline"]), location: pick(["Online", "Central Library", "NTB Room 204", "Seminar Hall"]) } : undefined,
+      notifications: { sessionReminderSent: true },
+      createdAt: daysAgo(age), updatedAt: daysAgo(age),
+    });
+  }
+  await StudyGroup.insertMany(groupDocs, { timestamps: false });
+  console.log(`✓ Inserted ${groupDocs.length} study groups`);
+
+  // 10) Confessions
+  const confDocs = [];
+  for (let i = 0; i < N.confessions; i++) {
+    const author = pick(users);
+    const age = contentAgeAfter(author.ageDays);
+    const reactors = pickN(eligible(age, author._id), rint(2, 8));
+    const reactions = reactors.map((u) => ({ user: u._id, type: pick(CONF_REACTS) }));
+    const commenters = pickN(eligible(age, author._id), rint(0, 3));
+    confDocs.push({
+      author: author._id, university: uniId, content: pick(CONFESSIONS),
+      reactions, reactionsCount: reactions.length,
+      comments: commenters.map((u) => ({ author: u._id, content: pick(CONF_COMMENTS), createdAt: daysAgo(age * rnd()) })),
+      createdAt: daysAgo(age), updatedAt: daysAgo(age),
+    });
+    addPts(author._id, "confession_posted");
+  }
+  const insertedConf = await Confession.insertMany(confDocs, { timestamps: false });
+  insertedConf.forEach((d) => reportable.push({ type: "confession", id: d._id, ownerId: d.author, title: "Confession", content: d.content, createdAt: d.createdAt }));
+  console.log(`✓ Inserted ${insertedConf.length} confessions`);
+
+  // 11) Rides
+  const rideDocs = [];
+  for (let i = 0; i < N.rides; i++) {
+    const author = pick(users);
+    const age = contentAgeAfter(author.ageDays);
+    const pax = pickN(eligible(age, author._id).map((u) => u._id), rint(0, 3));
+    rideDocs.push({
+      poster: author._id, university: uniId, from: pick(RIDE_FROM), to: pick(RIDE_TO),
+      departureAt: chance(0.35) ? futureAt(rint(1, 7), rint(6, 20)) : daysAgo(age * rnd()),
+      seatsTotal: rint(1, 6), passengers: pax, note: pick(RIDE_NOTES),
+      createdAt: daysAgo(age), updatedAt: daysAgo(age),
+    });
+    addPts(author._id, "ride_posted", "Road Tripper");
+  }
+  const insertedRides = await Ride.insertMany(rideDocs, { timestamps: false });
+  insertedRides.forEach((d) => reportable.push({ type: "ride", id: d._id, ownerId: d.poster, title: `${d.from} → ${d.to}`, content: d.note, createdAt: d.createdAt }));
+  console.log(`✓ Inserted ${insertedRides.length} rides`);
+
+  // 12) Events
+  const eventDocs = [];
+  for (let i = 0; i < N.events; i++) {
+    const author = pick(users);
+    const age = contentAgeAfter(author.ageDays);
+    const t = pick(EVENT_TEMPLATES);
+    const startAt = chance(0.5) ? futureAt(rint(1, 20), rint(9, 19)) : daysAgo(age * rnd());
+    const attendees = pickN(eligible(age, author._id).map((u) => u._id), rint(3, 12));
+    eventDocs.push({
+      organizer: author._id, university: uniId, title: t.title, description: `${t.title} organised by ${t.club}. Everyone welcome!`,
+      club: t.club, category: t.category, venue: t.venue, startAt, endAt: new Date(startAt.getTime() + rint(2, 5) * 3600 * 1000),
+      attendees, reminderSent: true, createdAt: daysAgo(age), updatedAt: daysAgo(age),
+    });
+    addPts(author._id, "event_created", "Event Host");
+  }
+  const insertedEvents = await Event.insertMany(eventDocs, { timestamps: false });
+  insertedEvents.forEach((d) => reportable.push({ type: "event", id: d._id, ownerId: d.organizer, title: d.title, content: d.description, createdAt: d.createdAt }));
+  console.log(`✓ Inserted ${insertedEvents.length} events`);
+
+  // 13) Q&A forum
+  const qDocs = [];
+  const qAges = [];
+  for (let i = 0; i < N.questions; i++) {
+    const author = pick(users);
+    const age = contentAgeAfter(author.ageDays);
+    const q = pick(QUESTIONS);
+    const upv = pickN(eligible(age, author._id).map((u) => u._id), rint(0, 6));
+    qDocs.push({ author: author._id, university: uniId, title: q.title, body: q.body, branch: pick(BRANCHES), subject: q.subject, semester: String(rint(1, 8)), upvotes: upv, upvoteCount: upv.length, answersCount: 0, acceptedAnswer: null, createdAt: daysAgo(age), updatedAt: daysAgo(age) });
+    qAges.push(age);
+    addPts(author._id, "question_posted");
+  }
+  const insertedQ = await Question.insertMany(qDocs, { timestamps: false });
+  insertedQ.forEach((d) => reportable.push({ type: "question", id: d._id, ownerId: d.author, title: d.title, content: d.body, createdAt: d.createdAt }));
+
+  const ansDocs = [];
+  const ansMeta = [];
+  for (let qi = 0; qi < insertedQ.length; qi++) {
+    const q = insertedQ[qi];
+    const qAge = qAges[qi];
+    const nAns = rint(0, 3);
+    for (let a = 0; a < nAns; a++) {
+      const author = pickEligible(qAge, q.author);
+      if (!author) continue;
+      const aAge = qAge * Math.pow(rnd(), 1.4);
+      const upv = pickN(eligible(aAge, author._id).map((u) => u._id), rint(0, 4));
+      ansDocs.push({ question: q._id, author: author._id, university: uniId, body: pick(ANSWERS), upvotes: upv, upvoteCount: upv.length, createdAt: daysAgo(aAge), updatedAt: daysAgo(aAge) });
+      ansMeta.push({ qi, author: author._id, accept: a === 0 && chance(0.5) });
+      addPts(author._id, "answer_posted");
+    }
+  }
+  const insertedA = await Answer.insertMany(ansDocs, { timestamps: false });
+  insertedA.forEach((d) => reportable.push({ type: "answer", id: d._id, ownerId: d.author, title: "Answer", content: d.body, createdAt: d.createdAt }));
+  const byQ = {};
+  insertedA.forEach((a, i) => { const qi = ansMeta[i].qi; (byQ[qi] = byQ[qi] || []).push({ id: a._id, accept: ansMeta[i].accept, author: ansMeta[i].author }); });
+  for (const [qi, list] of Object.entries(byQ)) {
+    const acc = list.find((x) => x.accept);
+    await Question.updateOne({ _id: insertedQ[qi]._id }, { $set: { answersCount: list.length, acceptedAnswer: acc ? acc.id : null } }, { timestamps: false });
+    if (acc) addPts(acc.author, "answer_accepted", "Problem Solver");
+  }
+  console.log(`✓ Inserted ${insertedQ.length} questions + ${insertedA.length} answers`);
+
+  // 14) Study Vault documents
+  const docDocs = [];
+  for (let i = 0; i < N.documents; i++) {
+    const author = pick(users);
+    const age = contentAgeAfter(author.ageDays);
+    const subject = pick(SUBJECTS);
+    const type = pick(DOC_TYPES);
+    const title = `${subject} ${type === "PYQ" ? "PYQ (2021–2024)" : type === "Syllabus" ? "Syllabus" : type === "Sem Schedule" ? "Exam Schedule" : "Notes"}`;
+    const upv = pickN(eligible(age, author._id).map((u) => u._id), rint(0, 8));
+    docDocs.push({
+      title, description: `${subject} ${type.toLowerCase()} — clean and complete.`, type,
+      branch: pick(BRANCHES), subject, semester: String(rint(1, 8)),
+      fileUrl: SAMPLE_PDF, fileName: `${slugify(title)}.pdf`, fileFormat: "pdf", fileSize: rint(400, 5000) * 1024,
+      uploader: author._id, university: uniId, downloadCount: rint(0, 400), upvotes: upv, upvoteCount: upv.length,
+      createdAt: daysAgo(age), updatedAt: daysAgo(age),
+    });
+    addPts(author._id, "document_upload", "Note Sharer");
+  }
+  const insertedDocs = await Document.insertMany(docDocs, { timestamps: false });
+  insertedDocs.forEach((d) => reportable.push({ type: "document", id: d._id, ownerId: d.uploader, title: d.title, content: d.description, createdAt: d.createdAt }));
+  console.log(`✓ Inserted ${insertedDocs.length} study-vault documents`);
+
+  // 15) Friend graph
   const fDocs = [];
-  const pushF = (reqId, recId, status, ageDays) => {
-    const users = [reqId, recId].map(String).sort();
-    const createdAt = daysAgo(ageDays + 1);
-    const updatedAt = status === "accepted" ? daysAgo(ageDays) : createdAt;
-    fDocs.push({
-      requester: reqId,
-      recipient: recId,
-      users,
-      pairKey: users.join("_"),
-      status,
-      university: university._id,
-      createdAt,
-      updatedAt,
-    });
-  };
-
-  const acceptedPairs = [
-    ["priya", "arjun", 22], ["priya", "sneha", 21], ["priya", "isha", 20],
-    ["arjun", "karan", 19], ["arjun", "vikram", 18],
-    ["sneha", "riya", 17], ["sneha", "tanvi", 16],
-    ["karan", "aditya", 15], ["karan", "nikhil", 14],
-    ["isha", "kavya", 13], ["isha", "ayesha", 12],
-    ["vikram", "harsh", 11], ["vikram", "dev", 10],
-    ["neha", "pooja", 9], ["neha", "rahul", 8],
-    ["aditya", "sid", 7], ["riya", "kavya", 6],
-    ["tanvi", "pooja", 5], ["harsh", "rahul", 4],
-    ["nikhil", "dev", 3], ["ayesha", "meera", 9],
-    ["rohit", "dev", 6], ["rohit", "arjun", 8],
-    ["aarav", "priya", 24], ["diya", "sneha", 23],
-    ["rohan", "karan", 22], ["ananya", "isha", 21],
-    ["aarav", "rohan", 26], ["diya", "ananya", 25],
-    ["meera", "kavya", 12],
-  ];
-  const pendingPairs = [
-    ["harsh", "priya", 5], ["nikhil", "sneha", 4],
-  ];
-  for (const [a, b, age] of acceptedPairs) pushF(uid(a), uid(b), "accepted", age);
-  for (const [a, b, age] of pendingPairs) pushF(uid(a), uid(b), "pending", age);
-
-  if (primaryOk) {
-    // accepted friends of the primary user
-    for (const [k, age] of [["priya", 18], ["arjun", 17], ["sneha", 16], ["aarav", 20], ["diya", 19], ["karan", 15], ["neha", 10]]) {
-      pushF(uid(k), primary._id, "accepted", age);
-    }
-    // incoming pending requests (show up in your "requests" tab)
-    for (const [k, age] of [["vikram", 6], ["isha", 5], ["aditya", 4]]) {
-      pushF(uid(k), primary._id, "pending", age);
-    }
-    // one outgoing pending request from you
-    for (const [k, age] of [["rahul", 3]]) {
-      pushF(primary._id, uid(k), "pending", age);
-    }
-  }
-
-  // dedup by pairKey (guards the unique index if SEED_PRIMARY_EMAIL is a seed acct)
   const seenPK = new Set();
-  const fUnique = fDocs.filter((d) => (seenPK.has(d.pairKey) ? false : (seenPK.add(d.pairKey), true)));
-  await Friendship.insertMany(fUnique, { timestamps: false });
-  const acceptedCount = fUnique.filter((f) => f.status === "accepted").length;
-  console.log(`✓ Inserted ${fUnique.length} friendships (${acceptedCount} accepted, ${fUnique.length - acceptedCount} pending)`);
-
-  // 8) Conversations + messages, spread across the 30-day window.
-  let convCount = 0;
-  let msgCount = 0;
-
-  // 8a) Marketplace chats — primary user <-> a demo seller, about a listing.
-  if (primaryOk) {
-    const listingConvos = [
-      { sellerKey: "aarav", title: 'HP 22" Full-HD Monitor', startDaysAgo: 11, thread: [
-        ["me", "Hi! Is the HP monitor still available?"],
-        ["seller", "Yes, it is! Barely used, works perfectly."],
-        ["me", "Great. Would you take ₹5000?"],
-        ["seller", "Can do ₹5200 and I'll throw in the HDMI cable.", "unread"],
-      ]},
-      { sellerKey: "rohan", title: "Casio FX-991EX Scientific Calculator", startDaysAgo: 19, thread: [
-        ["me", "Is the Casio calculator still up for sale?"],
-        ["seller", "Yep, ₹750 — comes with the cover."],
-        ["me", "Perfect, can I pick it up from your hostel this evening?"],
-      ]},
-      { sellerKey: "diya", title: "Hercules Roadeo 26T Cycle", startDaysAgo: 12, thread: [
-        ["me", "Interested in the cycle. How are the tyres and brakes?"],
-        ["seller", "Both tyres are fine and the brakes are new — rides smooth."],
-        ["seller", "I can show you near H-7 whenever you're free.", "unread"],
-      ]},
-      { sellerKey: "ananya", title: "Yonex Badminton Racket + Shuttles", startDaysAgo: 4, thread: [
-        ["me", "Hey, is the Yonex racket still available?"],
-        ["seller", "Hi! Yes it is, and it comes with a tube of shuttles.", "unread"],
-      ]},
-    ];
-
-    for (const spec of listingConvos) {
-      const seller = byKey[spec.sellerKey];
-      const listing = await Listing.findOne({ title: spec.title, seller: seller._id });
-      if (!listing) {
-        console.log(`  ! listing not found for conversation: ${spec.title}`);
-        continue;
-      }
-      const participants = [String(primary._id), String(seller._id)].sort();
-      let conversation;
-      try {
-        conversation = await Conversation.create({
-          listingId: listing._id,
-          contextType: "listing",
-          listingTitle: listing.title,
-          participants,
-          university: university._id,
-        });
-      } catch (e) {
-        if (e.code === 11000) {
-          console.log(`  ! skipped existing listing chat: ${spec.title}`);
-          continue;
-        }
-        throw e;
-      }
-
-      const start = daysAgo(spec.startDaysAgo).getTime();
-      const docs = spec.thread.map((m, i) => {
-        const when = new Date(start + i * 13 * 60 * 1000); // ~13 min apart
-        return {
-          conversation: conversation._id,
-          sender: m[0] === "me" ? primary._id : seller._id,
-          university: university._id,
-          content: m[1],
-          readAt: m[2] === "unread" ? null : new Date(when.getTime() + 60 * 1000),
-          createdAt: when,
-          updatedAt: when,
-        };
-      });
-      await Message.insertMany(docs, { timestamps: false });
-
-      const last = docs[docs.length - 1];
-      conversation.lastMessage = last.content;
-      conversation.lastMessageAt = last.createdAt;
-      await conversation.save();
-      convCount += 1;
-      msgCount += docs.length;
+  for (const u of users) {
+    const friends = pickN(users.filter((o) => String(o._id) !== String(u._id)), rint(2, 6));
+    for (const f of friends) {
+      const sorted = [String(u._id), String(f._id)].sort();
+      const pairKey = sorted.join("_");
+      if (seenPK.has(pairKey)) continue;
+      seenPK.add(pairKey);
+      const cap = Math.min(u.ageDays, f.ageDays);
+      const age = cap * Math.pow(rnd(), 1.4);
+      const status = chance(0.85) ? "accepted" : "pending";
+      fDocs.push({ requester: u._id, recipient: f._id, users: sorted, pairKey, status, university: uniId, createdAt: daysAgo(age + 0.5), updatedAt: daysAgo(status === "accepted" ? age : age + 0.5) });
     }
   }
+  await Friendship.insertMany(fDocs, { timestamps: false });
+  const acceptedCount = fDocs.filter((f) => f.status === "accepted").length;
+  console.log(`✓ Inserted ${fDocs.length} friendships (${acceptedCount} accepted, ${fDocs.length - acceptedCount} pending)`);
 
-  // 8b) Friend DMs (the "chat with friends" feature). NOTE: friend DMs all have
-  //     listingId=null, and the unique {listingId, participants} index is
-  //     multikey — so a user can be in at most ONE null-listing conversation.
-  //     We therefore only seed DISJOINT pairs (no user appears twice).
-  const friendConvos = [
-    { a: "__primary__", b: "priya", startDaysAgo: 9, thread: [
-      ["a", "Hey Priya! Are you going to the DSA session tomorrow?"],
-      ["b", "Yeah, planning to! Want to grab seats together?"],
-      ["a", "Perfect, let's meet at the library entrance at 5."],
-      ["b", "Done. I'll bring my notes from last week.", "unread"],
-    ]},
-    { a: "arjun", b: "karan", startDaysAgo: 14, thread: [
-      ["a", "Bro, did you finish the OS assignment?"],
-      ["b", "Almost — stuck on the scheduling part."],
-      ["a", "Same. Let's pair up this evening?"],
-      ["b", "Sounds good, ping me after mess."],
-    ]},
-    { a: "sneha", b: "riya", startDaysAgo: 5, thread: [
-      ["a", "Riya, are you still selling your study lamp?"],
-      ["b", "Yes! It's up on the marketplace now 🙂"],
-      ["a", "Awesome, I'll reserve it."],
-    ]},
-  ];
-
-  for (const spec of friendConvos) {
-    const aUser = spec.a === "__primary__" ? (primaryOk ? primary : null) : byKey[spec.a];
-    const bUser = byKey[spec.b];
-    if (!aUser || !bUser) continue;
-
-    const participants = [String(aUser._id), String(bUser._id)].sort();
-    let conversation;
-    try {
-      conversation = await Conversation.create({
-        listingId: null,
-        contextType: "friend",
-        listingTitle: "",
-        participants,
-        university: university._id,
-      });
-    } catch (e) {
-      if (e.code === 11000) {
-        console.log(`  ! skipped friend chat (a participant already has one)`);
-        continue;
-      }
-      throw e;
+  // 16) Conversations + messages (one convo per listing → respects unique index)
+  const BUYER_LINES = ["Hi! Is this still available?", "Interested — can you share more photos?", "Would you take a bit less?", "Can I pick it up from your hostel this evening?", "Does it come with the accessories?"];
+  const SELLER_LINES = ["Yes, it's available!", "Sure, it's in great condition.", "I can do a small discount.", "Works perfectly, barely used.", "Let me know when you're free."];
+  const DM_LINES = ["Hey! Are you going to the session tomorrow?", "Yeah, planning to!", "Let's meet at the library at 5.", "Done, see you there.", "Did you finish the assignment?"];
+  let convCount = 0, msgCount = 0;
+  const convoInserts = [];
+  const msgInserts = [];
+  for (const l of pickN(listingRecords, N.listingChats)) {
+    const buyer = pickEligible(l.age, l.seller);
+    if (!buyer) continue;
+    const cAge = l.age * Math.pow(rnd(), 1.4);
+    const participants = [String(l.seller), String(buyer._id)].sort();
+    const convId = new mongoose.Types.ObjectId();
+    const nMsg = rint(2, 6);
+    const start = daysAgo(cAge).getTime();
+    let last = "", lastAt = new Date(start);
+    for (let m = 0; m < nMsg; m++) {
+      const fromBuyer = m % 2 === 0;
+      const when = new Date(start + m * 12 * 60 * 1000);
+      const content = fromBuyer ? pick(BUYER_LINES) : pick(SELLER_LINES);
+      msgInserts.push({ conversation: convId, sender: fromBuyer ? buyer._id : l.seller, university: uniId, content, readAt: m === nMsg - 1 && chance(0.4) ? null : new Date(when.getTime() + 60000), createdAt: when, updatedAt: when });
+      last = content; lastAt = when;
     }
-
-    const start = daysAgo(spec.startDaysAgo).getTime();
-    const docs = spec.thread.map((m, i) => {
-      const when = new Date(start + i * 37 * 60 * 1000); // ~37 min apart
-      return {
-        conversation: conversation._id,
-        sender: m[0] === "a" ? aUser._id : bUser._id,
-        university: university._id,
-        content: m[1],
-        readAt: m[2] === "unread" ? null : new Date(when.getTime() + 90 * 1000),
-        createdAt: when,
-        updatedAt: when,
-      };
-    });
-    await Message.insertMany(docs, { timestamps: false });
-
-    const last = docs[docs.length - 1];
-    conversation.lastMessage = last.content;
-    conversation.lastMessageAt = last.createdAt;
-    await conversation.save();
-    convCount += 1;
-    msgCount += docs.length;
+    convoInserts.push({ _id: convId, listingId: l._id, contextType: "listing", listingTitle: l.title, participants, university: uniId, lastMessage: last, lastMessageAt: lastAt, createdAt: daysAgo(cAge), updatedAt: lastAt });
+    convCount++; msgCount += nMsg;
   }
-  console.log(`✓ Seeded ${convCount} conversations (${msgCount} messages)`);
-
-  // 9) Notifications — ONLY for the primary user (private to their account).
-  if (primaryOk) {
-    const notifDefs = [
-      { type: "system", title: "Welcome to Manit Hub 🎓", description: "Your campus hub for NIT Bhopal is ready — explore the marketplace, study groups and campus maps.", read: true, days: 29 },
-      { type: "marketplace", title: "New in Textbooks", description: "“GATE 2026 CSE — Made Easy Full Set” was just listed for ₹1,800.", read: true, days: 27 },
-      { type: "study-group", title: "New study group: DSA & CP Grind", description: "A Computer Science group is now open to join.", read: true, days: 24 },
-      { type: "marketplace", title: "On your radar", description: "Casio FX-991EX Scientific Calculator is available for ₹750.", read: true, days: 20 },
-      { type: "friend", title: "Friend request accepted", description: "Shanjhi Jain (@shanjhi_jain) accepted your friend request.", read: true, days: 18 },
-      { type: "message", title: "New message from Aarav Mehta", description: '“Can do ₹5,200 and I\'ll throw in the HDMI cable.” — HP 22" Full-HD Monitor', read: true, days: 11 },
-      { type: "message", title: "New message from Diya Sharma", description: "“I can show you near H-7 whenever you're free.” — Hercules Roadeo 26T Cycle", read: true, days: 12 },
-      { type: "friend", title: "New friend request", description: "Vikram Rao (@vikram_rao) sent you a friend request.", read: false, days: 6 },
-      { type: "system", title: "Complete your profile", description: "Add a photo and a short bio so other students recognise you.", read: false, days: 3 },
-      { type: "study-group", title: "Session reminder: GATE CSE 2026 Prep", description: "Next meetup at Central Library, 2nd Floor in 3 days.", read: false, days: 1 },
-    ];
-    const notifs = notifDefs.map((n) => ({
-      user: primary._id,
-      type: n.type,
-      title: n.title,
-      description: n.description,
-      read: n.read,
-      createdAt: daysAgo(n.days),
-      updatedAt: daysAgo(n.days),
-    }));
-
-    const titles = notifs.map((n) => n.title);
-    const delN = await Notification.deleteMany({ user: primary._id, title: { $in: titles } });
-    await Notification.insertMany(notifs, { timestamps: false });
-    const unread = notifs.filter((n) => !n.read).length;
-    console.log(`✓ Seeded ${notifs.length} notifications (${unread} unread, reset ${delN.deletedCount}) for ${primaryEmail}`);
+  // Friend DMs on disjoint pairs (a user can be in at most one listingId:null
+  // convo). Exclude protected accounts — they may already own a real null-listing
+  // conversation, which would collide on the unique {listingId, participants} index.
+  const protectedIds = new Set([...(samay ? [String(samay._id)] : []), ...(shanjhi ? [String(shanjhi._id)] : [])]);
+  const usedInDM = new Set();
+  let dmMade = 0;
+  const shuffled = pickN(users.filter((u) => !protectedIds.has(String(u._id))), users.length);
+  for (let i = 0; i + 1 < shuffled.length && dmMade < N.friendDMs; i += 2) {
+    const a = shuffled[i], b = shuffled[i + 1];
+    if (usedInDM.has(String(a._id)) || usedInDM.has(String(b._id))) continue;
+    usedInDM.add(String(a._id)); usedInDM.add(String(b._id));
+    const cap = Math.min(a.ageDays, b.ageDays);
+    const cAge = cap * Math.pow(rnd(), 1.4);
+    const participants = [String(a._id), String(b._id)].sort();
+    const convId = new mongoose.Types.ObjectId();
+    const nMsg = rint(2, 5);
+    const start = daysAgo(cAge).getTime();
+    let last = "", lastAt = new Date(start);
+    for (let m = 0; m < nMsg; m++) {
+      const when = new Date(start + m * 30 * 60 * 1000);
+      const content = DM_LINES[m % DM_LINES.length];
+      msgInserts.push({ conversation: convId, sender: m % 2 === 0 ? a._id : b._id, university: uniId, content, readAt: m === nMsg - 1 && chance(0.4) ? null : new Date(when.getTime() + 90000), createdAt: when, updatedAt: when });
+      last = content; lastAt = when;
+    }
+    convoInserts.push({ _id: convId, listingId: null, contextType: "friend", listingTitle: "", participants, university: uniId, lastMessage: last, lastMessageAt: lastAt, createdAt: daysAgo(cAge), updatedAt: lastAt });
+    convCount++; msgCount += nMsg; dmMade++;
   }
+  await Conversation.insertMany(convoInserts, { timestamps: false });
+  await Message.insertMany(msgInserts, { timestamps: false });
+  console.log(`✓ Inserted ${convCount} conversations (${msgCount} messages)`);
+
+  // 17) Academics — records, attendance, timetable
+  const acadDocs = [];
+  for (const u of pickN(users, N.academics)) {
+    const sems = rint(2, 6);
+    for (let s = 1; s <= sems; s++) {
+      const subjects = pickN(SUBJECTS, rint(4, 6)).map((name) => ({ name, credits: pick([2, 3, 3, 4, 4]), grade: pick(GRADES) }));
+      acadDocs.push({ user: u._id, university: uniId, semester: s, subjects, createdAt: daysAgo(u.ageDays * rnd()), updatedAt: daysAgo(u.ageDays * rnd()) });
+    }
+  }
+  await AcademicRecord.insertMany(acadDocs, { timestamps: false });
+
+  const attDocs = [];
+  for (const u of pickN(users, N.attendance)) {
+    for (const name of pickN(SUBJECTS, rint(3, 6))) {
+      const held = rint(20, 45); const attended = Math.round(held * (0.6 + rnd() * 0.35));
+      attDocs.push({ user: u._id, university: uniId, name, held, attended, target: 75, createdAt: daysAgo(u.ageDays * rnd()), updatedAt: daysAgo(u.ageDays * rnd()) });
+    }
+  }
+  await AttendanceSubject.insertMany(attDocs, { timestamps: false });
+
+  const SLOTS = [["09:00", "09:55"], ["10:00", "10:55"], ["11:00", "11:55"], ["12:00", "12:55"], ["14:00", "14:55"], ["15:00", "15:55"], ["16:00", "16:55"]];
+  const ttDocs = [];
+  for (const u of pickN(users, N.timetable)) {
+    for (let e = 0; e < rint(4, 6); e++) {
+      const slot = pick(SLOTS);
+      ttDocs.push({ user: u._id, university: uniId, subject: pick(SUBJECTS).slice(0, 80), dayOfWeek: rint(1, 5), startTime: slot[0], endTime: slot[1], room: `NTB ${rint(101, 305)}`, professor: `Dr. ${pick(LAST)}`, createdAt: daysAgo(u.ageDays * rnd()), updatedAt: daysAgo(u.ageDays * rnd()) });
+    }
+  }
+  await TimetableEntry.insertMany(ttDocs, { timestamps: false });
+  console.log(`✓ Inserted ${acadDocs.length} academic records, ${attDocs.length} attendance subjects, ${ttDocs.length} timetable entries`);
+
+  // 18) Device tokens
+  const dtDocs = pickN(users, N.deviceTokens).map((u, i) => ({ user: u._id, university: uniId, token: `seed-${i}-${Math.floor(rnd() * 1e9).toString(36)}`, platform: pick(["web", "android", "android", "ios"]), createdAt: daysAgo(u.ageDays * rnd()), updatedAt: daysAgo(u.ageDays * rnd()) }));
+  await DeviceToken.insertMany(dtDocs, { timestamps: false });
+  console.log(`✓ Inserted ${dtDocs.length} device tokens`);
+
+  // 19) Reports + moderation
+  const adminId = samay ? samay._id : users[0]._id;
+  const reportDocs = [];
+  const reportSeen = new Set();
+  let tries = 0;
+  while (reportDocs.length < N.reports && tries < N.reports * 6) {
+    tries++;
+    const target = pick(reportable);
+    const reporter = pickEligible(ageOfDate(target.createdAt), target.ownerId);
+    if (!reporter) continue;
+    const key = `${reporter._id}_${target.type}_${target.id}`;
+    if (reportSeen.has(key)) continue;
+    reportSeen.add(key);
+    const st = pick(["open", "open", "resolved", "resolved", "dismissed"]);
+    const rAge = ageOfDate(target.createdAt) * Math.pow(rnd(), 1.2);
+    const handled = st !== "open";
+    const r = { reporter: reporter._id, university: uniId, targetType: target.type, targetId: target.id, reason: pick(REPORT_REASONS), snapshot: { title: String(target.title).slice(0, 120), content: String(target.content || "").slice(0, 500) }, status: st, createdAt: daysAgo(rAge), updatedAt: daysAgo(rAge) };
+    if (handled) { r.handledBy = adminId; r.handledAt = daysAgo(Math.max(0, rAge - rnd())); }
+    reportDocs.push(r);
+  }
+  await Report.insertMany(reportDocs, { timestamps: false });
+  const openR = reportDocs.filter((r) => r.status === "open").length;
+  console.log(`✓ Inserted ${reportDocs.length} reports (${openR} open)`);
+
+  // strikes + suspensions (managed users only, never protected)
+  const managedIds = insertedUsers.map((u) => u._id);
+  const strikeTargets = pickN(managedIds, N.strikes);
+  const banTargets = pickN(strikeTargets, N.suspended);
+  const banSet = new Set(banTargets.map(String));
+  const modOps = strikeTargets.map((id) => {
+    const banned = banSet.has(String(id));
+    return { updateOne: { filter: { _id: id }, update: { $set: { strikes: banned ? rint(3, 4) : rint(1, 2), ...(banned ? { isBanned: true, banReason: pick(BAN_REASONS), bannedAt: daysAgo(rint(1, 30)) } : {}) } } } };
+  });
+  if (modOps.length) await User.bulkWrite(modOps);
+  console.log(`✓ Applied ${strikeTargets.length} strike-sets (${banTargets.length} suspended)`);
+
+  // 20) Notifications (protected admin + a sample of users)
+  const samayId = samay ? String(samay._id) : null;
+  const notifUserIds = [...(samay ? [samay._id] : []), ...pickN(managedIds, N.notifUsers)];
+  const notifDocs = [];
+  for (const uid of notifUserIds) {
+    const count = String(uid) === samayId ? rint(6, 9) : rint(1, 3);
+    for (let i = 0; i < count; i++) {
+      const t = pick(NOTIF);
+      const d = rint(1, 40);
+      notifDocs.push({ user: uid, type: t.type, title: t.title, description: t.description, read: chance(0.55), createdAt: daysAgo(d), updatedAt: daysAgo(d) });
+    }
+  }
+  await Notification.insertMany(notifDocs, { timestamps: false });
+  console.log(`✓ Inserted ${notifDocs.length} notifications`);
+
+  // 21) Apply points + badges (incl. milestones) to all seed participants
+  const MILE = [{ p: 100, b: "Rising Star" }, { p: 500, b: "Campus Hero" }, { p: 1000, b: "MANIT Legend" }];
+  const ptsOps = [];
+  for (const u of users) {
+    const k = String(u._id);
+    const pts = pointsBy.get(k) || 0;
+    const badges = new Set(badgesBy.get(k) || []);
+    for (const m of MILE) if (pts >= m.p) badges.add(m.b);
+    const update = { $set: { points: pts } };
+    if (badges.size) update.$addToSet = { badges: { $each: [...badges] } };
+    ptsOps.push({ updateOne: { filter: { _id: u._id }, update } });
+  }
+  if (ptsOps.length) await User.bulkWrite(ptsOps);
+  console.log(`✓ Applied points/badges to ${ptsOps.length} users`);
+
+  // 22) Admin model — Samay is the SOLE admin; remove the old CEO ghost account.
+  if (samay) {
+    await User.updateOne({ _id: samay._id }, { $set: { isAdmin: true } });
+    await User.updateMany({ email: { $ne: ADMIN_EMAIL }, isAdmin: true }, { $set: { isAdmin: false } });
+  }
+  const ghost = await User.deleteOne({ email: CEO_GHOST_EMAIL });
+  console.log(`✓ Admin: ${ADMIN_EMAIL} is sole admin${ghost.deletedCount ? "; removed old CEO account" : ""}`);
+
+  // Protected profile refresh (never touches password/createdAt).
+  if (shanjhi) { shanjhi.displayName = "Shanjhi Jain"; shanjhi.bio = "CSE '25. Loves audio gear and clean code."; await shanjhi.save(); }
 
   await mongoose.disconnect();
 
-  // ── Ready-to-use logins ─────────────────────────────────────────────────
-  const ready = userDefs.filter((u) => u.ready);
-  console.log(`\n✓ Seed complete — data spread across the last ${SEED_WINDOW_DAYS} days.`);
-  console.log(`  All ${userDefs.length} seed accounts share the password: ${DEMO_PASSWORD}`);
-  console.log("\n  5 ready-to-use logins:");
-  for (const u of ready) {
-    console.log(`    • ${u.displayName.padEnd(16)} ${u.email}  /  ${DEMO_PASSWORD}`);
-  }
-  console.log("");
+  const totalUsers = insertedUsers.length + (samay ? 1 : 0) + (shanjhi ? 1 : 0);
+  console.log(`\n✓ Seed complete — ~${totalUsers} users across the last ${WINDOW} days (rising signup curve).`);
+  console.log(`  Managed accounts share the password: ${DEMO_PASSWORD}`);
+  console.log(`  Admin: log in NORMALLY as ${ADMIN_EMAIL} (Samay's own password) → CEO console.`);
 }
 
 run().catch(async (err) => {

@@ -137,7 +137,6 @@ app.use(async (req, res, next) => {
 // Auth
 app.use("/api/auth", require("./apis/auth/signup"));
 app.use("/api/auth", require("./apis/auth/login"));
-app.use("/api/auth", require("./apis/auth/adminLogin"));
 app.use("/api/auth", require("./apis/auth/forgotPassword"));
 app.use("/api/auth", require("./apis/auth/resetPassword"));
 app.use("/api/auth", require("./apis/auth/verifyEmail"));
