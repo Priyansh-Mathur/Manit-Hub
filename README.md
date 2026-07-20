@@ -102,6 +102,7 @@ Built by students, for students — a verified, university‑scoped community on
   - [Request & Data Flow](#request--data-flow)
   - [Data Model](#data-model)
 - [🔒 Security & Moderation](#-security--moderation)
+- [📚 Project Documentation](#-project-documentation)
 - [🚀 Getting Started](#-getting-started)
 - [🔑 Environment Variables](#-environment-variables)
 - [🌱 Seeding Demo Data](#-seeding-demo-data)
@@ -133,6 +134,7 @@ Built by students, for students — a verified, university‑scoped community on
 | 💸 | **UPI Checkout** | `upi://` deep link + auto‑generated QR from the seller's saved UPI ID, prefilled with the listing price. | Pay in two taps — **no payment handles in chat**. |
 | 🤝 | **Offers & Negotiation** | Buyers make offers; sellers **accept / counter / decline** with notifications at every step; accepted offers reserve the listing. | Haggle like the campus market demands — **in the app, on the record**. |
 | 🚩 | **Reports & Moderation** | Report any listing/doc/confession/question; admins get a review queue to **remove content or dismiss** (auto‑resolves duplicates). | User‑generated content **stays safe at scale**. |
+| 🛡️ | **Admin Console** | An `isAdmin`‑gated console — platform analytics (users, marketplace, engagement & moderation KPIs), growth + breakdown charts, a searchable account list, per‑user detail, and reversible **suspend / unsuspend**. Reached through the **normal login** (no separate admin credentials). | Moderators get a **cockpit** to see and steer the whole platform. |
 | 🏆 | **Gamification** | Karma points for uploads, answers, listings & more; milestone badges and a campus **leaderboard**. | Contributing to campus **feels like winning**. |
 | 👤 | **Rich Profiles** | Reputation (points, level, badges, verified mark) + contribution history across docs, Q&A, events and rides. | Your campus identity is **more than a username**. |
 | 📲 | **Push Notifications (FCM)** | Every in‑app notification mirrors to **web & Android push** via Firebase Cloud Messaging (config‑gated). | Replies, offers and reminders reach you **even with the app closed**. |
@@ -223,12 +225,12 @@ manit-hub/
 │   ├── utils/                 # jwt, response, gamification + shared notifications/universities helpers
 │   ├── socket/                # chat.socket.js (real-time events)
 │   ├── jobs/                  # studyGroup / class / event reminder cron jobs
-│   ├── <feature>/             # 23 feature folders, one .js file per endpoint —
-│   │                          #   auth · users · universities · listings · conversations ·
+│   ├── apis/                  # 24 feature folders, one .js file per endpoint —
+│   │                          #   auth · admin · users · universities · listings · conversations ·
 │   │                          #   messages · studyGroups · notifications · dashboard · documents ·
 │   │                          #   academicRecords · attendance · lostFound · confessions · rides ·
 │   │                          #   timetable · events · forum · offers · reports · leaderboard ·
-│   │                          #   push · friends   (shared bits in <feature>/helpers.js)
+│   │                          #   push · friends   (shared bits in apis/<feature>/helpers.js)
 │   └── scripts/seed.js        # Demo data seeder
 │
 └── README.md
@@ -326,6 +328,22 @@ Manit Hub is built **defence-in-depth** — no single control is trusted alone. 
 3. **Image moderation** — an **env-gated** hook (Google Cloud Vision SafeSearch or Sightengine) rejects adult/explicit images **before they're stored**. Off by default (uploads allowed) until you set a provider key; fails open on a provider outage so the report queue remains the backstop.
 
 > 📄 A full **why / how / why-this-not-that** write-up of every control lives in [`docs/Manit-Hub-Developer-Notes.pdf`](docs/Manit-Hub-Developer-Notes.pdf) → *Section 16 · Security hardening & content moderation*.
+
+---
+
+## 📚 Project Documentation
+
+Five deep-dive documents live in [`docs/`](docs/) — each a self-contained HTML source rendered to a print-ready PDF:
+
+| Document | What it is | Pages |
+| :-- | :-- | :--: |
+| 📘 [**Developer Study Guide**](docs/Manit-Hub-Developer-Notes.pdf) | Interview-grade reference — every endpoint, library and design decision, with a function-by-function appendix. | ~88 |
+| 🗄️ [**Database Schema Reference**](docs/Manit-Hub-Database-Schema.pdf) | A compact data dictionary of all 21 collections — every field, index, hook and relationship. | ~11 |
+| 📖 [**The Build Story**](docs/Manit-Hub-Build-Story.pdf) | The narrative dev history — decisions, war stories and the bugs that shipped, told chronologically. | ~21 |
+| 🎓 [**SD3 Project Viva — 110 Q&A**](docs/Manit-Hub-SD3-Viva-Questions.pdf) | A graded question bank (**Easy → Hardest**) with model answers and “why this, not that” justifications, plus 10 implementation & content-moderation judgment questions. | ~18 |
+| 🧰 [**Tech Stack & Dependency Inventory**](docs/Manit-Hub-Tech-Stack-Inventory.pdf) | Every library, plugin, service and tool with versions and the reason it's there — plus an honest “gaps & dead weight” section. | ~7 |
+
+> The reusable prompts that generate these live in [`docs/PDF-Generation-Prompts.md`](docs/PDF-Generation-Prompts.md).
 
 ---
 
@@ -457,6 +475,7 @@ All endpoints are prefixed with `/api`. Protected routes require `Authorization:
 | `GET` `POST` `DELETE` | `/forum/questions` `…/:id/answers` `…/upvote` `…/accept` | Course Q&A: questions, answers, upvotes, accepted answers |
 | `GET` `POST` `PATCH` | `/offers` `…/:id` | Price negotiation: make, accept, counter, decline, withdraw |
 | `GET` `POST` `PATCH` | `/reports` `…/:id` | Report content; admin moderation queue (`isAdmin`) |
+| `GET` `PATCH` | `/admin/overview` `/growth` `/breakdown` `/users` `…/:id` `…/:id/suspend` `…/:id/unsuspend` | Admin console — platform KPIs, growth/breakdown charts, account management & suspend/unsuspend (`isAdmin`) |
 | `GET` | `/leaderboard` | Campus karma leaderboard + your rank |
 | `POST` | `/push/register` `/push/unregister` | FCM device-token registry for push |
 | `GET` `POST` | `/conversations` | Start / list conversations |
@@ -488,7 +507,7 @@ All endpoints are prefixed with `/api`. Protected routes require `Authorization:
 - [x] Push notifications (FCM) — wired end‑to‑end, enable by adding Firebase keys
 - [x] Lost & Found and Events modules
 - [x] In‑app UPI deep links + QR for checkout
-- [x] Admin moderation dashboard (`isAdmin` gate)
+- [x] Admin console — platform analytics, account management (suspend/unsuspend) & moderation queue (`isAdmin` gate)
 - [x] CGPA & attendance trackers, timetable with class reminders
 - [x] Confessions, ride‑share, course Q&A, offers, gamification
 - [ ] iOS build via Capacitor
