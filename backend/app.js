@@ -22,7 +22,7 @@ app.use(
 // CORS — allow the configured client origin(s), local dev, and
 // Netlify/Vercel deploy + preview subdomains.
 const explicitOrigins = (
-  process.env.CLIENT_URL || "https://manithub-samayjainbm.vercel.app"
+  process.env.CLIENT_URL || "https://YOUR-NETLIFY-SITE.netlify.app"
 )
   .split(",")
   // trim + strip trailing slashes — browser Origin headers never have one,
@@ -42,12 +42,12 @@ const devOrigins = [
 const allowedOrigins = new Set([...explicitOrigins, ...devOrigins]);
 
 // Vercel/Netlify preview URLs for THIS project look like:
-//   manithub-samayjainbm-<hash>-<team>.vercel.app
-//   deploy-preview-12--manithub-samayjainbm.netlify.app
+//   your-project-<hash>-<team>.vercel.app
+//   deploy-preview-12--your-project.netlify.app
 // so we match on the exact project slug as a subdomain prefix, not a loose
 // substring. A plain `hostname.includes("manithub")` would let anyone register
 // e.g. "manithub-evil.vercel.app" and pass — so we require the full slug.
-const PROJECT_SLUGS = (process.env.DEPLOY_SLUGS || "manithub-samayjainbm")
+const PROJECT_SLUGS = (process.env.DEPLOY_SLUGS || "your-project")
   .split(",")
   .map((s) => s.trim().toLowerCase())
   .filter(Boolean);

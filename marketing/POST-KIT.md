@@ -37,9 +37,9 @@ Manit Hub is a student super-app built by students, for students of NIT Bhopal. 
 1:06 …and more: Study Groups, Course Q&A, Offers, Lost & Found, Leaderboard
 1:11 Get started
 
-🌐 Try it free: https://manithub-samayjainbm.vercel.app/
+🌐 Try it free: https://YOUR-NETLIFY-SITE.netlify.app/
 📱 Android app available
-⭐ Star the repo: https://github.com/Samay-Jain/Manit-Hub
+⭐ Star the repo: https://github.com/Priyansh-Mathur/Manit-Hub
 
 Tech stack: React 19 · Vite · Tailwind · Node.js · Express · MongoDB · Socket.IO · Capacitor (Android)
 
@@ -69,7 +69,7 @@ Free on web & Android. Sign up with your MANIT email — link in bio.
 #MANIT #NITBhopal #ManitHub #CampusLife #StudentLife #EngineeringLife #CollegeApp #BuildInPublic #ReactJS #DeveloperLife #MadeInIndia #Bhopal
 ```
 
-**Bio link:** https://manithub-samayjainbm.vercel.app/
+**Bio link:** https://YOUR-NETLIFY-SITE.netlify.app/
 
 ---
 
@@ -86,8 +86,8 @@ Some things I'm proud of:
 📲 One codebase → web + native Android (Capacitor)
 🏗️ React 19 · Node/Express · MongoDB · Cloudinary · FCM push
 
-Live: https://manithub-samayjainbm.vercel.app/
-Code: https://github.com/Samay-Jain/Manit-Hub
+Live: https://YOUR-NETLIFY-SITE.netlify.app/
+Code: https://github.com/Priyansh-Mathur/Manit-Hub
 
 Would love feedback — especially from folks building for campus communities.
 
@@ -105,7 +105,7 @@ Manit Hub — marketplace, study vault, CGPA & attendance trackers, real-time ch
 
 Built by students, for students. Free on web + Android.
 
-🌐 https://manithub-samayjainbm.vercel.app/
+🌐 https://YOUR-NETLIFY-SITE.netlify.app/
 ```
 
 ---

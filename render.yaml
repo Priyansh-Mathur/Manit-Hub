@@ -32,7 +32,7 @@ services:
       # The deployed web origin, used for CORS. (*.netlify.app is already allowed
       # in code, so this is belt-and-suspenders / for a custom domain.)
       - key: CLIENT_URL
-        value: https://manithub-samayjainbm.netlify.app
+        value: https://YOUR-NETLIFY-SITE.netlify.app
       # --- Secrets: set real values in the Render dashboard ---
       - key: MONGO_URI
         sync: false

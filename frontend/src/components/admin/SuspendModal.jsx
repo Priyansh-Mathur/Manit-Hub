@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Ban } from "lucide-react";
 import Modal from "../ui/Modal";
 import Button from "../ui/Button";
@@ -7,12 +7,20 @@ import Button from "../ui/Button";
  * Confirm modal with a required-ish reason field for suspending an account.
  */
 export default function SuspendModal({ open, userName, loading, onCancel, onConfirm }) {
-  const [reason, setReason] = useState("");
+  return (
+    <SuspendModalBody
+      key={open ? userName ?? "open" : "closed"}
+      open={open}
+      userName={userName}
+      loading={loading}
+      onCancel={onCancel}
+      onConfirm={onConfirm}
+    />
+  );
+}
 
-  // Reset the field whenever the modal is (re)opened.
-  useEffect(() => {
-    if (open) setReason("");
-  }, [open]);
+function SuspendModalBody({ open, userName, loading, onCancel, onConfirm }) {
+  const [reason, setReason] = useState("");
 
   return (
     <Modal

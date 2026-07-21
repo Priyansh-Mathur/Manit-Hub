@@ -12,10 +12,10 @@ Built by students, for students — a verified, university‑scoped community on
 <br/>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-bd8a1e.svg?style=flat-square)](LICENSE)
-[![Stars](https://img.shields.io/github/stars/Samay-Jain/Manit-Hub?style=flat-square&color=1e4f92)](https://github.com/Samay-Jain/Manit-Hub/stargazers)
-[![Forks](https://img.shields.io/github/forks/Samay-Jain/Manit-Hub?style=flat-square&color=1e4f92)](https://github.com/Samay-Jain/Manit-Hub/network/members)
-[![Issues](https://img.shields.io/github/issues/Samay-Jain/Manit-Hub?style=flat-square&color=bb2735)](https://github.com/Samay-Jain/Manit-Hub/issues)
-[![Last Commit](https://img.shields.io/github/last-commit/Samay-Jain/Manit-Hub?style=flat-square)](https://github.com/Samay-Jain/Manit-Hub/commits)
+[![Stars](https://img.shields.io/github/stars/Priyansh-Mathur/Manit-Hub?style=flat-square&color=1e4f92)](https://github.com/Priyansh-Mathur/Manit-Hub/stargazers)
+[![Forks](https://img.shields.io/github/forks/Priyansh-Mathur/Manit-Hub?style=flat-square&color=1e4f92)](https://github.com/Priyansh-Mathur/Manit-Hub/network/members)
+[![Issues](https://img.shields.io/github/issues/Priyansh-Mathur/Manit-Hub?style=flat-square&color=bb2735)](https://github.com/Priyansh-Mathur/Manit-Hub/issues)
+[![Last Commit](https://img.shields.io/github/last-commit/Priyansh-Mathur/Manit-Hub?style=flat-square)](https://github.com/Priyansh-Mathur/Manit-Hub/commits)
 
 <br/>
 
@@ -30,7 +30,7 @@ Built by students, for students — a verified, university‑scoped community on
 
 <br/>
 
-[**🌐 Live Demo**](https://manithub-samayjainbm.vercel.app/) · [**▶️ Video Tour**](https://youtu.be/4ngVWX2E0rU) · [**📱 Android App**](#-mobile-app-android) · [**🐛 Report Bug**](https://github.com/Samay-Jain/Manit-Hub/issues) · [**✨ Request Feature**](https://github.com/Samay-Jain/Manit-Hub/issues)
+[**🌐 Live Demo**](https://YOUR-NETLIFY-SITE.netlify.app/) · [**▶️ Video Tour**](https://youtu.be/4ngVWX2E0rU) · [**📱 Android App**](#-mobile-app-android) · [**🐛 Report Bug**](https://github.com/Priyansh-Mathur/Manit-Hub/issues) · [**✨ Request Feature**](https://github.com/Priyansh-Mathur/Manit-Hub/issues)
 
 </div>
 
@@ -66,8 +66,8 @@ Built by students, for students — a verified, university‑scoped community on
 
 </div>
 
-**🔗 Live web app:** https://manithub-samayjainbm.vercel.app/
-**🔌 API base URL:** `https://manit-hub.onrender.com/api`
+**🔗 Live web app:** https://YOUR-NETLIFY-SITE.netlify.app/
+**🔌 API base URL:** `https://manithub-backend.onrender.com/api`
 
 <details>
 <summary><b>Example API response</b> — <code>POST /api/auth/login</code></summary>
@@ -79,7 +79,7 @@ Built by students, for students — a verified, university‑scoped community on
   "data": {
     "user": {
       "id": "6a0cb1909d5806fe5529ebaf",
-      "displayName": "Samay Jain",
+      "displayName": "Priyansh Mathur",
       "email": "2311401212@stu.manit.ac.in",
       "university": { "_id": "6a0cb190…", "name": "MANIT" }
     },
@@ -359,7 +359,7 @@ Five deep-dive documents live in [`docs/`](docs/) — each a self-contained HTML
 ### 1. Clone
 
 ```bash
-git clone https://github.com/Samay-Jain/Manit-Hub.git
+git clone https://github.com/Priyansh-Mathur/Manit-Hub.git
 cd Manit-Hub
 ```
 
@@ -398,7 +398,7 @@ Open **http://localhost:5173** and sign up with an `@stu.manit.ac.in` email. �
 | `JWT_SECRET` | ✅ | Long random string used to sign JWTs |
 | `JWT_EXPIRE` | ⬜ | Session lifetime (default `365d`) |
 | `CLIENT_URL` | ⬜ | Allowed CORS origin(s), comma‑separated. Localhost dev origins and this project's own `*.vercel.app` / `*.netlify.app` preview subdomains (matched on the full project slug) are also allowed |
-| `DEPLOY_SLUGS` | ⬜ | Project slug(s) whose preview subdomains are CORS‑allowed (default `manithub-samayjainbm`) |
+| `DEPLOY_SLUGS` | ⬜ | Project slug(s) whose preview subdomains are CORS‑allowed (default `your-project`) |
 | `PORT` | ⬜ | API port (default `5001`) |
 | `NODE_ENV` | ⬜ | `development` or `production` |
 | `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` | ⬜ | Needed for image/avatar uploads |

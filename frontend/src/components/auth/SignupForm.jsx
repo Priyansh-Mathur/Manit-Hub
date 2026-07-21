@@ -55,7 +55,7 @@ export default function SignupForm({ onNeedsVerification }) {
       <Input
         label="Display name"
         icon={User}
-        placeholder="Samay Jain"
+        placeholder="Priyansh Mathur"
         value={displayName}
         onChange={(e) => setDisplayName(e.target.value)}
         required

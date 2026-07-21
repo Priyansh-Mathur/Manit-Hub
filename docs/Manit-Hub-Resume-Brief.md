@@ -1,12 +1,12 @@
 # Manit Hub — Project Brief for Resume Writing
 
 **Prepared for:** resume writer / CV consultant
-**Candidate:** Samay Jain — B.Tech student, Maulana Azad National Institute of Technology (MANIT / NIT Bhopal)
+**Candidate:** Priyansh Mathur — B.Tech student, Maulana Azad National Institute of Technology (MANIT / NIT Bhopal)
 **Role on project:** Sole designer, developer and maintainer (solo project — 100% of commits)
 **Timeline:** May 2026 – July 2026 (~2 months of active development, ongoing)
-**Live web app:** https://manithub-samayjainbm.vercel.app/
-**API:** https://manit-hub.onrender.com/api
-**Source:** https://github.com/Samay-Jain/Manit-Hub (MIT licensed, public)
+**Live web app:** https://YOUR-NETLIFY-SITE.netlify.app/
+**API:** https://manithub-backend.onrender.com/api
+**Source:** https://github.com/Priyansh-Mathur/Manit-Hub (MIT licensed, public)
 **Video tour:** https://youtu.be/4ngVWX2E0rU
 
 ---
@@ -233,6 +233,6 @@ as needed to fit the target format and page budget.
 
 ## 10. Links to include
 
-- Live demo: https://manithub-samayjainbm.vercel.app/
-- GitHub: https://github.com/Samay-Jain/Manit-Hub
+- Live demo: https://YOUR-NETLIFY-SITE.netlify.app/
+- GitHub: https://github.com/Priyansh-Mathur/Manit-Hub
 - Video tour: https://youtu.be/4ngVWX2E0rU

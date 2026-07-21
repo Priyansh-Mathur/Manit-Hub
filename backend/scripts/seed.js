@@ -13,7 +13,7 @@
  * every run, so it safely resets only the demo data it owns and regenerates it.
  * Real (non-seed) users and their data are never touched. Two accounts are
  * PROTECTED (updated in place, never deleted, password never changed):
- *   - 2311401212 (Samay Jain)  → made the SOLE admin
+ *   - 2311401212 (Priyansh Mathur)  → made the SOLE admin
  *   - 2311401213 (Shanjhi Jain)
  */
 require("dotenv").config();
