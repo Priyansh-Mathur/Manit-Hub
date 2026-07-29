@@ -47,7 +47,7 @@ const allowedOrigins = new Set([...explicitOrigins, ...devOrigins]);
 // so we match on the exact project slug as a subdomain prefix, not a loose
 // substring. A plain `hostname.includes("manithub")` would let anyone register
 // e.g. "manithub-evil.vercel.app" and pass — so we require the full slug.
-const PROJECT_SLUGS = (process.env.DEPLOY_SLUGS || "your-project")
+const PROJECT_SLUGS = (process.env.DEPLOY_SLUGS || "manit-hub")
   .split(",")
   .map((s) => s.trim().toLowerCase())
   .filter(Boolean);
