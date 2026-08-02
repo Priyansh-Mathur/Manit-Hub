@@ -9,7 +9,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL
   ? `${import.meta.env.VITE_API_URL}/api`
   : import.meta.env.DEV
   ? "/api"
-  : "https://manithub-backend.onrender.com/api";
+  : "https://manit-hub-eq95.onrender.com/api";
 
 const api = axios.create({
   baseURL: API_BASE_URL,

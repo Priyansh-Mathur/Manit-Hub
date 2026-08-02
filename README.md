@@ -30,7 +30,7 @@ Built by students, for students — a verified, university‑scoped community on
 
 <br/>
 
-[**🌐 Live Demo**](https://YOUR-NETLIFY-SITE.netlify.app/) · [**▶️ Video Tour**](https://youtu.be/4ngVWX2E0rU) · [**📱 Android App**](#-mobile-app-android) · [**🐛 Report Bug**](https://github.com/Priyansh-Mathur/Manit-Hub/issues) · [**✨ Request Feature**](https://github.com/Priyansh-Mathur/Manit-Hub/issues)
+[**🌐 Live Demo**](https://manit-hub.netlify.app/) · [**▶️ Video Tour**](https://youtu.be/4ngVWX2E0rU) · [**📱 Android App**](#-mobile-app-android) · [**🐛 Report Bug**](https://github.com/Priyansh-Mathur/Manit-Hub/issues) · [**✨ Request Feature**](https://github.com/Priyansh-Mathur/Manit-Hub/issues)
 
 </div>
 
@@ -66,8 +66,8 @@ Built by students, for students — a verified, university‑scoped community on
 
 </div>
 
-**🔗 Live web app:** https://YOUR-NETLIFY-SITE.netlify.app/
-**🔌 API base URL:** `https://manithub-backend.onrender.com/api`
+**🔗 Live web app:** https://manit-hub.netlify.app/
+**🔌 API base URL:** `https://manit-hub-eq95.onrender.com/api`
 
 <details>
 <summary><b>Example API response</b> — <code>POST /api/auth/login</code></summary>
@@ -160,7 +160,7 @@ Built by students, for students — a verified, university‑scoped community on
 | **Push & QR** | Firebase Cloud Messaging (web + Android) · `qrcode` (UPI QR generation) |
 | **Mobile** | Capacitor 8 (Android) — App, Status Bar, Splash Screen, native HTTP |
 | **Tooling** | ESLint, PostCSS, Autoprefixer, clsx + tailwind‑merge |
-| **Hosting** | Vercel (web) · Render (API) · MongoDB Atlas (DB) |
+| **Hosting** | Netlify (web) · Render (API) · MongoDB Atlas (DB) |
 
 ---
 
@@ -173,7 +173,7 @@ Manit Hub is a **monorepo** with a decoupled SPA/native client and a REST + WebS
 ```mermaid
 graph TB
   subgraph Clients
-    Web["🌐 Web App<br/>React + Vite · Vercel"]
+    Web["🌐 Web App<br/>React + Vite · Netlify"]
     Android["📱 Android App<br/>Capacitor"]
   end
 
@@ -333,15 +333,13 @@ Manit Hub is built **defence-in-depth** — no single control is trusted alone. 
 
 ## 📚 Project Documentation
 
-Five deep-dive documents live in [`docs/`](docs/) — each a self-contained HTML source rendered to a print-ready PDF:
+Three deep-dive documents live in [`docs/`](docs/) — each a self-contained HTML source rendered to a print-ready PDF:
 
 | Document | What it is | Pages |
 | :-- | :-- | :--: |
 | 📘 [**Developer Study Guide**](docs/Manit-Hub-Developer-Notes.pdf) | Interview-grade reference — every endpoint, library and design decision, with a function-by-function appendix. | ~88 |
 | 🗄️ [**Database Schema Reference**](docs/Manit-Hub-Database-Schema.pdf) | A compact data dictionary of all 21 collections — every field, index, hook and relationship. | ~11 |
 | 📖 [**The Build Story**](docs/Manit-Hub-Build-Story.pdf) | The narrative dev history — decisions, war stories and the bugs that shipped, told chronologically. | ~21 |
-| 🎓 [**SD3 Project Viva — 110 Q&A**](docs/Manit-Hub-SD3-Viva-Questions.pdf) | A graded question bank (**Easy → Hardest**) with model answers and “why this, not that” justifications, plus 10 implementation & content-moderation judgment questions. | ~18 |
-| 🧰 [**Tech Stack & Dependency Inventory**](docs/Manit-Hub-Tech-Stack-Inventory.pdf) | Every library, plugin, service and tool with versions and the reason it's there — plus an honest “gaps & dead weight” section. | ~7 |
 
 > The reusable prompts that generate these live in [`docs/PDF-Generation-Prompts.md`](docs/PDF-Generation-Prompts.md).
 
@@ -428,7 +426,7 @@ cd backend
 npm run seed
 ```
 
-Creates demo students (e.g. `aarav.demo@stu.manit.ac.in` / `password123`), 12 listings, 7 study groups, and private conversations + notifications for the configured primary user. Safe to re‑run — it resets only its own demo data.
+Creates demo students (e.g. `2311401214@stu.manit.ac.in` / `password123`), 12 listings, 7 study groups, and private conversations + notifications for the configured primary user. Safe to re‑run — it resets only its own demo data.
 
 ---
 
@@ -493,7 +491,7 @@ All endpoints are prefixed with `/api`. Protected routes require `Authorization:
 
 | Component | Platform | Notes |
 | :-- | :-- | :-- |
-| **Web** | Vercel | `npm run build` → output `frontend/dist` (SPA rewrite to `/index.html` via `vercel.json`) |
+| **Web** | Netlify | `npm run build` → output `frontend/dist` (SPA fallback via `public/_redirects`) |
 | **API** | Render | Express + Socket.IO web service; set env vars in the dashboard |
 | **Database** | MongoDB Atlas | Whitelist your hosts |
 | **Android** | Google Play | Upload the signed `.aab` |

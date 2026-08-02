@@ -2,7 +2,7 @@ import { io } from 'socket.io-client';
 
 const SOCKET_URL =
   import.meta.env.VITE_SOCKET_URL ||
-  "https://manithub-backend.onrender.com";
+  "https://manit-hub-eq95.onrender.com";
 
 class SocketService {
   constructor() {
