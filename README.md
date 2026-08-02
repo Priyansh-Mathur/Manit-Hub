@@ -30,7 +30,7 @@ Built by students, for students — a verified, university‑scoped community on
 
 <br/>
 
-[**🌐 Live Demo**](https://manit-hub.netlify.app/) · [**▶️ Video Tour**](https://youtu.be/4ngVWX2E0rU) · [**📱 Android App**](#-mobile-app-android) · [**🐛 Report Bug**](https://github.com/Priyansh-Mathur/Manit-Hub/issues) · [**✨ Request Feature**](https://github.com/Priyansh-Mathur/Manit-Hub/issues)
+[**🌐 Live Demo**](https://manit-hub.netlify.app/) · [**📱 Download Android APK**](https://drive.google.com/drive/folders/1y0t2uPb25F5g_-zYfILwCmrspYRbLXh5?usp=sharing) · [**🐛 Report Bug**](https://github.com/Priyansh-Mathur/Manit-Hub/issues) · [**✨ Request Feature**](https://github.com/Priyansh-Mathur/Manit-Hub/issues)
 
 </div>
 
@@ -40,11 +40,7 @@ Built by students, for students — a verified, university‑scoped community on
 
 <div align="center">
 
-<a href="https://youtu.be/4ngVWX2E0rU">
-  <img src="docs/screenshots/landing.png" alt="Manit Hub demo preview" width="680" />
-</a>
-
-<sub>▶️ Click to watch the full video tour on YouTube</sub>
+<img src="docs/screenshots/landing.png" alt="Manit Hub preview" width="680" />
 
 </div>
 
@@ -143,7 +139,7 @@ Built by students, for students — a verified, university‑scoped community on
 | 🗺️ | **Campus Maps** | 41 real MANIT locations — all 12 hostels, canteens, sports grounds and departments — opened in an embedded live map. | Navigate a sprawling campus by **name, category, or exact pin**. |
 | ⚙️ | **Rich Settings** | Profile + avatar upload, UPI payment QR, notification preferences and privacy controls. | Control your identity, payments and visibility **from one place**. |
 | 🎨 | **Premium Design System** | MANIT navy/crimson/gold tokens, full **dark mode**, a **⌘K command palette**, and a clean 8‑item **hub navigation** (Academics · Study · Marketplace · Campus Life) with in‑page tabs. | Feels like a flagship product, not a college portal. |
-| 📱 | **Native Android App** | The same app shipped via **Capacitor** — offline‑bundled fonts, theme‑aware status bar, signed APK/AAB. | One codebase, **web + Play‑Store‑ready Android**. |
+| 📱 | **Native Android App** | The same app runs through **Capacitor** with offline‑bundled fonts and a theme‑aware status bar. A verified installable APK is available from Google Drive. | One codebase for the web and Android. |
 | 🏛️ | **Multi‑tenant by University** | Every listing, group and message is scoped to the user's university via middleware. | Clean **data isolation** — ready to expand beyond a single campus. |
 
 ---
@@ -434,6 +430,10 @@ Creates demo students (e.g. `2311401214@stu.manit.ac.in` / `password123`), 12 li
 
 The web app is wrapped as a **native Android app** with [Capacitor](https://capacitorjs.com/). Native HTTP is enabled, so the app talks to the API with no extra CORS configuration.
 
+**Download:** [MANIT Hub Android APK](https://drive.google.com/drive/folders/1y0t2uPb25F5g_-zYfILwCmrspYRbLXh5?usp=sharing)
+
+The current downloadable artifact is version **1.2** (`versionCode 3`), targets Android API 36, supports Android 7.0+ (`minSdk 24`), and is debug-signed for direct installation/testing.
+
 ```bash
 cd frontend
 npm run android          # build web → sync → open in Android Studio
@@ -445,9 +445,7 @@ npm run android:icons    # (re)generate launcher icons & splash from the MANIT c
 | `npm run cap:sync` | Rebuild the web app and copy it into the Android project |
 | `npm run android` | Build, sync, and open Android Studio |
 | `gradlew assembleDebug` | Build a debug APK → `android/app/build/outputs/apk/debug/` |
-| `gradlew assembleRelease bundleRelease` | Build a **signed** APK + AAB for the Play Store |
-
-> **Note:** Capacitor 8 requires **JDK 21** (Android Studio bundles it). Release signing reads from `android/keystore.properties` — keep your keystore safe and **never commit it** (it's git‑ignored).
+> **Note:** Capacitor 8 requires **JDK 21**. A Play Store release would require a separate private release keystore; the public Drive build is an installable debug-signed APK.
 
 ---
 
@@ -494,7 +492,7 @@ All endpoints are prefixed with `/api`. Protected routes require `Authorization:
 | **Web** | Netlify | `npm run build` → output `frontend/dist` (SPA fallback via `public/_redirects`) |
 | **API** | Render | Express + Socket.IO web service; set env vars in the dashboard |
 | **Database** | MongoDB Atlas | Whitelist your hosts |
-| **Android** | Google Play | Upload the signed `.aab` |
+| **Android** | Google Drive | [Installable debug APK](https://drive.google.com/drive/folders/1y0t2uPb25F5g_-zYfILwCmrspYRbLXh5?usp=sharing) |
 
 > ℹ️ **Live chat note:** Socket.IO needs a persistent (non‑serverless) host. The API runs on **Render** as a long‑lived Node web service, so real‑time chat works in production. (Serverless hosts like Vercel can't hold WebSocket connections.)
 
